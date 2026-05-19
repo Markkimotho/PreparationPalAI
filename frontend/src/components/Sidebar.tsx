@@ -60,7 +60,7 @@ export function Sidebar({
         <span className={styles.logo} aria-hidden>
           ◆
         </span>
-        {!isRail && <span className={styles.brandName}>Prep Pal AI</span>}
+        {!isRail && <span className={styles.brandName}>PreparationPalAI</span>}
       </div>
 
       <nav className={styles.nav}>
