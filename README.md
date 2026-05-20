@@ -1,4 +1,4 @@
-# Prep Pal AI — RAG · Quiz · Web Scraping · Tool Calling · Observability
+# PreparationPalAI — RAG · Quiz · Web Scraping · Tool Calling · Observability
 
 A fully local AI study tool that turns any document or web topic into interactive quizzes. Upload your PDFs, paste a URL, or just name a topic and it scrapes the web — then generates MCQ, True/False, and Short Answer questions, grades your answers with feedback, and explains concepts on demand. Everything runs on your machine via Ollama. No API keys. No cloud costs.
 
@@ -15,7 +15,7 @@ Built on React + FastAPI + LangChain + LangGraph + ChromaDB + Ollama.
 No local Python, Node, Ollama, or model setup required. One command starts everything.
 
 ```bash
-git clone <repo-url> && cd rag-ai-chat-bot-with-langchain
+git clone <repo-url> && cd PreparationPalAI
 docker compose up --build
 ```
 
@@ -33,7 +33,7 @@ ollama pull qwen2.5:7b        # chat, quiz, code, agent
 ollama pull nomic-embed-text  # required for all RAG operations
 
 # 1. Backend
-git clone <repo-url> && cd rag-ai-chat-bot-with-langchain
+git clone <repo-url> && cd PreparationPalAI
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.api:app --reload          # http://localhost:8000  (API + /docs)
@@ -203,7 +203,7 @@ flowchart LR
 ## Project Structure
 
 ```text
-rag-ai-chat-bot-with-langchain/
+PreparationPalAI/
 ├── app/
 │   ├── config.py          # Settings (pydantic-settings), SUPPORTED_MODELS list
 │   ├── ingestion.py       # 3-stage PDF pipeline: PyPDF → PyMuPDF → Tesseract OCR
@@ -288,7 +288,7 @@ That's it. Ollama, Python, and all models are managed inside containers.
 
 ```bash
 git clone <repo-url>
-cd rag-ai-chat-bot-with-langchain
+cd PreparationPalAI
 docker compose up --build
 ```
 
@@ -312,7 +312,7 @@ docker compose down
 docker compose down -v
 
 # See how much space the model volume uses
-docker volume inspect rag-ai-chat-bot-with-langchain_ollama_models
+docker volume inspect PreparationPalAI_ollama_models
 
 # Run backend tests inside the web container
 docker compose exec web python -m pytest tests/ -v
@@ -362,7 +362,7 @@ You can also pull models directly from the app sidebar.
 
 ```bash
 git clone <repo-url>
-cd rag-ai-chat-bot-with-langchain
+cd PreparationPalAI
 
 python -m venv .venv
 source .venv/bin/activate        # macOS/Linux
@@ -754,7 +754,7 @@ docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up --build
 | Loki         | `http://localhost:3100`                                   | Log store (queried via Grafana)             |
 | `/metrics` | [http://localhost:8000/metrics](http://localhost:8000/metrics) | Raw Prometheus exposition                   |
 
-Grafana opens with the **"Prep Pal AI — Overview"** dashboard already provisioned (datasources + panels), showing:
+Grafana opens with the **"PreparationPalAI — Overview"** dashboard already provisioned (datasources + panels), showing:
 
 - Ollama up/down, indexed KB chunks, request and error rates
 - LLM request latency **p95 by surface** (chat · code · agent · quiz)
@@ -765,11 +765,11 @@ Grafana opens with the **"Prep Pal AI — Overview"** dashboard already provisio
 
 | Metric                                   | Type      | Labels                  | Meaning                              |
 | ---------------------------------------- | --------- | ----------------------- | ------------------------------------ |
-| `preppal_llm_request_duration_seconds` | histogram | `surface`             | End-to-end LLM request duration      |
-| `preppal_llm_requests_total`           | counter   | `surface`, `status` | LLM requests by outcome              |
-| `preppal_stream_tokens_total`          | counter   | `surface`             | Tokens streamed to clients           |
-| `preppal_ollama_up`                    | gauge     | —                      | Ollama reachable (1/0)               |
-| `preppal_kb_chunks`                    | gauge     | —                      | Chunks indexed in the knowledge base |
+| `preparationpalai_llm_request_duration_seconds` | histogram | `surface`             | End-to-end LLM request duration      |
+| `preparationpalai_llm_requests_total`           | counter   | `surface`, `status` | LLM requests by outcome              |
+| `preparationpalai_stream_tokens_total`          | counter   | `surface`             | Tokens streamed to clients           |
+| `preparationpalai_ollama_up`                    | gauge     | —                      | Ollama reachable (1/0)               |
+| `preparationpalai_kb_chunks`                    | gauge     | —                      | Chunks indexed in the knowledge base |
 
 Default per-route HTTP metrics (`http_requests_total`, `http_request_duration_seconds`) come from `prometheus-fastapi-instrumentator`.
 
@@ -796,8 +796,8 @@ Promtail tags each line with these labels:
 | Label | Examples |
 | --- | --- |
 | `compose_service` | `web`, `ollama`, `grafana`, `prometheus` |
-| `container` | `prep-pal-web`, `prep-pal-ollama` |
-| `compose_project` | `rag-ai-chat-bot-with-langchain` |
+| `container` | `preparationpalai-web`, `preparationpalai-ollama` |
+| `compose_project` | `PreparationPalAI` |
 
 LogQL queries you'll use:
 

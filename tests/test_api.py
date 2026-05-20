@@ -371,9 +371,9 @@ def test_metrics_endpoint_exposes_custom_metrics():
         client.post("/api/code-chat/stream", json={"message": "hi"})
 
     body = client.get("/metrics").text
-    assert "preppal_stream_tokens_total" in body
-    assert "preppal_llm_request_duration_seconds" in body
-    assert "preppal_llm_requests_total" in body
+    assert "preparationpalai_stream_tokens_total" in body
+    assert "preparationpalai_llm_request_duration_seconds" in body
+    assert "preparationpalai_llm_requests_total" in body
     # Default HTTP metrics from the instrumentator are present too.
     assert "http_request" in body
 

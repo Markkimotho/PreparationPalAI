@@ -1,5 +1,5 @@
 [project]
-name = "rag-ai-chatbot"
+name = "preparationpalai"
 version = "1.0.0"
 description = "RAG AI Chatbot with LangChain, Ollama, and ChromaDB"
 requires-python = ">=3.11"
