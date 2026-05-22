@@ -8,6 +8,7 @@ import { ProgrammingAssistant } from "./sections/ProgrammingAssistant";
 import { QuizPrep } from "./sections/QuizPrep";
 import { RegularChat } from "./sections/RegularChat";
 import { StudyAgent } from "./sections/StudyAgent";
+import { Coach } from "./sections/Coach";
 
 export function App() {
   return (
@@ -15,7 +16,8 @@ export function App() {
       <KnowledgeBaseProvider>
         <Routes>
           <Route element={<AppLayout />}>
-            <Route index element={<Navigate to="/quiz" replace />} />
+            <Route index element={<Navigate to="/prepare" replace />} />
+            <Route path="/prepare" element={<Coach />} />
             <Route path="/quiz" element={<QuizPrep />} />
             <Route path="/agent" element={<StudyAgent />} />
             <Route path="/code" element={<ProgrammingAssistant />} />

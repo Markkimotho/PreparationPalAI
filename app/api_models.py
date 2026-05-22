@@ -19,6 +19,7 @@ class HealthResponse(BaseModel):
 class ModelsResponse(BaseModel):
     supported: list[str]
     installed: list[str]
+    catalogue: list[dict] = []
 
 
 class PullRequest(BaseModel):
