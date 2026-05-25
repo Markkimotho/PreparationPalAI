@@ -23,6 +23,7 @@ export function Sidebar({
   // Mobile drawer: close on Esc, trap focus while open.
   useEffect(() => {
     if (!isMobile || !mobileOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCloseMobile();
       if (e.key === "Tab" && navRef.current) {
@@ -43,7 +44,10 @@ export function Sidebar({
     };
     document.addEventListener("keydown", onKey);
     navRef.current?.querySelector<HTMLElement>("a")?.focus();
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previous?.focus();
+    };
   }, [isMobile, mobileOpen, onCloseMobile]);
 
   const isRail = !isMobile && collapsed;
@@ -55,6 +59,7 @@ export function Sidebar({
         isMobile ? styles.mobile : ""
       } ${isMobile && mobileOpen ? styles.open : ""}`}
       aria-label="Sections"
+      aria-hidden={isMobile && !mobileOpen ? true : undefined}
     >
       <div className={styles.brand}>
         <span className={styles.logo} aria-hidden>
@@ -62,12 +67,14 @@ export function Sidebar({
         </span>
         {!isRail && <span className={styles.brandName}>PreparationPalAI</span>}
       </div>
+      {isMobile && <button type="button" onClick={onCloseMobile} aria-label="Close menu">Close menu</button>}
 
       <nav className={styles.nav}>
         {SECTIONS.map((s) => (
           <NavLink
             key={s.id}
             to={s.path}
+            aria-label={s.label}
             data-section={s.id}
             title={isRail ? s.label : undefined}
             className={({ isActive }) =>
