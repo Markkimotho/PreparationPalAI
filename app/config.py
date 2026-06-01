@@ -1,6 +1,9 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, model_validator
+from app.workspace import workspace_id
 
 # Curated list of supported Ollama chat models, shown in this order in the UI.
 # Best open-source models for structured reasoning and JSON output as of 2026.
@@ -53,8 +56,42 @@ class Settings(BaseSettings):
     extra_models: list[str] = []
     public_base_url: str = ""
     social_image: str = "/social-preview.png"
+    production: bool = False
+    auth_enabled: bool = False
+    # SHA-256 bearer token digests -> {workspace, role}. Never store raw tokens.
+    auth_tokens: dict[str, dict[str, str]] = Field(default_factory=dict, repr=False)
+
+    @model_validator(mode='after')
+    def validate_security(self):
+        import re
+        if self.production and not self.auth_enabled:
+            raise ValueError('PRODUCTION requires AUTH_ENABLED=true')
+        if self.auth_enabled and not self.auth_tokens:
+            raise ValueError('AUTH_TOKENS must contain at least one token digest')
+        for digest, principal in self.auth_tokens.items():
+            if not re.fullmatch(r'[0-9a-f]{64}', digest):
+                raise ValueError('AUTH_TOKENS keys must be SHA-256 hex digests')
+            if not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', principal.get('workspace', '')):
+                raise ValueError('Each token requires a safe workspace identifier')
+            if principal.get('workspace') == 'local':
+                raise ValueError('The local workspace is reserved for unauthenticated local use')
+            if principal.get('role') not in ('reader', 'editor', 'admin'):
+                raise ValueError('Token role must be reader, editor or admin')
+        return self
 
 
 @lru_cache
-def get_settings() -> Settings:
+def get_base_settings() -> Settings:
     return Settings()
+
+
+def get_settings() -> Settings:
+    settings = get_base_settings()
+    workspace = workspace_id.get()
+    if workspace == 'local':
+        return settings
+    return settings.model_copy(update={
+        'chroma_persist_dir': str(Path(settings.chroma_persist_dir) / 'workspaces' / workspace),
+        'flashcards_dir': str(Path(settings.flashcards_dir) / 'workspaces' / workspace),
+        'coach_db': str(Path(settings.coach_db).parent / 'workspaces' / workspace / 'sessions.sqlite3'),
+    })
