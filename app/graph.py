@@ -13,6 +13,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
 from app.config import get_settings
+from app.workspace import scoped_thread
 from app.memory import get_memory_saver
 from app.prompts import CONTEXTUALIZE_PROMPT, QA_PROMPT
 from app.retriever import get_retriever
@@ -123,7 +124,7 @@ def invoke(
         },
         config={
             "configurable": {
-                "thread_id": thread_id,
+                "thread_id": scoped_thread(thread_id),
                 "model": model,
                 "top_k": top_k,
             }
@@ -156,7 +157,7 @@ def stream(
     """
     graph = get_graph()
     config: dict = {
-        "configurable": {"thread_id": thread_id, "model": model, "top_k": top_k}
+        "configurable": {"thread_id": scoped_thread(thread_id), "model": model, "top_k": top_k}
     }
     inputs = {
         "messages": [HumanMessage(content=question)],
