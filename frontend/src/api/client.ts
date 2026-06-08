@@ -1,4 +1,5 @@
 // Typed fetch wrapper for the JSON routes. Streaming routes live in stream.ts.
+import { apiFetch } from './access';
 
 import type {
   ChatMode,
@@ -26,7 +27,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await apiFetch(path, {
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     ...init,
   });
