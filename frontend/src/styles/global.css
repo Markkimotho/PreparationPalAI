@@ -139,6 +139,9 @@ input, textarea { max-width: 100%; }
 .md pre, .md table { max-width: 100%; overflow-x: auto; }
 .md table { display: block; }
 .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding-bottom: 4px; }
+.access-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.access-card { width: min(100%, 440px); display: grid; gap: 16px; padding: 28px; border: 1px solid var(--border); border-radius: 16px; }
+.access-card input, .access-card button { padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; }
 @media (max-width: 767px) {
   input, textarea, select { font-size: 16px !important; }
 }
