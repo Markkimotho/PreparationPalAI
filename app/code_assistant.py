@@ -12,7 +12,7 @@ import logging
 from collections.abc import Iterator
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 

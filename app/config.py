@@ -60,12 +60,28 @@ class Settings(BaseSettings):
     auth_enabled: bool = False
     # SHA-256 bearer token digests -> {workspace, role}. Never store raw tokens.
     auth_tokens: dict[str, dict[str, str]] = Field(default_factory=dict, repr=False)
+    llm_timeout: float = Field(default=180, gt=0, le=900)
+    llm_context_tokens: int = Field(default=8192, ge=1024, le=65536)
+    llm_output_tokens: int = Field(default=2048, ge=128, le=8192)
+    request_max_bytes: int = Field(default=2_000_000, ge=1024)
+    usage_db: str = 'data/usage/usage.sqlite3'
+    requests_per_minute: int = Field(default=30, ge=1)
+    requests_per_day: int = Field(default=1000, ge=1)
+    cors_origins: list[str] = ['http://localhost:5173', 'http://127.0.0.1:5173']
 
     @model_validator(mode='after')
     def validate_security(self):
         import re
         if self.production and not self.auth_enabled:
             raise ValueError('PRODUCTION requires AUTH_ENABLED=true')
+        from urllib.parse import urlsplit
+        endpoint = urlsplit(self.ollama_base_url)
+        if endpoint.scheme not in ('http', 'https') or not endpoint.hostname or endpoint.username or endpoint.password:
+            raise ValueError('OLLAMA_BASE_URL must be an HTTP(S) origin without credentials')
+        if not self.ollama_model.strip() or not self.ollama_embedding_model.strip():
+            raise ValueError('Set OLLAMA_MODEL and OLLAMA_EMBEDDING_MODEL to non-empty installed tags')
+        if self.production and '*' in self.cors_origins:
+            raise ValueError('Production CORS_ORIGINS must list explicit origins')
         if self.auth_enabled and not self.auth_tokens:
             raise ValueError('AUTH_TOKENS must contain at least one token digest')
         for digest, principal in self.auth_tokens.items():

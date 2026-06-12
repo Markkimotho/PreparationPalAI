@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.messages import HumanMessage
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 
 from app.config import get_settings
 from app.quiz import _extract_json  # robust JSON parsing shared with quiz gen
