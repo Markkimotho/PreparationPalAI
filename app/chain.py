@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_classic.chains.history_aware_retriever import create_history_aware_retriever
 from langchain_classic.chains.retrieval import create_retrieval_chain
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 
 from app.config import get_settings
 from app.memory import add_messages, get_chat_history

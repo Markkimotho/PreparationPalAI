@@ -17,7 +17,7 @@ from collections.abc import Iterator
 
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
