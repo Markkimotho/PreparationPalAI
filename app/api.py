@@ -63,7 +63,9 @@ from app.public_site import router as public_router
 from app.auth import router as auth_router, WorkspaceAuth
 from app.limits import consume
 from fastapi import Request
-from app.ingestion import IMAGE_EXTENSIONS, load_and_chunk_image, load_and_chunk_pdf
+from app.ingestion import IMAGE_EXTENSIONS
+from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
+from app.upload_safety import validate_upload
 from app.memory import clear_history
 from app.quiz import explain_concept, generate_questions, validate_answer
 from app.scraper import search_and_scrape
@@ -216,17 +218,23 @@ def kb_sources() -> SourcesResponse:
 
 @app.post("/api/kb/upload", response_model=IngestResponse)
 async def kb_upload(files: list[UploadFile] = File(...)) -> IngestResponse:
+    if len(files) > get_settings().upload_max_files:
+        raise HTTPException(413, 'Too many files in one upload')
     total = 0
     details: list[str] = []
     for f in files:
-        name = f.filename or "file"
+        name = Path((f.filename or 'file').replace('\\', '/')).name
         ext = Path(name).suffix.lower()
         is_pdf = ext == ".pdf"
         is_image = ext in IMAGE_EXTENSIONS
         if not (is_pdf or is_image):
             details.append(f"{name}: skipped (unsupported type)")
             continue
-        data = await f.read()
+        data = await f.read(get_settings().upload_max_bytes + 1)
+        try:
+            validate_upload(data, name, f.content_type or 'application/octet-stream')
+        except ValueError as exc:
+            raise HTTPException(413 if len(data) > get_settings().upload_max_bytes else 415, str(exc)) from None
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
             tmp.write(data)
             tmp_path = Path(tmp.name)

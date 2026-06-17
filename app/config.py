@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     requests_per_minute: int = Field(default=30, ge=1)
     requests_per_day: int = Field(default=1000, ge=1)
     cors_origins: list[str] = ['http://localhost:5173', 'http://127.0.0.1:5173']
+    upload_max_bytes: int = Field(default=20 * 1024 * 1024, ge=1024)
+    upload_max_files: int = Field(default=3, ge=1, le=10)
+    extract_timeout: float = Field(default=120, gt=0, le=600)
+    scanner_command: list[str] = []
 
     @model_validator(mode='after')
     def validate_security(self):
