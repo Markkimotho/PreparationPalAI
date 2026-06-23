@@ -1,0 +1,25 @@
+name: Live model release gate
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Exact installed Ollama model tag
+        required: true
+        default: qwen2.5:7b
+permissions:
+  contents: read
+jobs:
+  live-quality:
+    # Trusted, isolated runner with installed models; never run fork PR code here.
+    runs-on: [self-hosted, ollama]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m scripts.quality_gate --live --model "$EVAL_MODEL" --report live-quality.json
+        env:
+          EVAL_MODEL: ${{ inputs.model }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-model-quality
+          path: live-quality.json
