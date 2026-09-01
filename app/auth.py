@@ -38,7 +38,7 @@ class WorkspaceAuth:
         settings = get_base_settings()
         path = scope['path']
         headers = dict(scope['headers'])
-        limit = settings.request_max_bytes if path != '/api/kb/upload' else 64 * 1024 * 1024
+        limit = 64 * 1024 * 1024 if path in ('/api/kb/upload', '/api/kb/jobs/upload') else settings.request_max_bytes
         try:
             length = int(headers.get(b'content-length', b'0'))
         except ValueError:
