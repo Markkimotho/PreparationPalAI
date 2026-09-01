@@ -89,7 +89,7 @@ def ingest_documents(
         vectors_per_batch = list(pool.map(_embed, batches))
 
     for batch, vectors in zip(batches, vectors_per_batch):
-        collection.add(
+        collection.upsert(
             ids=[d.metadata["id"] for d in batch],
             embeddings=vectors,
             metadatas=[d.metadata for d in batch],
