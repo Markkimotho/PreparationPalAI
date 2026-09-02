@@ -1,0 +1,25 @@
+services:
+  web:
+    environment:
+      - PRODUCTION=true
+      - AUTH_ENABLED=true
+      - AUTH_TOKENS=${AUTH_TOKENS:?Set server-side token digests before production startup}
+      - CORS_ORIGINS=${CORS_ORIGINS:-[]}
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      - PUBLIC_HOST=${PUBLIC_HOST:?Set your public hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web]
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1
+volumes:
+  caddy_data:
+  caddy_config:
