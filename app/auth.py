@@ -25,7 +25,7 @@ def me():
 def mutation(path: str, method: str) -> bool:
     return method not in ('GET', 'HEAD', 'OPTIONS') and (
         path.startswith('/api/kb') or path.startswith('/api/flashcards') or
-        path == '/api/models/pull')
+        path.startswith('/api/models/pull'))
 
 
 class WorkspaceAuth:
@@ -68,7 +68,7 @@ class WorkspaceAuth:
                                         headers={'WWW-Authenticate': 'Bearer'})
                 return await response(scope, receive, send)
             if ((mutation(path, scope['method']) and principal['role'] == 'reader') or
-                ((path == '/api/models/pull' or path == '/metrics') and principal['role'] != 'admin')):
+                ((path.startswith('/api/models/pull') or path == '/metrics') and principal['role'] != 'admin')):
                 return await JSONResponse({'detail': 'Your role cannot perform this operation.'}, 403)(scope, receive, send)
             workspace, identity = principal['workspace'], digest[:16]
         wtoken = workspace_id.set(workspace)

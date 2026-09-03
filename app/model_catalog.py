@@ -23,7 +23,7 @@ def catalogue(installed: set[str], supported: list[str] | None = None) -> list[d
             "General study; capabilities unverified", None, "Resource requirements unknown"))
         present = name in installed or (":" not in name and f"{name}:latest" in installed)
         result.append(dict(id=name, installed=present,
-                           availability="installed" if present else "downloadable",
+                           availability="installed" if present else ('unknown' if name in settings.extra_models else 'downloadable'),
                            recommended_use=use, tools=tools, structured_output=None,
                            resources=resources))
     return result

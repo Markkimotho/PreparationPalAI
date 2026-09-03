@@ -221,6 +221,30 @@ def models_pull(req: PullRequest) -> PullResponse:
     return PullResponse(ok=ok, message=message)
 
 
+@app.post('/api/models/pull/stream')
+def models_pull_stream(req: PullRequest):
+    def frames():
+        try:
+            with httpx.stream('POST', f'{get_settings().ollama_base_url}/api/pull',
+                              json={'name': req.model, 'stream': True}, timeout=900) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    body = json.loads(line)
+                    if body.get('error'):
+                        raise ValueError('Model unavailable')
+                    frame = dict(type='progress', status=str(body.get('status', 'Downloading'))[:100],
+                                 completed=max(0, int(body.get('completed', 0))),
+                                 total=max(0, int(body.get('total', 0))))
+                    yield f'data: {json.dumps(frame)}\n\n'
+        except Exception:
+            yield 'data: {"type":"error","message":"Download failed. Check the model tag and Ollama connection."}\n\n'
+        yield 'data: {"type":"done"}\n\n'
+    return StreamingResponse(frames(), media_type='text/event-stream',
+                             headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
 # ── Knowledge base ────────────────────────────────────────────────────────────
 
 
