@@ -77,6 +77,7 @@ export interface ValidationResult {
 
 // SSE event frames emitted by streaming endpoints.
 export type StreamEvent =
+  | { type: 'progress'; status: string; completed: number; total: number }
   | { type: "token"; text: string }
   | { type: "sources"; sources: Source[] }
   | { type: "tool"; name: string }
