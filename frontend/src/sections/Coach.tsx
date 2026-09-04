@@ -5,12 +5,12 @@ import { Markdown } from '../components/Markdown';
 import styles from './Coach.module.css';
 import { apiFetch } from '../api/access';
 
-interface Result { score: number; feedback: string; key_missed: string[]; hint: string }
+interface Result { score: number; feedback: string; key_missed: string[]; hint: string; rubric?: { reasoning: number; accuracy: number; clarity: number } | null }
 interface Session {
   id: string; topic: string; mode: string; model: string; index: number; total: number;
   deadline: number; done: boolean; grounding: string;
   sources: { source: string; page: string | number }[];
-  question: { type: string; question: string; topic: string; options: Record<string, string> } | null;
+  question: { type: string; question: string; topic: string; options: Record<string, string>; adaptive?: boolean } | null;
   answers: { question: string; reference: string; explanation: string; result: Result }[];
   summary: { score: number; topics: { topic: string; score: number; missed: string[] }[]; next_actions: string[] } | null;
 }
@@ -114,6 +114,11 @@ export function Coach() {
       {session.deadline > 0 && !session.done && <p role="timer">Time remaining: {Math.max(0, Math.ceil((session.deadline * 1000 - clock) / 1000))} seconds</p>}
       {feedback && session.answers.length > 0 ? <div>
         <h3>Answer feedback · {session.answers[session.answers.length - 1].result.score}/100</h3>
+        {session.answers[session.answers.length - 1].result.rubric && <div className={styles.row}>
+          <p>Reasoning: {session.answers[session.answers.length - 1].result.rubric!.reasoning}/40</p>
+          <p>Accuracy & units: {session.answers[session.answers.length - 1].result.rubric!.accuracy}/40</p>
+          <p>Clarity: {session.answers[session.answers.length - 1].result.rubric!.clarity}/20</p>
+        </div>}
         <Markdown>{session.answers[session.answers.length - 1].result.feedback}</Markdown>
         <p>{session.answers[session.answers.length - 1].result.hint}</p>
         <details><summary>Reference answer and solution</summary><Markdown>{session.answers[session.answers.length - 1].reference + '\n\n' + session.answers[session.answers.length - 1].explanation}</Markdown></details>
@@ -130,6 +135,7 @@ export function Coach() {
         setFeedback(true);
       }); }}>
         <p>Question {session.index + 1} / {session.total} · {session.question.topic}</p>
+        {session.question.adaptive && <p>A targeted question to reinforce the concept you just missed.</p>}
         <Markdown>{session.question.question}</Markdown>
         {['mcq', 'true_false'].includes(session.question.type) ? <fieldset><legend>Your answer</legend>
           {Object.entries(session.question.type === 'true_false' ? { True: 'True', False: 'False' } : session.question.options).map(([key, value]) =>
