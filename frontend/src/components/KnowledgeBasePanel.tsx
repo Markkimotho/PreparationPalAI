@@ -13,16 +13,20 @@ export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [topic, setTopic] = useState("");
   const [status, setStatus] = useState<Status>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const previous = document.activeElement as HTMLElement | null;
+    panelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     const onClick = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
+        closeRef.current();
       }
     };
     document.addEventListener("keydown", onKey);
@@ -30,8 +34,9 @@ export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
     return () => {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onClick);
+      previous?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   const onFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

@@ -17,6 +17,7 @@
 .card .active { border-color: var(--accent); background: var(--accent-soft); }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 .row label { flex: 1; min-width: 120px; }
+.row a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 0; }
 .card .primary { background: var(--accent); color: white; text-align: center; font-weight: 600; }
 .history { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); padding: 14px 0; }
 .grounding { color: var(--text-dim); font-size: 13px; }
