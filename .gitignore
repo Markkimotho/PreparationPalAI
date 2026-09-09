@@ -24,6 +24,8 @@ data/pdfs/
 data/chroma/
 data/coach/
 data/flashcards/
+data/jobs/
+data/usage/
 
 # OS
 .DS_Store

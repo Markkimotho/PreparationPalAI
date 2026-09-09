@@ -29,3 +29,16 @@ def test_local_instance_not_indexed(monkeypatch):
     assert 'noindex' in client.get('/').text
     assert 'Disallow: /' in client.get('/robots.txt').text
     assert len(ElementTree.fromstring(client.get('/sitemap.xml').text)) == 0
+
+
+def test_api_and_asset_typos_do_not_return_a_successful_spa_shell():
+    assert client.get('/api/nonexistent').status_code == 404
+    assert client.get('/assets/missing.js').status_code == 404
+    assert client.get('/missing-public-page').status_code == 404
+
+
+def test_public_origin_rejects_embedded_credentials():
+    import pytest
+    from app.config import Settings
+    with pytest.raises(ValueError, match='PUBLIC_BASE_URL'):
+        Settings(public_base_url='https://user:password@example.com')
