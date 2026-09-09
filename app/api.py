@@ -510,7 +510,9 @@ class SPAStaticFiles(StaticFiles):
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
-            if exc.status_code == 404:
+            if exc.status_code == 404 and path.strip('/').split('/')[0] in {
+                'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide'
+            }:
                 return await super().get_response("index.html", scope)
             raise
 
