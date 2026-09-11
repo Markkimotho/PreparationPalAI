@@ -19,7 +19,7 @@ SUPPORTED_MODELS: list[str] = [
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", hide_input_in_errors=True)
 
     # Ollama (local, free)
     ollama_base_url: str = "http://localhost:11434"

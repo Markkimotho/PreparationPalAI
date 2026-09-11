@@ -77,7 +77,10 @@ export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
       </div>
       {jobs?.length > 0 && <details><summary>Recent ingestion jobs</summary>
         {jobs.map(job => <div key={job.id}><p>{job.id.slice(0, 8)} · {job.state}</p>
-          {job.state === 'failed' && <button onClick={async () => { await api.kbRetryJob(job.id); await refresh(); }}>Retry ingestion</button>}
+          {job.state === 'failed' && <button onClick={async () => {
+            try { await api.kbRetryJob(job.id); await refresh(); }
+            catch { setStatus({ kind: 'err', text: 'Could not retry this job. Check your permissions and connection.' }); }
+          }}>Retry ingestion</button>}
         </div>)}
       </details>}
 
