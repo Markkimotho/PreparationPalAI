@@ -21,8 +21,9 @@ def main():
         def api(route):
             path = route.request.url.split('/api/', 1)[1]
             body = {'health': dict(online=False, model_count=0),
+                    'auth/status': dict(enabled=False),
                     'models': dict(supported=['glm4:9b', 'deepseek-r1:7b'], installed=[]),
-                    'kb/count': dict(count=0), 'kb/sources': dict(sources=[]),
+                    'kb/count': dict(count=0), 'kb/sources': dict(sources=[]), 'kb/jobs': dict(jobs=[]),
                     'flashcards': dict(decks=[])}.get(path, dict(sessions=[], weak_topics=[]))
             route.fulfill(content_type='application/json', body=json.dumps(body))
 
