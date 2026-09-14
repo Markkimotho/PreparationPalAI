@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import shutil
 import tarfile
 import tempfile
@@ -18,7 +19,10 @@ def backup(data_dir: Path, archive: Path):
     files = sorted(p for p in data_dir.rglob('*') if p.is_file())
     if any(p.is_symlink() for p in data_dir.rglob('*')):
         raise ValueError('Data directory must not contain symbolic links')
-    manifest = {str(p.relative_to(data_dir)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+    manifest = {}
+    for file in files:
+        with file.open('rb') as source:
+            manifest[str(file.relative_to(data_dir))] = hashlib.file_digest(source, 'sha256').hexdigest()
     if 'backup-manifest.json' in manifest:
         raise ValueError('Reserved backup manifest filename')
     with tempfile.NamedTemporaryFile(dir=archive.parent, suffix='.part', delete=False) as temporary:
@@ -33,7 +37,8 @@ def backup(data_dir: Path, archive: Path):
             tar.addfile(entry, io.BytesIO(raw))
         # Re-read/check all files before publishing the archive.
         verify(temporary_path)
-        temporary_path.rename(archive)
+        # Atomic publication without overwriting a concurrent backup at this path.
+        os.link(temporary_path, archive)
     finally:
         temporary_path.unlink(missing_ok=True)
 
@@ -42,18 +47,21 @@ def verify(archive: Path):
     with tarfile.open(archive, 'r:gz') as tar:
         members = tar.getmembers()
         names = [m.name for m in members]
-        if len(names) != len(set(names)) or sum(m.size for m in members) > 20 * 1024**3:
+        if len(names) > 100000 or len(names) != len(set(names)) or sum(m.size for m in members) > 20 * 1024**3:
             raise ValueError('Invalid archive size or duplicate members')
         for member in members:
             path = PurePosixPath(member.name)
             if path.is_absolute() or '..' in path.parts or not member.isfile():
                 raise ValueError('Unsafe archive entry')
+        if tar.getmember('backup-manifest.json').size > 10 * 1024**2:
+            raise ValueError('Backup manifest is too large')
         manifest = json.load(tar.extractfile('backup-manifest.json'))
         if manifest.get('version') != 1 or set(names) != {*manifest['files'], 'backup-manifest.json'}:
             raise ValueError('Invalid manifest')
         for name, digest in manifest['files'].items():
-            if hashlib.sha256(tar.extractfile(name).read()).hexdigest() != digest:
-                raise ValueError('Backup integrity check failed')
+            with tar.extractfile(name) as source:
+                if hashlib.file_digest(source, 'sha256').hexdigest() != digest:
+                    raise ValueError('Backup integrity check failed')
         return manifest
 
 
@@ -66,7 +74,8 @@ def restore(archive: Path, destination: Path):
         for name in manifest['files']:
             target = destination / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            with target.open('xb') as output, tar.extractfile(name) as source:
+            descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, 'wb') as output, tar.extractfile(name) as source:
                 shutil.copyfileobj(source, output)
 
 
