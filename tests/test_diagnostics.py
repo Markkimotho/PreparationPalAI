@@ -32,3 +32,13 @@ def test_readiness_is_explicit_when_models_unavailable():
 def test_frontend_reports_only_allowlisted_categories():
     assert client.post('/api/diagnostics/frontend', json={'kind': 'script', 'message': 'ignored secret'}).status_code == 200
     assert client.post('/api/diagnostics/frontend', json={'kind': 'secret'}).status_code == 422
+
+
+def test_server_exception_handler_uses_safe_root_formatting():
+    logger = logging.getLogger('uvicorn.error')
+    assert logger.handlers == [] and logger.propagate
+    record = logging.LogRecord(logger.name, logging.ERROR, '', 1, 'private prompt', (),
+                               (RuntimeError, RuntimeError('private source'), None))
+    formatted = SafeFormatter().format(record)
+    assert 'private' not in formatted
+    assert json.loads(formatted)['error_type'] == 'RuntimeError'
