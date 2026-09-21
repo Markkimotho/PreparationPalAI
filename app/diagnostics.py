@@ -40,6 +40,12 @@ def configure_logging():
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(logging.INFO)
+    # Uvicorn installs its own traceback-printing handler before importing the app.
+    # Route it through the same allowlist rather than leaking exception messages.
+    for name in ('uvicorn', 'uvicorn.error'):
+        logger = logging.getLogger(name)
+        logger.handlers = []
+        logger.propagate = True
     logging.getLogger('uvicorn.access').disabled = True
     logging.getLogger('httpx').setLevel(logging.WARNING)
     logging.getLogger('httpcore').setLevel(logging.WARNING)
