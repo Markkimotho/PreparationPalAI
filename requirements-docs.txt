@@ -1,0 +1,3 @@
+# Documentation tooling is independent of the application/model environment.
+mkdocs==1.6.1
+mkdocs-material==9.7.7

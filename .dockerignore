@@ -12,6 +12,9 @@ data/
 *.egg-info
 dist
 build
+site
+docs_theme
+engineering
 frontend/node_modules
 frontend/dist
 node_modules
