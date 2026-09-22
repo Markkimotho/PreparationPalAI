@@ -1,5 +1,7 @@
 # Quality gates and release policy
 
+For contributors evaluating changes and maintainers approving a release.
+
 `evals/golden.json` is a versioned, non-sensitive science/algorithm dataset. The
 offline gate validates its schema and source references. It is deliberately labelled
 `offline-contract`; passing it does not establish model accuracy.
