@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "../../components/Markdown";
 import sectionStyles from "../Section.module.css";
-import { GUIDE, type GuideSection } from "./content";
+import { GUIDE, USER_GUIDE_URL, CONTRIBUTOR_GUIDE_URL, type GuideSection } from "./content";
 import styles from "./Guide.module.css";
 
 export function Guide() {
@@ -43,6 +43,11 @@ export function Guide() {
 
   return (
     <div className={sectionStyles.section}>
+      <div className={styles.guideLinks}>
+        <span>Practical help for your next study session.</span>
+        <a href={USER_GUIDE_URL} target="_blank" rel="noreferrer">Full user guide ↗</a>
+        <a href={CONTRIBUTOR_GUIDE_URL} target="_blank" rel="noreferrer">Contribute to the project ↗</a>
+      </div>
       <div className={styles.layout}>
         <nav className={styles.toc} aria-label="Guide contents">
           {groups.map(([group, sections]) => (
