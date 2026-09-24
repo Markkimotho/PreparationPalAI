@@ -30,13 +30,13 @@ link here for the administrator’s part of the task.
 
 ```bash
 pip install -r requirements-docs.txt
-python scripts/build_docs.py
-python -m http.server 8088 --directory site
+python scripts/build_docs.py --preview --port 8088
 ```
 
-Open `http://localhost:8088/` for the product guide and `/contribute/` for the
-handbook. For cross-portal links under the exact GitHub project path, use the
-preview command described by `python scripts/build_docs.py --help`.
+Open `http://localhost:8088/PreparationPalAI/` for the product guide and
+`http://localhost:8088/PreparationPalAI/contribute/` for the handbook. This preview
+preserves the GitHub project path, including links between the portals. To build
+without starting a server, run `python scripts/build_docs.py`.
 
 The build runs product first and handbook second. Do not rebuild the product alone
 after the combined build when preparing a deployment: MkDocs cleans its output
