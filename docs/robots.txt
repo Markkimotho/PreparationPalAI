@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /PreparationPalAI/
+Sitemap: https://markkimotho.github.io/PreparationPalAI/sitemap.xml
+Sitemap: https://markkimotho.github.io/PreparationPalAI/contribute/sitemap.xml
