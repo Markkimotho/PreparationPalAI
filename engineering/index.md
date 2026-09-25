@@ -1,26 +1,17 @@
 ---
-title: Build with us
-description: Find a useful contribution, run PreparationPalAI locally, and understand the boundaries that keep study tools trustworthy.
+title: Contributor handbook
+description: Development setup, architecture, testing, and operations for PreparationPalAI contributors.
 hide:
   - toc
 ---
 
-<div class="pp-contributor-hero" markdown>
+# Contributor handbook
 
-<p class="pp-eyebrow">THE CONTRIBUTOR HANDBOOK</p>
+Development and operations reference for PreparationPalAI. Start with
+[development setup](development.md) to run the project locally, then read the
+[contribution workflow](workflow.md) before opening a pull request.
 
-# Make studying better, together.
-
-This is the engineering side of PreparationPalAI: how it works, how to change it,
-and how to operate it responsibly. You don’t need to know the entire stack to make
-a useful contribution.
-
-[Run the project](development.md){ .md-button .md-button--primary }
-[Find a contribution](workflow.md){ .md-button }
-
-</div>
-
-## Choose your entry point
+## Find a reference
 
 | I want to… | Read |
 | --- | --- |
@@ -31,7 +22,7 @@ a useful contribution.
 | Host a shared workspace | [Workspace access](runbooks/security.md) and [deployment](runbooks/deployment.md) |
 | Diagnose an outage | [Operational triage](runbooks/operations.md) |
 
-## The boundaries that matter
+## Project requirements
 
 - **User experience:** describe controls and learning tasks in the product guide;
   keep configuration and implementation details here.
