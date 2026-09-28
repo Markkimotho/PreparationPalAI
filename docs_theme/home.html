@@ -1,0 +1,24 @@
+{% extends "main.html" %}
+{% block content %}
+  <section class="pp-intro" aria-labelledby="pp-title">
+    <div>
+      <h1 id="pp-title">User guide</h1>
+      <p>PreparationPalAI generates practice questions, explains topics, and answers questions from your notes using local models.</p>
+      <p><a href="{{ 'start/first-session/' | url }}">Run your first study session</a>, or <a href="{{ 'start/access/' | url }}">get access to the app</a>.</p>
+    </div>
+    <div class="pp-study-visual" aria-hidden="true">
+      <div class="pp-orbit"></div>
+      <div class="pp-orbit pp-orbit-two"></div>
+      <div class="pp-study-note">
+        <span class="pp-note-label">START WITH THE WHY</span>
+        <span class="pp-equation">F = ma<span class="pp-spark">✦</span></span>
+        <p>Why does the unit matter?</p>
+        <span class="pp-note-caption">Think it through.<br>Then check the reasoning.</span>
+        <div class="pp-note-footer"><span>Understand</span><span>Practise</span><span>Revisit</span></div>
+      </div>
+      <span class="pp-subject pp-subject-one">Physics & engineering</span>
+      <span class="pp-subject pp-subject-two">Biology & beyond</span>
+    </div>
+  </section>
+  {{ page.content }}
+{% endblock %}
