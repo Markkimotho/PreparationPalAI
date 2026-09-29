@@ -69,7 +69,7 @@ html { scroll-padding-top: 4rem; }
 .pp-footer-copy { display: flex; gap: .8rem; justify-content: space-between; flex-wrap: wrap; width: 100%; padding: .85rem 0; }
 .pp-footer-copy a { color: var(--md-typeset-a-color); }
 .pp-intro { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; align-items: center; margin: .5rem 0 2rem; }
-.pp-study-visual { min-height: 16rem; display: grid; place-items: center; position: relative; isolation: isolate; overflow: clip; color: #244c3b; }
+.pp-study-visual { min-height: 18rem; display: grid; place-items: center; position: relative; isolation: isolate; overflow: clip; color: #244c3b; }
 .pp-orbit { position: absolute; width: 95%; aspect-ratio: 1; border: 1px solid #dce3d9; border-radius: 50%; transform: rotate(-30deg) scaleY(.6); z-index: -1; }
 .pp-orbit-two { transform: rotate(35deg) scaleY(.65); width: 85%; }
 .pp-study-note { width: 85%; max-width: 16rem; padding: 1.25rem; border: 1px solid #dce3d9; background: #fbfcf8; border-radius: 14px; transform: rotate(-3deg); }
