@@ -3,8 +3,8 @@ description: A practical revision routine using your syllabus, focused practice,
 ---
 # Prepare for an exam
 
-Use your syllabus and notes to generate questions, try a timed session, and review
-the topics you missed.
+Use PreparationPalAI to turn revision into a cycle of recall, feedback, and targeted
+practice. Start from the material your actual course expects you to know.
 
 ## Before the session: choose a slice of the syllabus
 
@@ -39,7 +39,7 @@ conditions. The app does not enforce exam-board rules for you.
 Answer the question you see, state necessary assumptions, and move on when a
 problem is taking too much of the session. Unanswered questions count as zero.
 
-## After the session: review missed topics
+## After the session: follow the evidence
 
 Read the topic breakdown and choose **Practise weak areas**. Check questionable
 feedback against the original material before treating it as a gap in your knowledge.

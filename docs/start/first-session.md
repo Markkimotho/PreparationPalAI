@@ -58,7 +58,7 @@ you may see separate reasoning, accuracy, and clarity scores.
 - If the feedback seems wrong, check your notes or another trusted reference.
 - In recap mode, the next question may adapt to a concept you just missed.
 
-## 6. Review your results
+## 6. Leave with a next step
 
 At the end, open **View results**. Pick one weak topic from the revision plan.
 Select **Practise weak areas**, ask Study Agent to explain it, or make a flashcard
@@ -67,7 +67,9 @@ for an idea you want to recall later.
 Recent coach sessions appear under **Your recent sessions**. You can return to a
 saved session or revisit its results.
 
-Model scores are practice feedback, not official exam marks.
+!!! tip "A useful first-session goal"
+    Finish knowing **what to revisit**, even if the score is lower than you hoped.
+    Model scores are practice feedback, not official exam marks.
 
 **Next:** [Prepare for an exam](../playbooks/exams.md) ·
 [Practise a technical interview](../playbooks/interviews.md) ·

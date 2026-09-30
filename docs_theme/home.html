@@ -1,17 +1,22 @@
 {% extends "main.html" %}
 {% block content %}
-  <section class="pp-intro" aria-labelledby="pp-title">
-    <div>
-      <h1 id="pp-title">User guide</h1>
-      <p>PreparationPalAI generates practice questions, explains topics, and answers questions from your notes using local models.</p>
-      <p><a href="{{ 'start/first-session/' | url }}">Run your first study session</a>, or <a href="{{ 'start/access/' | url }}">get access to the app</a>.</p>
+  <section class="pp-hero" aria-labelledby="pp-title">
+    <div class="pp-hero-copy">
+      <p class="pp-eyebrow">THE PREPARATIONPALAI USER GUIDE</p>
+      <h1 id="pp-title">Make your next<br><em>“I get it”</em> count.</h1>
+      <p class="pp-lead">Turn your notes and difficult questions into focused practice. Learn the concept, test your reasoning, and come back stronger.</p>
+      <div class="pp-actions">
+        <a class="md-button md-button--primary" href="{{ 'start/first-session/' | url }}">Start your first session <span aria-hidden="true">→</span></a>
+        <a class="pp-text-link" href="{{ 'start/access/' | url }}">Get the app</a>
+      </div>
+      <p class="pp-quiet">For exam days, interview days, and every curious day in between.</p>
     </div>
-    <div class="pp-study-visual" aria-hidden="true">
-      <div class="pp-orbit"></div>
-      <div class="pp-orbit pp-orbit-two"></div>
+    <div class="pp-study-visual" aria-label="Learning starts with understanding, then practice and reflection">
+      <div class="pp-orbit pp-orbit-one" aria-hidden="true"></div>
+      <div class="pp-orbit pp-orbit-two" aria-hidden="true"></div>
       <div class="pp-study-note">
         <span class="pp-note-label">START WITH THE WHY</span>
-        <span class="pp-equation">F = ma<span class="pp-spark">✦</span></span>
+        <span class="pp-equation" aria-label="Force equals mass times acceleration">F = ma<span class="pp-spark" aria-hidden="true">✦</span></span>
         <p>Why does the unit matter?</p>
         <span class="pp-note-caption">Think it through.<br>Then check the reasoning.</span>
         <div class="pp-note-footer"><span>Understand</span><span>Practise</span><span>Revisit</span></div>
