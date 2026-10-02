@@ -18,12 +18,12 @@ export function FlipCard({ front, back, flipped, onFlip }: Props) {
       aria-label={flipped ? "Show question" : "Show answer"}
     >
       <div className={styles.flipInner}>
-        <div className={styles.faceFront}>
+        <div className={styles.faceFront} aria-hidden={flipped}>
           <span className={styles.faceTag}>Question</span>
           <p className={styles.faceText}>{front}</p>
           <span className={styles.faceHint}>click to flip</span>
         </div>
-        <div className={styles.faceBack}>
+        <div className={styles.faceBack} aria-hidden={!flipped}>
           <span className={styles.faceTag}>Answer</span>
           <p className={styles.faceText}>{back}</p>
         </div>

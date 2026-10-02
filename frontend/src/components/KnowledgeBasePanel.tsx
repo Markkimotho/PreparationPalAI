@@ -2,26 +2,31 @@ import { useEffect, useRef, useState } from "react";
 import { useKnowledgeBase } from "../context/KnowledgeBaseContext";
 import { Spinner } from "./Spinner";
 import styles from "./KnowledgeBasePanel.module.css";
+import { api } from '../api/client';
 
 type Status = { kind: "ok" | "err"; text: string } | null;
 
 export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
-  const { sources, count, busy, upload, scrape, clear, refresh } =
+  const { jobs, sources, count, busy, upload, scrape, clear, refresh } =
     useKnowledgeBase();
   const fileRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [topic, setTopic] = useState("");
   const [status, setStatus] = useState<Status>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const previous = document.activeElement as HTMLElement | null;
+    panelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     const onClick = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
+        closeRef.current();
       }
     };
     document.addEventListener("keydown", onKey);
@@ -29,8 +34,9 @@ export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
     return () => {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onClick);
+      previous?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   const onFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -69,6 +75,14 @@ export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
           {sources.length} file{sources.length !== 1 ? "s" : ""} · {count} chunks
         </span>
       </div>
+      {jobs?.length > 0 && <details><summary>Recent ingestion jobs</summary>
+        {jobs.map(job => <div key={job.id}><p>{job.id.slice(0, 8)} · {job.state}</p>
+          {job.state === 'failed' && <button onClick={async () => {
+            try { await api.kbRetryJob(job.id); await refresh(); }
+            catch { setStatus({ kind: 'err', text: 'Could not retry this job. Check your permissions and connection.' }); }
+          }}>Retry ingestion</button>}
+        </div>)}
+      </details>}
 
       <div className={styles.actions}>
         <input

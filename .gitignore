@@ -1,5 +1,7 @@
 # Environment
 .env
+.env.*
+!.env.example
 .venv/
 venv/
 env/
@@ -11,6 +13,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+site/
 *.egg
 
 # IDE
@@ -22,6 +25,10 @@ build/
 # Data
 data/pdfs/
 data/chroma/
+data/coach/
+data/flashcards/
+data/jobs/
+data/usage/
 
 # OS
 .DS_Store

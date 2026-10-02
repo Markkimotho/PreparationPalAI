@@ -15,6 +15,8 @@ import json
 import logging
 import tempfile
 import time
+import threading
+from contextlib import asynccontextmanager
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -57,7 +59,17 @@ from app.api_models import (
     SourcesResponse,
 )
 from app.config import get_settings
-from app.ingestion import IMAGE_EXTENSIONS, load_and_chunk_image, load_and_chunk_pdf
+from app.model_catalog import catalogue, require_model
+from app.coach import router as coach_router
+from app.public_site import router as public_router
+from app.auth import router as auth_router, WorkspaceAuth
+from app.limits import consume
+from app.diagnostics import router as diagnostics_router, RequestDiagnostics, configure_logging
+from app.jobs import router as jobs_router, worker_loop
+from fastapi import Request
+from app.ingestion import IMAGE_EXTENSIONS
+from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
+from app.upload_safety import validate_upload
 from app.memory import clear_history
 from app.quiz import explain_concept, generate_questions, validate_answer
 from app.scraper import search_and_scrape
@@ -73,16 +85,50 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s -- %(message)s",
 )
 logger = logging.getLogger(__name__)
+configure_logging()
 
-app = FastAPI(title="PreparationPalAI", version="1.1.0")
+@asynccontextmanager
+async def lifespan(app):
+    stopped = threading.Event()
+    thread = None
+    if get_settings().embedded_worker:
+        thread = threading.Thread(target=worker_loop, args=(stopped,), daemon=True)
+        thread.start()
+    yield
+    stopped.set()
+    if thread:
+        thread.join(timeout=5)
+
+
+app = FastAPI(title="PreparationPalAI", version="1.1.0", lifespan=lifespan)
+app.include_router(coach_router)
+app.include_router(public_router)
+app.include_router(auth_router)
+app.include_router(diagnostics_router)
+app.include_router(jobs_router)
+
+
+@app.middleware('http')
+async def budget_requests(request: Request, call_next):
+    # The auth middleware is installed outermost below, so budgets use trusted identity.
+    if request.method == 'POST' and request.url.path.startswith('/api/'):
+        from starlette.concurrency import run_in_threadpool
+        try:
+            await run_in_threadpool(consume)
+        except HTTPException as exc:
+            from fastapi.responses import JSONResponse
+            return JSONResponse({'detail': exc.detail}, exc.status_code, headers=exc.headers)
+    return await call_next(request)
 
 # Dev: Vite serves the SPA on :5173 and proxies /api here. Allow it for CORS.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=get_settings().cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(WorkspaceAuth)
+app.add_middleware(RequestDiagnostics)
 
 # Default HTTP metrics (request count + latency per route) at GET /metrics.
 # Exposed before the SPA mount so "/" never shadows it.
@@ -120,14 +166,14 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
                     frame = {"type": "tool", "name": payload}
                 elif kind == "error":
                     status = "error"
-                    frame = {"type": "error", "message": payload}
+                    frame = {"type": "error", "message": "Model request failed. Retry or share the request ID with your administrator."}
                 else:
                     continue
                 yield f"data: {json.dumps(frame)}\n\n"
         except Exception as exc:  # noqa: BLE001 — surface any engine failure to client
             status = "error"
             logger.exception("SSE stream failed")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Model request failed. Retry or share the request ID with your administrator.'})}\n\n"
         finally:
             metrics.LLM_LATENCY.labels(surface).observe(time.perf_counter() - start)
             metrics.LLM_REQUESTS.labels(surface, status).inc()
@@ -160,9 +206,12 @@ def health() -> HealthResponse:
 
 @app.get("/api/models", response_model=ModelsResponse)
 def models() -> ModelsResponse:
+    installed = get_installed_models()
+    entries = catalogue(installed, get_chat_models())
     return ModelsResponse(
-        supported=get_chat_models(),
-        installed=sorted(get_installed_models()),
+        supported=[m['id'] for m in entries],
+        installed=sorted(installed),
+        catalogue=entries,
     )
 
 
@@ -170,6 +219,30 @@ def models() -> ModelsResponse:
 def models_pull(req: PullRequest) -> PullResponse:
     ok, message = pull_model(req.model)
     return PullResponse(ok=ok, message=message)
+
+
+@app.post('/api/models/pull/stream')
+def models_pull_stream(req: PullRequest):
+    def frames():
+        try:
+            with httpx.stream('POST', f'{get_settings().ollama_base_url}/api/pull',
+                              json={'name': req.model, 'stream': True}, timeout=900) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    body = json.loads(line)
+                    if body.get('error'):
+                        raise ValueError('Model unavailable')
+                    frame = dict(type='progress', status=str(body.get('status', 'Downloading'))[:100],
+                                 completed=max(0, int(body.get('completed', 0))),
+                                 total=max(0, int(body.get('total', 0))))
+                    yield f'data: {json.dumps(frame)}\n\n'
+        except Exception:
+            yield 'data: {"type":"error","message":"Download failed. Check the model tag and Ollama connection."}\n\n'
+        yield 'data: {"type":"done"}\n\n'
+    return StreamingResponse(frames(), media_type='text/event-stream',
+                             headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
 
 # ── Knowledge base ────────────────────────────────────────────────────────────
@@ -190,17 +263,25 @@ def kb_sources() -> SourcesResponse:
 
 @app.post("/api/kb/upload", response_model=IngestResponse)
 async def kb_upload(files: list[UploadFile] = File(...)) -> IngestResponse:
+    if get_settings().production:
+        raise HTTPException(409, 'Use /api/kb/jobs/upload for queued ingestion')
+    if len(files) > get_settings().upload_max_files:
+        raise HTTPException(413, 'Too many files in one upload')
     total = 0
     details: list[str] = []
     for f in files:
-        name = f.filename or "file"
+        name = Path((f.filename or 'file').replace('\\', '/')).name
         ext = Path(name).suffix.lower()
         is_pdf = ext == ".pdf"
         is_image = ext in IMAGE_EXTENSIONS
         if not (is_pdf or is_image):
             details.append(f"{name}: skipped (unsupported type)")
             continue
-        data = await f.read()
+        data = await f.read(get_settings().upload_max_bytes + 1)
+        try:
+            validate_upload(data, name, f.content_type or 'application/octet-stream')
+        except ValueError as exc:
+            raise HTTPException(413 if len(data) > get_settings().upload_max_bytes else 415, str(exc)) from None
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
             tmp.write(data)
             tmp_path = Path(tmp.name)
@@ -227,6 +308,8 @@ async def kb_upload(files: list[UploadFile] = File(...)) -> IngestResponse:
 
 @app.post("/api/kb/scrape", response_model=IngestResponse)
 def kb_scrape(req: ScrapeRequest) -> IngestResponse:
+    if get_settings().production:
+        raise HTTPException(409, 'Use /api/kb/jobs/scrape for queued ingestion')
     try:
         chunks = search_and_scrape(req.topic.strip(), num_results=req.num_results)
     except Exception as exc:  # noqa: BLE001
@@ -251,6 +334,7 @@ def kb_clear() -> ClearResponse:
 
 @app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest) -> StreamingResponse:
+    req.model = require_model(req.model)
     if req.mode == "langgraph":
         events = langgraph_module.stream(
             question=req.question,
@@ -279,6 +363,7 @@ def chat_clear(session_id: str) -> ClearResponse:
 
 @app.post("/api/code-chat/stream")
 def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
+    req.model = require_model(req.model)
     events = code_assistant.stream_code_assistant(
         message=req.message,
         thread_id=req.thread_id,
@@ -293,6 +378,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
 
 @app.post("/api/agent/stream")
 def agent_stream(req: AgentRequest) -> StreamingResponse:
+    req.model = require_model(req.model)
     events = quiz_agent.stream_agent(
         message=req.message, thread_id=req.thread_id, model=req.model
     )
@@ -304,6 +390,7 @@ def agent_stream(req: AgentRequest) -> StreamingResponse:
 
 @app.post("/api/quiz/generate")
 def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
+    req.model = require_model(req.model)
     start = time.perf_counter()
     status = "success"
     try:
@@ -326,6 +413,8 @@ def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
 
 @app.post("/api/quiz/validate")
 def quiz_validate(req: QuizValidateRequest) -> dict:
+    if req.question_type == 'short_answer':
+        req.model = require_model(req.model)
     return validate_answer(
         question=req.question,
         correct_answer=req.correct_answer,
@@ -337,6 +426,7 @@ def quiz_validate(req: QuizValidateRequest) -> dict:
 
 @app.post("/api/quiz/explain", response_model=ExplainResponse)
 def quiz_explain(req: ExplainRequest) -> ExplainResponse:
+    req.model = require_model(req.model)
     return ExplainResponse(explanation=explain_concept(req.concept, model=req.model))
 
 
@@ -355,6 +445,7 @@ def flashcards_create(req: CreateDeckRequest) -> Deck:
 
 @app.post("/api/flashcards/generate", response_model=Deck)
 def flashcards_generate(req: GenerateDeckRequest) -> Deck:
+    req.model = require_model(req.model)
     start = time.perf_counter()
     status = "success"
     try:
@@ -419,7 +510,9 @@ class SPAStaticFiles(StaticFiles):
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
-            if exc.status_code == 404:
+            if exc.status_code == 404 and path.strip('/').split('/')[0] in {
+                'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide'
+            }:
                 return await super().get_response("index.html", scope)
             raise
 

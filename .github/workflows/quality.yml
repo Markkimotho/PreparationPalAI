@@ -1,0 +1,49 @@
+name: Quality gates
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  container-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t preparationpalai-smoke .
+      - run: |
+          docker network create preparationpalai-smoke
+          docker run -d --name fake-ollama --network preparationpalai-smoke -v "$PWD/tests/support/fake_ollama.py:/fake.py:ro" python:3.12-slim python /fake.py
+          docker run -d --name prep-smoke --network preparationpalai-smoke -e OLLAMA_BASE_URL=http://fake-ollama:11434 --read-only --tmpfs /tmp:rw,size=512m --tmpfs /app/data:rw,uid=10001,gid=10001,size=256m preparationpalai-smoke
+          docker exec prep-smoke python -m scripts.container_smoke
+      - run: docker logs prep-smoke
+        if: failure()
+  deterministic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: python -m pytest tests -q
+      - run: python -m scripts.quality_gate --report quality-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-report
+          path: quality-report.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci && npm test && npm run build
+        working-directory: frontend

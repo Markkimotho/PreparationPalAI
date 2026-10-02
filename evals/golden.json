@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "documents": [
+    {"source": "mechanics.txt", "page": 1, "text": "Newton's second law gives net force F = ma. A mass of 2 kg accelerating at 3 m/s² experiences 6 N of net force. Joules measure energy; newtons measure force."},
+    {"source": "chemistry.txt", "page": 1, "text": "Water formation follows 2H2 + O2 -> 2H2O. Two moles of hydrogen gas with excess oxygen yield two moles of water. The hydrogen-to-water molar ratio is 1:1."},
+    {"source": "biology.txt", "page": 2, "text": "In Hardy-Weinberg equilibrium p + q = 1 and heterozygote frequency is 2pq. If q = 0.2, p = 0.8 and heterozygote frequency is 0.32, or 32%."},
+    {"source": "algorithms.txt", "page": 3, "text": "Binary search requires a sorted array. It halves the search interval each step and runs in O(log n) time. Linear search runs in O(n) time and does not require sorted data."}
+  ],
+  "cases": [
+    {"id": "force-units", "question": "What force acts on a 2 kg mass accelerating at 3 m/s²?", "source": "mechanics.txt", "terms": ["6", "n"], "forbidden": ["6 joules"]},
+    {"id": "molar-ratio", "question": "How many moles of water form from two moles of hydrogen with excess oxygen?", "source": "chemistry.txt", "terms": ["two", "moles"], "forbidden": ["four moles"]},
+    {"id": "heterozygotes", "question": "What is the heterozygote frequency when q is 0.2 in Hardy-Weinberg equilibrium?", "source": "biology.txt", "terms": ["0.32"], "forbidden": ["frequency is 0.04"]},
+    {"id": "binary-complexity", "question": "What is binary search time complexity and its input requirement?", "source": "algorithms.txt", "terms": ["sorted", "log"], "forbidden": ["requires unsorted"]}
+  ]
+}

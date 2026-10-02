@@ -18,6 +18,14 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (/node_modules\/(katex|remark-math|rehype-katex)\//.test(id)) return 'math';
+          if (/node_modules\/(highlight.js|rehype-highlight)\//.test(id)) return 'syntax';
+        },
+      },
+    },
   },
   test: {
     globals: true,

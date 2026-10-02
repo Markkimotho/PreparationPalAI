@@ -5,6 +5,9 @@
   grid-template-columns: 220px 1fr;
   gap: var(--space-5);
 }
+.guideLinks { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; font-size: var(--fs-sm); }
+.guideLinks span { flex: 1; color: var(--text-dim); min-width: 160px; }
+.guideLinks a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
 
 /* In-page table of contents */
 .toc {

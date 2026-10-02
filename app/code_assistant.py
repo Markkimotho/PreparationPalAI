@@ -12,11 +12,12 @@ import logging
 from collections.abc import Iterator
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 
 from app.config import get_settings
+from app.workspace import scoped_thread
 from app.retriever import get_retriever
 
 logger = logging.getLogger(__name__)
@@ -129,7 +130,7 @@ def invoke_code_assistant(
     try:
         result = graph.invoke(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": thread_id, "model": model, "use_kb": use_kb}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model, "use_kb": use_kb}},
         )
         messages = result.get("messages", [])
         return messages[-1].content if messages else "No response."
@@ -154,7 +155,7 @@ def stream_code_assistant(
     try:
         for msg_chunk, _metadata in graph.stream(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": thread_id, "model": model, "use_kb": use_kb}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model, "use_kb": use_kb}},
             stream_mode="messages",
         ):
             token = getattr(msg_chunk, "content", "")

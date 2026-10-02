@@ -34,6 +34,7 @@ export function ResultsCard({ answers, topic, onRetake, onNew }: Props) {
               />
               Q{i + 1}: {a.question.slice(0, 80)}
               {a.question.length > 80 ? "…" : ""}
+              <span>{a.result.is_correct ? 'Correct' : 'Needs review'}</span>
             </summary>
             <div className={styles.breakBody}>
               <div>

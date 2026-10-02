@@ -1,0 +1,30 @@
+INHERIT: mkdocs.base.yml
+site_name: PreparationPalAI · Contributor handbook
+site_description: Build, test, extend, and operate PreparationPalAI. Engineering documentation for contributors and maintainers.
+site_url: https://markkimotho.github.io/PreparationPalAI/contribute/
+docs_dir: engineering
+site_dir: site/contribute
+edit_uri: edit/main/engineering/
+extra:
+  audience: contributor
+  portal_label: Contributor handbook
+  other_portal_label: Back to the user guide
+  other_portal_url: /PreparationPalAI/
+nav:
+  - Contribute: index.md
+  - Build:
+      - Development setup: development.md
+      - Architecture and project map: architecture.md
+      - Add a feature: extending.md
+      - Tests and quality gates: testing.md
+      - Maintain this documentation: documentation.md
+  - Operate:
+      - Workspace access: runbooks/security.md
+      - Bounded inference: runbooks/inference.md
+      - Ingestion boundaries: runbooks/ingestion.md
+      - Quality and release policy: runbooks/quality.md
+      - Diagnostics and triage: runbooks/operations.md
+      - Deployment and recovery: runbooks/deployment.md
+  - Project:
+      - Contribution workflow: workflow.md
+      - Implementation status: status.md

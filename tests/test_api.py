@@ -15,6 +15,13 @@ from app.api import app
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def installed_models():
+    # Route tests mock engines; the new preflight must also avoid real Ollama.
+    with patch('app.model_catalog.get_installed_models', return_value={'qwen2.5:7b', 'mistral'}):
+        yield
+
+
 def _sse_frames(text: str) -> list[dict]:
     """Parse an SSE response body into a list of JSON event dicts."""
     frames = []
@@ -50,7 +57,8 @@ def test_models_lists_supported_and_installed():
         "app.api.get_installed_models", return_value={"qwen2.5:7b"}
     ):
         body = client.get("/api/models").json()
-    assert body["supported"] == ["qwen2.5:7b", "mistral"]
+    assert body["supported"][:2] == ["qwen2.5:7b", "mistral"]
+    assert any(m['id'].startswith('glm') for m in body['catalogue'])
     assert body["installed"] == ["qwen2.5:7b"]
 
 
@@ -403,7 +411,8 @@ import app.api as api_module  # noqa: E402
 def test_spa_served_at_root():
     r = client.get("/")
     assert r.status_code == 200
-    assert 'id="root"' in r.text
+    assert '<h1>Study deeply.' in r.text
+    assert '<script type="module"' not in r.text
 
 
 @pytest.mark.skipif(not api_module._DIST.is_dir(), reason="no frontend build")

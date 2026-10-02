@@ -51,6 +51,10 @@ export function StudyMode({ deckName, cards, onExit }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (done) return;
+      const target = e.target as HTMLElement | null;
+      // Native controls own Enter/Space; global shortcuts must not hijack Exit,
+      // model selection, or text editing elsewhere in the workspace.
+      if (target?.closest('button, input, textarea, select, a, [contenteditable="true"]')) return;
       if (e.code === "Space") {
         e.preventDefault();
         setFlipped((f) => !f);
@@ -92,7 +96,7 @@ export function StudyMode({ deckName, cards, onExit }: Props) {
         <button type="button" className={styles.linkBtn} onClick={onExit}>
           ← Exit
         </button>
-        <span className={styles.studyCounter}>
+        <span className={styles.studyCounter} role="status">
           {idx + 1} / {total} · known {known}
         </span>
       </div>

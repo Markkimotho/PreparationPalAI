@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { QuizQuestion } from "../../api/types";
 import styles from "./QuizPrep.module.css";
+import { Markdown } from '../../components/Markdown';
 
 interface Props {
   question: QuizQuestion;
@@ -33,7 +34,7 @@ export function QuestionCard({
 
   return (
     <div className={styles.quizCard}>
-      <div className={styles.progressTrack}>
+      <div className={styles.progressTrack} role="progressbar" aria-label="Quiz progress" aria-valuemin={0} aria-valuemax={total} aria-valuenow={idx}>
         <div
           className={styles.progressFill}
           style={{ width: `${(idx / total) * 100}%` }}
@@ -48,7 +49,7 @@ export function QuestionCard({
         </span>
       </div>
 
-      <div className={styles.questionText}>{question.question}</div>
+      <div className={styles.questionText}><Markdown>{question.question}</Markdown></div>
 
       {type === "mcq" && question.options && (
         <div className={styles.options} role="radiogroup" aria-label="Options">

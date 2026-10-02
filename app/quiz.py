@@ -4,15 +4,30 @@ import json
 import logging
 import re
 from typing import Any
+from pydantic import BaseModel, Field
 
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 
 from app.config import get_settings
 from app.retriever import get_retriever
 
 logger = logging.getLogger(__name__)
+
+
+class Rubric(BaseModel):
+    reasoning: int = Field(ge=0, le=40)
+    accuracy: int = Field(ge=0, le=40)
+    clarity: int = Field(ge=0, le=20)
+
+
+class WrittenEvaluation(BaseModel):
+    score: int = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1)
+    key_missed: list[str] = []
+    hint: str = ''
+    rubric: Rubric | None = None
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
@@ -101,13 +116,16 @@ Student answer: {student_answer}
 Context excerpt (for short-answer scoring):
 {context}
 
-Scoring criteria (short answer only):
-- Key concept coverage: 50 pts
-- Factual accuracy: 30 pts
-- Completeness: 20 pts
+Scoring criteria (written answers):
+- Reasoning, assumptions, and key concepts: 40 pts
+- Factual/numerical accuracy, units, and dimensional consistency: 40 pts
+- Completeness and clarity: 20 pts
+Check each step against the reference. Accept equivalent valid derivations and
+appropriate rounding. Explain reasoning errors and give one concrete next step.
+If the reference is uncertain, acknowledge this rather than confidently inventing facts.
 
 Respond with ONLY valid JSON — no markdown:
-{{"score":85,"is_correct":true,"feedback":"...","key_missed":["..."],"hint":"Review the section about..."}}"""
+{{"score":85,"is_correct":true,"feedback":"...","key_missed":["..."],"hint":"Review the section about...","rubric":{{"reasoning":34,"accuracy":32,"clarity":19}}}}"""
 
 _EXPLAIN_PROMPT = """\
 Based ONLY on the following content, give a clear and thorough explanation of: {concept}
@@ -123,7 +141,7 @@ Content:
 
 def _extract_json(text: str) -> Any:
     """Robustly extract JSON from an LLM response that may contain extra text."""
-    text = text.strip()
+    text = re.sub(r'<think>[\s\S]*?</think>', '', text).strip()
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
     text = text.strip()
@@ -243,18 +261,16 @@ def validate_answer(
     llm = _get_llm(model, temperature=0)
     prompt = _VALIDATE_PROMPT.format(
         question=question,
-        correct=str(correct_answer)[:1000],
+        correct=str(correct_answer)[:8000],
         student_answer=student_answer,
-        context=context[:2000],
+        context=context[:12000],
     )
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
-        result = _extract_json(response.content)
-        result.setdefault("score", 0)
-        result.setdefault("is_correct", int(result.get("score", 0)) >= 70)
-        result.setdefault("feedback", "")
-        result.setdefault("key_missed", [])
-        result.setdefault("hint", "")
+        result = WrittenEvaluation.model_validate(_extract_json(response.content)).model_dump()
+        if result['rubric'] is not None:
+            result['score'] = sum(result['rubric'].values())
+        result['is_correct'] = result['score'] >= 70
         return result
     except Exception as exc:
         logger.error("validate_answer failed: %s", exc)

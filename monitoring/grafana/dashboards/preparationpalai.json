@@ -99,10 +99,24 @@
       ]
     },
     {
+      "type": "timeseries",
+      "title": "Ingestion jobs by state",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [{ "expr": "preparationpalai_ingestion_jobs", "legendFormat": "{{state}}", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Frontend error categories",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [{ "expr": "sum by (kind) (rate(preparationpalai_frontend_errors_total[5m]))", "legendFormat": "{{kind}}", "refId": "A" }]
+    },
+    {
       "type": "logs",
       "title": "Web logs (Loki)",
       "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 20 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 28 },
       "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" },
       "targets": [ { "expr": "{compose_service=\"web\"}", "refId": "A" } ]
     }

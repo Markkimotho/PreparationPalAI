@@ -8,6 +8,13 @@ export interface Health {
 export interface Models {
   supported: string[];
   installed: string[];
+  catalogue?: ModelInfo[];
+}
+
+export interface ModelInfo {
+  id: string; installed: boolean; availability: string;
+  recommended_use: string; tools: boolean | null;
+  structured_output: boolean | null; resources: string;
 }
 
 export interface PullResponse {
@@ -22,6 +29,11 @@ export interface CountResponse {
 export interface IngestResponse {
   chunks_added: number;
   detail: string;
+}
+
+export interface IngestionJob {
+  id: string; state: 'pending' | 'running' | 'completed' | 'failed';
+  attempts?: number; result?: { chunks_added?: number }; error?: string;
 }
 
 export interface KBSource {
@@ -65,6 +77,7 @@ export interface ValidationResult {
 
 // SSE event frames emitted by streaming endpoints.
 export type StreamEvent =
+  | { type: 'progress'; status: string; completed: number; total: number }
   | { type: "token"; text: string }
   | { type: "sources"; sources: Source[] }
   | { type: "tool"; name: string }

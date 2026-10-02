@@ -131,6 +131,7 @@
 
 /* Mobile drawer */
 .mobile {
+  visibility: hidden;
   position: fixed;
   top: 0;
   left: 0;
@@ -142,6 +143,7 @@
   box-shadow: var(--shadow-lg);
 }
 .mobile.open {
+  visibility: visible;
   transform: translateX(0);
 }
 .backdrop {

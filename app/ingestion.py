@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 _SPARSE_THRESHOLD = 80
 
 
-def _chunk_id(source: str, page: int, chunk_index: int) -> str:
+def _chunk_id(source: str, page: int, chunk_index: int, content: str = '') -> str:
     """Deterministic vector ID so re-ingesting the same PDF overwrites, not duplicates."""
-    raw = f"{source}::{page}::{chunk_index}"
+    raw = f"{source}::{page}::{chunk_index}::{content}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -131,7 +131,7 @@ def load_and_chunk_pdf(
         chunk.metadata["source"] = source_name
         chunk.metadata["chunk_index"] = i
         chunk.metadata["id"] = _chunk_id(
-            source_name, chunk.metadata.get("page", 0), i
+            source_name, chunk.metadata.get("page", 0), i, chunk.page_content
         )
 
     return chunks
@@ -184,7 +184,7 @@ def load_and_chunk_image(
     )
     for i, chunk in enumerate(chunks):
         chunk.metadata["chunk_index"] = i
-        chunk.metadata["id"] = _chunk_id(source_name, 0, i)
+        chunk.metadata["id"] = _chunk_id(source_name, 0, i, chunk.page_content)
     logger.info("OCR'd image %s → %d chunk(s)", source_name, len(chunks))
     return chunks
 
