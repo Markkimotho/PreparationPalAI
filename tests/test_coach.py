@@ -29,7 +29,7 @@ def local_runtime(tmp_path, monkeypatch):
 def start(**kwargs):
     if kwargs.get('mode') == 'interview':
         with patch('app.coach._get_llm') as llm:
-            llm.return_value.invoke.return_value.content = json.dumps([QUESTIONS[1], QUESTIONS[1]])
+            llm.return_value.invoke.return_value.content = json.dumps([QUESTIONS[1], dict(QUESTIONS[1], question='Explain the assumptions of the ideal gas law.')])
             r = client.post('/api/coach/sessions', json=dict(learner='alice', topic='Physics',
                 model='test:7b', n=2, **kwargs))
             assert r.status_code == 200, r.text
@@ -132,3 +132,36 @@ def test_recap_adapts_next_question_after_misconception(local_runtime):
     assert result['question']['adaptive']
     assert result['question']['topic'] == 'Units'
     assert result['total'] == 2
+
+
+def test_generation_retries_truncated_json_without_leaking_it(local_runtime):
+    llm, _ = local_runtime
+    llm.return_value.invoke.side_effect = [
+        SimpleNamespace(content='[{"question":"PRIVATE STUDY TEXT', response_metadata={'done_reason': 'length'}),
+        SimpleNamespace(content=json.dumps({'questions': QUESTIONS}), response_metadata={}),
+    ]
+    assert start()['total'] == 2
+    assert llm.return_value.invoke.call_count == 2
+
+
+def test_generation_uses_small_batches_and_preserves_exact_count(local_runtime):
+    llm, _ = local_runtime
+    llm.return_value.invoke.side_effect = [SimpleNamespace(content=json.dumps({'questions': batch}), response_metadata={})
+        for batch in [QUESTIONS, [dict(q, question=q['question'] + ' Again?') for q in QUESTIONS],
+                      [dict(QUESTIONS[0], question='Which unit measures work?')]]]
+    response = client.post('/api/coach/sessions', json=dict(learner='alice', topic='Physics', model='test:7b', n=5))
+    assert response.status_code == 200, response.text
+    assert response.json()['total'] == 5
+    assert llm.return_value.invoke.call_count == 3
+    assert 'response_format' in llm.call_args.kwargs
+
+
+def test_failed_generation_is_actionable_and_does_not_save_partial_session(local_runtime):
+    llm, _ = local_runtime
+    llm.return_value.invoke.return_value.content = '[{"question":"PRIVATE STUDY TEXT'
+    response = client.post('/api/coach/sessions', json=dict(learner='alice', topic='Physics', model='test:7b', n=5))
+    assert response.status_code == 502
+    assert 'PRIVATE' not in response.text
+    assert 'fewer questions' in response.json()['detail']
+    assert client.get('/api/coach/history?learner=alice').json()['sessions'] == []
+    assert llm.return_value.invoke.call_count == 2
