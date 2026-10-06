@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { streamPost } from '../api/stream';
 import { useModelContext } from "../context/ModelContext";
 import { Select, type SelectOption } from "./Select";
@@ -9,6 +9,9 @@ export function ModelPicker() {
     useModelContext();
   const [pulling, setPulling] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const infoId = useId();
+  useEffect(() => { dialog.current?.close(); setMsg(null); }, [selected]);
 
   const info = catalogue?.find(m => m.id === selected);
   const isInstalled = info?.installed ?? installed.includes(selected);
@@ -58,10 +61,21 @@ export function ModelPicker() {
           {pulling ? "Pulling…" : "Pull"}
         </button>
       )}
-      {info && <details className={styles.info}><summary>Model info</summary>
-        <p>{info.recommended_use}</p><p>{info.resources}</p>
-        <p>Tool calling: {info.tools === null ? 'unverified' : info.tools ? 'supported' : 'unsupported'}. Structured output: {info.structured_output === null ? 'unverified' : info.structured_output ? 'supported' : 'unsupported'}.</p>
-      </details>}
+      {info && <>
+        <button type="button" className={styles.infoButton} aria-haspopup="dialog"
+          onClick={() => dialog.current?.showModal()}>Model info</button>
+        <dialog ref={dialog} className={styles.info} aria-labelledby={infoId}
+          onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
+          <div className={styles.infoHeader}><h2 id={infoId}>{selected}</h2>
+            <button type="button" autoFocus aria-label="Close model info" onClick={() => dialog.current?.close()}>Close</button></div>
+          <p className={styles.availability}>{!online ? 'Ollama is offline' : isInstalled ? 'Installed and ready' : 'Not installed'}</p>
+          <h3>Best for</h3><p>{info.recommended_use}</p>
+          <h3>Resources</h3><p>{info.resources}</p>
+          <dl><div><dt>Tool calling</dt><dd>{info.tools == null ? 'Not verified' : info.tools ? 'Supported' : 'Not supported'}</dd></div>
+            <div><dt>Structured output</dt><dd>{info.structured_output == null ? 'Not verified' : info.structured_output ? 'Supported' : 'Not supported'}</dd></div></dl>
+          <p className={styles.note}>Capabilities depend on the installed model version. Practice answers still need checking.</p>
+        </dialog>
+      </>}
       {msg && <span role="status" className={styles.msg}>{msg}</span>}
     </div>
   );

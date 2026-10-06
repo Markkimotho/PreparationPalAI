@@ -34,9 +34,15 @@ export function Select({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLUListElement>(null);
   const listId = useId();
 
   const selected = options.find((o) => o.value === value);
+  useEffect(() => { if (open) popupRef.current?.focus(); }, [open]);
+  useEffect(() => {
+    if (open) document.getElementById(`${listId}-${active}`)?.scrollIntoView?.({ block: 'nearest' });
+  }, [active, open, listId]);
 
   useEffect(() => {
     if (!open) return;
@@ -61,13 +67,14 @@ export function Select({
     if (opt) {
       onChange(opt.value);
       setOpen(false);
+      triggerRef.current?.focus();
     }
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (disabled) return;
     if (!open) {
-      if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         setOpen(true);
       }
@@ -90,6 +97,7 @@ export function Select({
       case "Escape":
         e.preventDefault();
         setOpen(false);
+        triggerRef.current?.focus();
         break;
       case "Home":
         e.preventDefault();
@@ -99,17 +107,31 @@ export function Select({
         e.preventDefault();
         setActive(options.length - 1);
         break;
+      case "Tab":
+        setOpen(false);
+        triggerRef.current?.focus();
+        break;
+      default:
+        if (e.key.length === 1 && /\S/.test(e.key)) {
+          const next = options.findIndex((option, index) => index > active && option.label.toLowerCase().startsWith(e.key.toLowerCase()));
+          const first = options.findIndex(option => option.label.toLowerCase().startsWith(e.key.toLowerCase()));
+          if (next >= 0 || first >= 0) setActive(next >= 0 ? next : first);
+        }
     }
   };
 
   return (
-    <div className={styles.wrap} ref={rootRef}>
+    <div className={styles.wrap} ref={rootRef} onBlur={e => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
+    }}>
       {label && <span className={styles.label}>{label}</span>}
       <button
         type="button"
+        ref={triggerRef}
         className={styles.trigger}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listId : undefined}
         aria-label={ariaLabel ?? label}
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
@@ -124,10 +146,12 @@ export function Select({
       </button>
 
       {open && (
-        <ul className={styles.list} role="listbox" id={listId} aria-label={ariaLabel ?? label}>
+        <ul ref={popupRef} tabIndex={-1} onKeyDown={onKeyDown} className={styles.list} role="listbox" id={listId}
+          aria-activedescendant={`${listId}-${active}`} aria-label={ariaLabel ?? label}>
           {options.map((opt, i) => (
             <li
               key={opt.value}
+              id={`${listId}-${i}`}
               role="option"
               aria-selected={opt.value === value}
               className={`${styles.option} ${i === active ? styles.active : ""} ${

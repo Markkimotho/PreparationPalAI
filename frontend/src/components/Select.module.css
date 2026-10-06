@@ -11,6 +11,7 @@
   color: var(--text-dim);
 }
 .trigger {
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -71,9 +72,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
-  animation: pop var(--dur-fast) var(--ease);
 }
 .option {
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
