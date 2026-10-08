@@ -411,7 +411,7 @@ import app.api as api_module  # noqa: E402
 def test_spa_served_at_root():
     r = client.get("/")
     assert r.status_code == 200
-    assert '<h1>Study deeply.' in r.text
+    assert '<h1>Practise the questions' in r.text
     assert '<script type="module"' not in r.text
 
 
