@@ -39,6 +39,7 @@ export function Select({
   const listId = useId();
 
   const selected = options.find((o) => o.value === value);
+  const optionValues = options.map(option => option.value).join('\0');
   useEffect(() => { if (open) popupRef.current?.focus(); }, [open]);
   useEffect(() => {
     if (open) document.getElementById(`${listId}-${active}`)?.scrollIntoView?.({ block: 'nearest' });
@@ -60,7 +61,7 @@ export function Select({
       const idx = options.findIndex((o) => o.value === value);
       setActive(idx >= 0 ? idx : 0);
     }
-  }, [open, options, value]);
+  }, [open, optionValues, value]);
 
   const choose = (idx: number) => {
     const opt = options[idx];
