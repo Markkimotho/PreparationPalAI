@@ -35,8 +35,7 @@ export function TopBar({ title, isMobile, onOpenMenu }: Props) {
           data-online={online}
           title={online ? "Ollama connected" : "Ollama offline"}
         >
-          <span className={styles.dot} />
-          {online ? `${modelCount} models` : "offline"}
+          {online ? `${modelCount} model${modelCount === 1 ? '' : 's'}` : "offline"}
         </span>
       </div>
 

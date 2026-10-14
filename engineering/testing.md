@@ -64,6 +64,21 @@ For a real installation, use `python -m scripts.deployment_smoke`. Its `--exerci
 option writes study material into the supplied workspace; use a disposable workspace.
 See the [deployment runbook](runbooks/deployment.md).
 
+## App browser checks
+
+With Chrome and Python Playwright installed, start a local development instance
+with authentication disabled on a separate port, then run:
+
+```bash
+python scripts/check_app_browser.py --base-url http://127.0.0.1:8011
+```
+
+This checks the landing page, study routes, custom dropdown keyboard controls,
+model-details dismissal and focus restoration, and phone layouts. It does not
+generate questions or write learning history. `--capture-preview` refreshes the
+landing page’s real workspace screenshot in `frontend/public/`; rebuild the
+frontend after capturing it.
+
 ## Documentation checks
 
 ```bash

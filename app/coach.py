@@ -54,6 +54,58 @@ class Answer(BaseModel):
     index: int = Field(ge=0)
 
 
+class QuestionBatch(BaseModel):
+    questions: list[Question] = Field(min_length=1, max_length=2)
+
+
+def generate_questions(req: Start, model: str, prompt: str) -> list[dict]:
+    """Keep each response within the configured output budget, never accept partial JSON."""
+    questions = []
+    schema = QuestionBatch.model_json_schema()
+    required_type = 'free_response' if req.mode == 'interview' else req.question_type
+    if required_type != 'mixed':
+        properties = schema['$defs']['Question']['properties']
+        properties['type']['enum'] = [required_type]
+        if required_type == 'mcq':
+            properties['answer']['enum'] = list('ABCD')
+            properties['options'] = dict(type='object', properties={key: {'type': 'string'} for key in 'ABCD'},
+                                         required=list('ABCD'), additionalProperties=False)
+    llm = _get_llm(model, response_format=schema)
+    while len(questions) < req.n:
+        count = min(2, req.n - len(questions))
+        instruction = (f'Generate exactly {count} questions for this batch. '
+                       'Return a JSON object with a questions array. Keep each solution under 80 words. '
+                       f'Already covered: {json.dumps([q["question"] for q in questions])}.')
+        if req.mode == 'exam' and req.question_type == 'mixed':
+            instruction += ' Include one mcq and one short_answer when generating two questions.'
+        for attempt in range(2):
+            try:
+                response = llm.invoke([HumanMessage(content=prompt + '\n' + instruction)])
+                if getattr(response, 'response_metadata', {}).get('done_reason') == 'length':
+                    raise ValueError('Output limit reached')
+                raw = _extract_json(response.content)
+                # Some older local runners ignore the wrapper schema but emit a valid array.
+                batch = QuestionBatch.model_validate({'questions': raw} if isinstance(raw, list) else raw)
+                if len(batch.questions) != count:
+                    raise ValueError('Wrong question count')
+                existing = {q['question'].strip().casefold() for q in questions}
+                for q in batch.questions:
+                    if q.question.strip().casefold() in existing:
+                        raise ValueError('Repeated question')
+                    existing.add(q.question.strip().casefold())
+                    if req.mode == 'interview' and q.type != 'free_response':
+                        raise ValueError('Interview requires written questions')
+                    if req.mode != 'interview' and req.question_type != 'mixed' and q.type != req.question_type:
+                        raise ValueError('Wrong question format')
+                questions.extend(q.model_dump() for q in batch.questions)
+                break
+            except (ValueError, TypeError):
+                if attempt:
+                    raise
+                instruction += ' Your previous response was invalid. Follow the schema and requested count exactly.'
+    return questions
+
+
 @contextmanager
 def connect():
     path = Path(get_settings().coach_db)
@@ -142,24 +194,24 @@ def start(req: Start):
         docs = get_retriever(top_k=8).invoke(focus)
     except Exception:
         docs = []
-    context = _build_context(docs)[:24000]
+    context = _build_context(docs)[:12000]
     grounding = 'documents' if docs else 'model-general knowledge'
-    prompt = f'''Create {req.n} {req.difficulty} questions about {focus} for {req.mode}.
+    format_rule = ('Use only free_response questions.' if req.mode == 'interview' else
+                   f'Use only {req.question_type} questions.' if req.question_type != 'mixed' else
+                   'Use a mix of mcq, true_false, short_answer and free_response questions.')
+    prompt = f'''Create {req.difficulty} questions about {focus} for {req.mode}.
 Cover sciences, mathematics, engineering or other fields as requested.
 For recap: progress from definitions to application. For interview: probe reasoning,
 tradeoffs, assumptions and derivations. Include calculation, units, multi-step problems
-and interpretation when appropriate. Exam MUST mix at least two formats.
-Interview uses free_response. For other modes the requested format is {req.question_type}.
-For mixed use at least two of mcq, true_false, short_answer or free_response.
+and interpretation when appropriate. {format_rule}
 Use only the context when present. Otherwise use general knowledge, acknowledge uncertainty,
 and never invent sources. Include a precise reference answer and solution in explanation.
-Return ONLY a JSON array. Each object has: type, question, topic (specific subtopic),
+Return ONLY a JSON object with a questions array. Each question has: type, question, topic (specific subtopic),
 answer (A/B/C/D for mcq, True/False for true_false, reference answer otherwise),
 options (A/B/C/D object for mcq, empty object otherwise), explanation.
 Context: {context or 'No relevant documents: general knowledge.'}'''
     try:
-        raw = _extract_json(_get_llm(model).invoke([HumanMessage(content=prompt)]).content)
-        questions = [Question.model_validate(q).model_dump() for q in raw][:req.n]
+        questions = generate_questions(req, model, prompt)
         if len(questions) != req.n:
             raise ValueError(f'Expected {req.n} questions; received {len(questions)}')
         for q in questions:
@@ -175,7 +227,7 @@ Context: {context or 'No relevant documents: general knowledge.'}'''
         if req.mode == 'exam' and req.question_type == 'mixed' and len({q['type'] for q in questions}) < 2:
             raise ValueError('Exam model output must include mixed formats; retry')
     except Exception as exc:
-        raise HTTPException(502, f'Could not generate valid questions. Retry or choose another model: {exc}') from exc
+        raise HTTPException(502, 'The model could not finish a valid question set. Try fewer questions or choose another installed model. Your topic and settings have been kept.') from exc
     now = time.time()
     session = dict(id=uuid.uuid4().hex, learner=req.learner, topic=focus, mode=req.mode,
                    model=model, questions=questions, answers=[], started=now, last_answer=now,

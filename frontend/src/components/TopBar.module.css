@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  height: var(--topbar-h);
+  min-height: var(--topbar-h);
   padding: 0 var(--space-4);
   border-bottom: 1px solid var(--border);
   background: var(--bg);
@@ -118,6 +118,7 @@
   .bar { height: auto; min-height: var(--topbar-h); flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
   .left { width: 100%; }
   .right { width: 100%; justify-content: space-between; min-width: 0; }
+  .right > :first-child { flex: 1; }
   .title { white-space: normal; }
   .right {
     gap: var(--space-2);
