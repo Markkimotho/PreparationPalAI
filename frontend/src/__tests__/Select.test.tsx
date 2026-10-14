@@ -26,6 +26,15 @@ function Harness({ onChange }: { onChange?: (v: string) => void }) {
 }
 
 describe("Select", () => {
+  it("keeps keyboard navigation when a parent refreshes option objects", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<Select ariaLabel="Letter" value="a" options={OPTS} onChange={onChange} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Letter' }));
+    await userEvent.keyboard('{ArrowDown}');
+    rerender(<Select ariaLabel="Letter" value="a" options={OPTS.map(option => ({ ...option }))} onChange={onChange} />);
+    await userEvent.keyboard('{Enter}');
+    expect(onChange).toHaveBeenCalledWith('b');
+  });
   it("renders the selected label on the trigger", () => {
     render(<Harness />);
     expect(screen.getByRole("button", { name: "Letter" })).toHaveTextContent("Alpha");
