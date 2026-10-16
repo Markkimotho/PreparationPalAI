@@ -113,14 +113,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .pp-study-visual { min-height: 19rem; display: grid; place-items: center; position: relative; isolation: isolate; overflow: clip; }
 .pp-orbit { position: absolute; width: 95%; aspect-ratio: 1; border: 1px solid var(--pp-border); border-radius: 50%; transform: rotate(-30deg) scaleY(.6); z-index: -1; }
 .pp-orbit-two { transform: rotate(35deg) scaleY(.65); width: 85%; }
-.pp-study-note { width: 85%; max-width: 18rem; padding: 1.4rem; border: 1px solid var(--pp-border); background: var(--md-default-bg-color); border-radius: 14px; box-shadow: 0 12px 30px var(--pp-note-shadow); transform: rotate(-3deg); }
+.pp-study-note { width: 85%; max-width: 18rem; padding: 1.4rem; border: 1px solid var(--pp-border); background: var(--pp-paper); border-radius: 14px; box-shadow: 0 12px 30px var(--pp-note-shadow); transform: rotate(-3deg); }
 .pp-note-label { display: block; font-size: .65rem; font-weight: 500; color: var(--pp-muted); }
 .pp-equation { display: flex; justify-content: space-between; align-items: center; font-family: var(--pp-math-font); font-style: italic; font-size: 2.8rem; color: var(--md-typeset-a-color); margin: .4rem 0; }
 .pp-spark { font-size: 1.9rem; color: var(--pp-gold); }
 .pp-study-note p { font-size: .85rem; font-weight: 600; color: var(--pp-ink); margin: .6rem 0; }
 .pp-note-caption { color: var(--pp-muted); font-size: .75rem; line-height: 1.6; }
 .pp-note-footer { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: 1rem; }
-.pp-note-footer span { font-size: .6rem; padding: .2rem .4rem; background: var(--pp-paper); color: var(--pp-ink); border-radius: 4px; }
+.pp-note-footer span { font-size: .6rem; padding: .2rem .4rem; background: var(--md-default-bg-color); color: var(--pp-ink); border-radius: 4px; }
 .pp-subject { position: absolute; padding: .4rem .6rem; font-size: .6rem; border: 1px solid var(--pp-border); border-radius: 30px; background: var(--md-default-bg-color); color: var(--pp-muted); }
 .pp-subject-one { top: 4%; right: 0; transform: rotate(5deg); }
 .pp-subject-two { bottom: 3%; left: 0; transform: rotate(4deg); }
