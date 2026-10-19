@@ -23,6 +23,8 @@ def main():
         page.evaluate('document.fonts.ready')
         assert page.evaluate('document.fonts.check(\'600 20px "Manrope"\')')
         assert page.evaluate('document.fonts.check(\'400 17px "Source Sans 3"\')')
+        assert page.evaluate('''() => ['Manrope', 'Source Sans 3'].every(name =>
+            [...document.fonts].some(font => font.family.replace(/["']/g, '') === name && font.status === 'loaded'))''')
         expect(page.locator('.pp-study-note')).to_be_visible()
         expect(page.locator('.pp-equation')).to_contain_text('F = ma')
         page.screenshot(path=str(args.screenshots / 'product-desktop.png'), full_page=True)
@@ -39,6 +41,7 @@ def main():
         page.keyboard.press('Escape')
         page.get_by_role('link', name='Start your first session').click()
         expect(page.get_by_role('heading', level=1)).to_contain_text('Your first study session')
+        page.screenshot(path=str(args.screenshots / 'product-content.png'), full_page=True)
         for width in (320, 375, 768):
             page.set_viewport_size(dict(width=width, height=900))
             page.goto(args.base_url)
@@ -61,6 +64,11 @@ def main():
         page.keyboard.press('Escape')
         page.get_by_role('link', name='Back to the user guide').click()
         expect(page.get_by_role('heading', level=1)).to_contain_text('Study with')
+        for path in ('start/first-session/', 'contribute/development/'):
+            for width in (375, 1440):
+                page.set_viewport_size(dict(width=width, height=900))
+                page.goto(args.base_url + path)
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), (path, width)
         assert not errors, errors
         browser.close()
     print(f'Documentation search, themes, navigation and responsive checks passed. Screenshots: {args.screenshots}')
