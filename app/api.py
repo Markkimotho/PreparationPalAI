@@ -419,7 +419,7 @@ def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
 def quiz_validate(req: QuizValidateRequest) -> dict:
     if req.question_type == 'short_answer':
         req.model = require_model(req.model)
-    return validate_answer(
+    result = validate_answer(
         question=req.question,
         correct_answer=req.correct_answer,
         student_answer=req.student_answer,
@@ -427,6 +427,9 @@ def quiz_validate(req: QuizValidateRequest) -> dict:
         question_type=req.question_type,
         model=req.model,
     )
+    if result.get('feedback', '').startswith('Could not grade answer:'):
+        raise HTTPException(502, 'The model could not grade this answer. Retry or choose another model; no score has been awarded.')
+    return result
 
 
 @app.post("/api/quiz/explain", response_model=ExplainResponse)
