@@ -122,4 +122,3 @@ export interface PromptProfile {
   notation?: string;
   exam_context?: string;
 }
-

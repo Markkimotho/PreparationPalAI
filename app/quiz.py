@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from typing import Any
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
 from app.generation import validated_batches
 
@@ -34,6 +34,7 @@ class WrittenEvaluation(BaseModel):
 
 
 class QuizItem(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     type: Literal['mcq', 'true_false', 'short_answer']
     question: str = Field(min_length=1)
     source: str = Field(min_length=1)
@@ -48,6 +49,10 @@ class QuizItem(BaseModel):
     def valid_answer(self):
         if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.correct not in self.options):
             raise ValueError('MCQ needs four options and one matching answer')
+        if self.type == 'mcq' and any(not text for text in self.options.values()):
+            raise ValueError('Empty option')
+        if self.type in ('mcq', 'true_false') and not self.explanation:
+            raise ValueError('An explanation is required')
         if self.type == 'true_false' and not isinstance(self.correct, bool):
             raise ValueError('True/false needs a boolean answer')
         if self.type == 'short_answer' and not self.sample_answer.strip():
@@ -125,29 +130,43 @@ def generate_questions(
     retriever = get_retriever(top_k=top_k)
     docs = retriever.invoke(topic)
     if not docs:
-        logger.warning("No docs found for topic %r", topic)
+        logger.warning('No relevant documents found for quiz generation')
         return []
 
     context = _build_context(docs)
     schema = QuizBatch.model_json_schema()
     if question_type != 'mixed':
-        schema['$defs']['QuizItem']['properties']['type']['enum'] = [question_type]
+        item_schema = schema['$defs']['QuizItem']
+        props = item_schema['properties']
+        props['type']['enum'] = [question_type]
+        if question_type == 'mcq':
+            props['correct'] = dict(type='string', enum=list('ABCD'))
+            props['options'] = dict(type='object', properties={key: {'type': 'string', 'minLength': 1} for key in 'ABCD'},
+                                   required=list('ABCD'), additionalProperties=False)
+            item_schema['required'] += ['correct', 'options', 'explanation']
+            for key in ('sample_answer', 'key_concepts'):
+                props.pop(key)
+        elif question_type == 'true_false':
+            props['correct'] = dict(type='boolean')
+            item_schema['required'] += ['correct', 'explanation']
+        else:
+            item_schema['required'] += ['sample_answer']
     sources = {str(doc.metadata.get('source', 'unknown')) for doc in docs}
     def validate(item):
         if item['source'] not in sources:
             raise ValueError('Unknown source')
         if question_type != 'mixed' and item['type'] != question_type:
             raise ValueError('Wrong question format')
-    def prompt(count, existing, repair):
+    def prompt(count, existing, repair, batch_schema):
         return render_prompt('quiz_questions', profile=profile, count=count, topic=topic,
             question_type=question_type, difficulty=difficulty, exam_context=exam_type,
-            evidence_mode='documents', context=context, schema=schema, repair=repair,
+            evidence_mode='documents', context=context, schema=batch_schema, repair=repair,
             already_covered=[q['question'] for q in existing])
     llm = _get_llm(model, temperature=0.2, response_format=schema)
     try:
-        return validated_batches(llm, prompt, _extract_json, QuizBatch, n, 'questions', 'question', validate)
+        return validated_batches(llm, prompt, _extract_json, QuizBatch, n, 'questions', 'question', validate, schema=schema)
     except Exception as exc:
-        logger.error("generate_questions failed: %s", exc)
+        logger.warning('Quiz generation failed', extra={'error_type': type(exc).__name__})
         return []
 
 
@@ -159,6 +178,7 @@ def validate_answer(
     model: str | None = None,
     context_docs: list[Document] | None = None,
     profile: PromptProfile | None = None,
+    evidence_context: str = '',
 ) -> dict:
     """Grade a student answer.
 
@@ -177,7 +197,7 @@ def validate_answer(
             "hint": "",
         }
 
-    context = _build_context(context_docs[:3]) if context_docs else ""
+    context = _build_context(context_docs[:3]) if context_docs else evidence_context
     llm = _get_llm(model, temperature=0, response_format=WrittenEvaluation.model_json_schema())
     prompt = render_prompt('grade_answer', profile=profile,
         question=question,
@@ -195,11 +215,11 @@ def validate_answer(
         result['is_correct'] = result['score'] >= 70
         return result
     except Exception as exc:
-        logger.error("validate_answer failed: %s", exc)
+        logger.warning('Answer evaluation failed', extra={'error_type': type(exc).__name__})
         return {
             "score": 0,
             "is_correct": False,
-            "feedback": f"Could not grade answer: {exc}",
+            "feedback": "Could not grade answer: the model returned no valid evaluation. Retry or choose another model.",
             "key_missed": [],
             "hint": "",
         }
