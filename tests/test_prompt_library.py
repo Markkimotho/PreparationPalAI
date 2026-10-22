@@ -79,3 +79,12 @@ def test_agent_tools_inherit_profile_and_model_without_exposing_them_to_the_mode
     assert generate.call_args.kwargs['model'] == 'qwen2.5:7b'
     assert generate.call_args.kwargs['profile'].discipline == 'biology'
     assert 'config' not in make_quiz.args
+
+
+def test_grading_failure_is_not_reported_as_an_incorrect_answer():
+    with patch('app.api.require_model', return_value='test:7b'), patch('app.api.validate_answer', return_value={
+        'score': 0, 'feedback': 'Could not grade answer: invalid output'}):
+        response = TestClient(app).post('/api/quiz/validate', json={
+            'question': 'Explain the law', 'correct_answer': 'A reference', 'student_answer': 'An attempt'})
+    assert response.status_code == 502
+    assert 'no score' in response.json()['detail']

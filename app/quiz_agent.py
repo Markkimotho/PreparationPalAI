@@ -140,6 +140,8 @@ def check_answer(
         question_type=question_type,
         **_study_parameters(config),
     )
+    if result.get('feedback', '').startswith('Could not grade answer:'):
+        return json.dumps({'error': 'The model could not grade this answer. Retry; no score has been awarded.'})
     return json.dumps(result)
 
 
