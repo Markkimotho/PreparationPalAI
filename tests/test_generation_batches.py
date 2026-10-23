@@ -27,6 +27,7 @@ def test_quiz_generation_validates_multiple_small_batches():
     assert llm.invoke.call_count == 2
     assert llm.invoke.call_args_list[0].kwargs['format']['properties']['questions']['maxItems'] == 2
     assert llm.invoke.call_args_list[1].kwargs['format']['properties']['questions']['maxItems'] == 1
+    assert llm.invoke.call_args.kwargs['format']['$defs']['QuizItem']['properties']['source']['enum'] == ['notes.pdf']
 
 
 def test_quiz_rejects_invented_sources_after_bounded_retry():
