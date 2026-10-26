@@ -158,11 +158,12 @@ def generate_questions(
             raise ValueError('Unknown source')
         if question_type != 'mixed' and item['type'] != question_type:
             raise ValueError('Wrong question format')
-    def prompt(count, existing, repair, batch_schema):
+    def prompt(count, existing, repair, batch_schema, feedback):
         return render_prompt('quiz_questions', profile=profile, count=count, topic=topic,
             question_type=question_type, difficulty=difficulty, exam_context=exam_type,
             evidence_mode='documents', context=context, schema=batch_schema, repair=repair,
             source_labels=sorted(sources),
+            validation_feedback=feedback,
             already_covered=[q['question'] for q in existing])
     llm = _get_llm(model, temperature=0.2, response_format=schema)
     try:
