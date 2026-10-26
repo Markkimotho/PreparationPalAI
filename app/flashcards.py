@@ -186,10 +186,10 @@ def generate_cards(
         keep_alive=settings.ollama_keep_alive,
         format=CardBatch.model_json_schema(),
     )
-    def prompt(count, existing, repair, batch_schema):
+    def prompt(count, existing, repair, batch_schema, feedback):
         return render_prompt('flashcards', profile=profile, count=count, topic=topic, context=context,
             evidence_mode='documents', schema=batch_schema, repair=repair,
-            existing_fronts=[card['front'] for card in existing])
+            existing_fronts=[card['front'] for card in existing], validation_feedback=feedback)
     try:
         return validated_batches(llm, prompt, _extract_json, CardBatch, n, 'cards', 'front')
     except Exception as exc:
