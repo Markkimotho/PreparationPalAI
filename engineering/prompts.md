@@ -121,3 +121,6 @@ Quality reports record the prompt version and registry SHA-256 along with model
 and dataset identifiers. Keep reports for each model/configuration. The current
 science gate is a small grounding/formatting benchmark, not a lab-grade comparison,
 comprehensive subject evaluation or resistance-to-injection certification.
+
+Recorded results and their limits are kept in the repository’s
+[evaluation reports](https://github.com/Markkimotho/PreparationPalAI/tree/main/evals/reports).
