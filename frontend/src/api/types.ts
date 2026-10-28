@@ -114,3 +114,11 @@ export interface ChatMessage {
   streaming?: boolean;
   error?: boolean;
 }
+export interface PromptProfile {
+  discipline?: string;
+  level?: 'beginner' | 'intermediate' | 'advanced';
+  objectives?: string[];
+  language?: string;
+  notation?: string;
+  exam_context?: string;
+}

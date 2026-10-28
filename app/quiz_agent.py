@@ -17,11 +17,13 @@ from collections.abc import Iterator
 
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
+from langchain_core.runnables import RunnableConfig
 from app.llm import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
 from app.config import get_settings
+from app.prompt_library import PromptProfile, render_prompt
 from app.workspace import scoped_thread
 from app.quiz import explain_concept, generate_questions, validate_answer
 from app.retriever import get_retriever
@@ -36,6 +38,16 @@ logger = logging.getLogger(__name__)
 _checkpointer = MemorySaver()
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
+
+
+def _study_parameters(config: RunnableConfig | None) -> dict:
+    cfg = (config or {}).get('configurable', {})
+    result = {}
+    if cfg.get('model'):
+        result['model'] = cfg['model']
+    if cfg.get('profile'):
+        result['profile'] = PromptProfile.model_validate(cfg['profile'])
+    return result
 
 
 @tool
@@ -73,6 +85,7 @@ def make_quiz(
     n: int = 5,
     difficulty: str = "medium",
     exam_type: str = "general exam",
+    config: RunnableConfig = None,
 ) -> str:
     """Generate quiz questions from the knowledge base on a given topic.
 
@@ -91,6 +104,7 @@ def make_quiz(
         n=max(1, min(n, 20)),
         difficulty=difficulty,
         exam_type=exam_type,
+        **_study_parameters(config),
     )
     if not questions:
         return (
@@ -107,6 +121,7 @@ def check_answer(
     correct_answer: str,
     student_answer: str,
     question_type: str = "short_answer",
+    config: RunnableConfig = None,
 ) -> str:
     """Grade a student's answer and return detailed feedback.
 
@@ -123,12 +138,15 @@ def check_answer(
         correct_answer=correct_answer,
         student_answer=student_answer,
         question_type=question_type,
+        **_study_parameters(config),
     )
+    if result.get('feedback', '').startswith('Could not grade answer:'):
+        return json.dumps({'error': 'The model could not grade this answer. Retry; no score has been awarded.'})
     return json.dumps(result)
 
 
 @tool
-def explain(concept: str) -> str:
+def explain(concept: str, config: RunnableConfig = None) -> str:
     """Get a detailed explanation of a concept from the knowledge base.
 
     Use when the user says 'explain', 'what is', 'describe', or 'help me understand'.
@@ -136,7 +154,7 @@ def explain(concept: str) -> str:
     Args:
         concept: The concept, term, or topic to explain in detail
     """
-    return explain_concept(concept)
+    return explain_concept(concept, **_study_parameters(config))
 
 
 @tool
@@ -171,39 +189,14 @@ def list_topics() -> str:
 
 _TOOLS = [search_and_add_to_kb, make_quiz, check_answer, explain, list_topics]
 
-_SYSTEM_PROMPT = """\
-You are an expert exam and interview preparation tutor. Your job is to help \
-students study effectively for any topic.
-
-Available tools:
-- search_and_add_to_kb : scrape web content on any topic and add it to your knowledge base
-- make_quiz            : generate quiz questions (MCQ, true/false, short answer) from knowledge base
-- check_answer         : grade a student's answer with detailed feedback
-- explain              : give detailed explanations of concepts from knowledge base
-- list_topics          : see what's already in the knowledge base
-
-How to help:
-1. When a user asks to study a topic, call list_topics first to check coverage.
-2. If the topic isn't covered, call search_and_add_to_kb automatically — don't ask.
-3. Present questions clearly, one at a time, with a numbered counter (Q3/10).
-4. For MCQ: show all 4 options labeled A, B, C, D on separate lines.
-5. For True/False: present as a clear statement for the student to evaluate.
-6. After receiving an answer, call check_answer and relay the feedback.
-7. After 100% wrong answers, offer an explanation using explain.
-8. At the end of a quiz session, summarise: score, weak areas, what to review.
-
-Formatting:
-- Use **bold** for question text and option labels.
-- Use ✅ for correct, ❌ for incorrect answers.
-- Keep feedback concise and encouraging.
-- Show score as X/Y (e.g., "Score: 7/10").
-"""
+_SYSTEM_PROMPT = render_prompt('study_agent')
 
 
 def invoke_agent(
     message: str,
     thread_id: str = "default",
     model: str | None = None,
+    profile: PromptProfile | None = None,
 ) -> str:
     """Send a message to the quiz agent and return its text response.
 
@@ -220,13 +213,14 @@ def invoke_agent(
     agent = create_react_agent(
         llm,
         _TOOLS,
-        prompt=_SYSTEM_PROMPT,
+        prompt=render_prompt('study_agent', profile=profile),
         checkpointer=_checkpointer,
     )
     try:
         result = agent.invoke(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": scoped_thread(thread_id)}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model,
+                                     "profile": profile.model_dump() if profile else {}}},
         )
         messages = result.get("messages", [])
         return messages[-1].content if messages else "No response from agent."
@@ -239,6 +233,7 @@ def stream_agent(
     message: str,
     thread_id: str = "default",
     model: str | None = None,
+    profile: PromptProfile | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Stream the agent's response token-by-token.
 
@@ -255,14 +250,15 @@ def stream_agent(
     agent = create_react_agent(
         llm,
         _TOOLS,
-        prompt=_SYSTEM_PROMPT,
+        prompt=render_prompt('study_agent', profile=profile),
         checkpointer=_checkpointer,
     )
     seen_tools: set[str] = set()
     try:
         for msg_chunk, _metadata in agent.stream(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": scoped_thread(thread_id)}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model,
+                                     "profile": profile.model_dump() if profile else {}}},
             stream_mode="messages",
         ):
             for tc in getattr(msg_chunk, "tool_call_chunks", None) or []:

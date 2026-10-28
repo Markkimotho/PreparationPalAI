@@ -17,6 +17,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 
 from app.config import get_settings
+from app.prompt_library import PromptProfile, render_prompt
 from app.workspace import scoped_thread
 from app.retriever import get_retriever
 
@@ -25,23 +26,7 @@ logger = logging.getLogger(__name__)
 # Shared checkpointer — keeps thread history across requests for the process life.
 _checkpointer = MemorySaver()
 
-SYSTEM_PROMPT = """\
-You are an expert programming assistant. You help developers write, understand, \
-debug, and improve code across any language or stack.
-
-Rules:
-- Be concise and correct. Lead with the solution, then a short explanation.
-- ALWAYS put code in fenced code blocks with the correct language tag \
-(```python, ```ts, ```bash, ...).
-- Prefer idiomatic, production-quality code. Handle edge cases. Avoid dead code.
-- When the user shares an error, identify the root cause before proposing a fix, \
-and say exactly where it breaks.
-- When there is a meaningful tradeoff between approaches, name it in one line and \
-recommend one — do not dump every option.
-- If a request is ambiguous in a way that changes the code, ask one focused \
-question instead of guessing.
-- Do not invent APIs. If unsure whether something exists, say so.
-"""
+SYSTEM_PROMPT = render_prompt('code_assistant')
 
 _graph = None
 
@@ -83,7 +68,7 @@ def _build_graph():
     def call_model(state: MessagesState, config) -> dict:
         cfg = config.get("configurable", {})
         llm = _get_llm(cfg.get("model"))
-        messages = [SystemMessage(content=SYSTEM_PROMPT)]
+        messages = [SystemMessage(content=render_prompt('code_assistant', profile=cfg.get('profile')))]
 
         if cfg.get("use_kb"):
             last_human = next(
@@ -124,13 +109,15 @@ def invoke_code_assistant(
     thread_id: str = "default",
     model: str | None = None,
     use_kb: bool = False,
+    profile: PromptProfile | None = None,
 ) -> str:
     """Return the assistant's full response for one message (non-streaming)."""
     graph = get_graph()
     try:
         result = graph.invoke(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model, "use_kb": use_kb}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model, "use_kb": use_kb,
+                                     "profile": profile.model_dump() if profile else {}}},
         )
         messages = result.get("messages", [])
         return messages[-1].content if messages else "No response."
@@ -144,6 +131,7 @@ def stream_code_assistant(
     thread_id: str = "default",
     model: str | None = None,
     use_kb: bool = False,
+    profile: PromptProfile | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Stream the assistant's response token-by-token.
 
@@ -155,7 +143,8 @@ def stream_code_assistant(
     try:
         for msg_chunk, _metadata in graph.stream(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model, "use_kb": use_kb}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model, "use_kb": use_kb,
+                                     "profile": profile.model_dump() if profile else {}}},
             stream_mode="messages",
         ):
             token = getattr(msg_chunk, "content", "")

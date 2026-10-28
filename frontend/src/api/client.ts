@@ -14,6 +14,7 @@ import type {
   PullResponse,
   QuestionType,
   QuizQuestion,
+  PromptProfile,
   SourcesResponse,
   ValidationResult,
 } from "./types";
@@ -79,6 +80,7 @@ export const api = {
   kbRetryJob: (id: string) => request<IngestionJob>(`/api/kb/jobs/${id}/retry`, { method: 'POST' }),
 
   quizGenerate: (body: {
+    profile?: PromptProfile;
     topic: string;
     question_type: QuestionType;
     n: number;
@@ -91,6 +93,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   quizValidate: (body: {
+    profile?: PromptProfile;
     question: string;
     correct_answer: unknown;
     student_answer: string;
@@ -116,6 +119,7 @@ export const api = {
       body: JSON.stringify({ name }),
     }),
   generateDeck: (body: {
+    profile?: PromptProfile;
     topic: string;
     n: number;
     model?: string;

@@ -17,6 +17,7 @@ nav:
       - Architecture and project map: architecture.md
       - Add a feature: extending.md
       - Tests and quality gates: testing.md
+      - Study prompts and profiles: prompts.md
       - Maintain this documentation: documentation.md
   - Operate:
       - Workspace access: runbooks/security.md

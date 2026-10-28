@@ -15,7 +15,8 @@ from langgraph.graph.message import add_messages
 from app.config import get_settings
 from app.workspace import scoped_thread
 from app.memory import get_memory_saver
-from app.prompts import CONTEXTUALIZE_PROMPT, QA_PROMPT
+from app.prompts import CONTEXTUALIZE_PROMPT, QA_PROMPT, make_qa_prompt
+from app.prompt_library import PromptProfile
 from app.retriever import get_retriever
 
 
@@ -69,7 +70,8 @@ def generate(state: GraphState, config: RunnableConfig) -> dict:
     context = "\n\n".join(f"[Source: {doc.metadata.get('source', 'unknown')}, page {doc.metadata.get('page', '?')}]\n{doc.page_content}" for doc in state["documents"])
     messages = list(state["messages"])
 
-    prompt_value = QA_PROMPT.invoke(
+    prompt = make_qa_prompt(config.get('configurable', {}).get('profile'))
+    prompt_value = prompt.invoke(
         {
             "context": context,
             "chat_history": messages[:-1] if len(messages) > 1 else [],
@@ -111,6 +113,7 @@ def invoke(
     thread_id: str = "default",
     model: str | None = None,
     top_k: int | None = None,
+    profile: PromptProfile | None = None,
 ) -> dict:
     """Ask a question using the LangGraph RAG graph. Returns {"answer": str, "sources": list}."""
     graph = get_graph()
@@ -127,6 +130,7 @@ def invoke(
                 "thread_id": scoped_thread(thread_id),
                 "model": model,
                 "top_k": top_k,
+                "profile": profile.model_dump() if profile else {},
             }
         },
     )
@@ -148,6 +152,7 @@ def stream(
     thread_id: str = "default",
     model: str | None = None,
     top_k: int | None = None,
+    profile: PromptProfile | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Stream a RAG answer token-by-token via the LangGraph graph.
 
@@ -157,7 +162,8 @@ def stream(
     """
     graph = get_graph()
     config: dict = {
-        "configurable": {"thread_id": scoped_thread(thread_id), "model": model, "top_k": top_k}
+        "configurable": {"thread_id": scoped_thread(thread_id), "model": model, "top_k": top_k,
+                         "profile": profile.model_dump() if profile else {}}
     }
     inputs = {
         "messages": [HumanMessage(content=question)],

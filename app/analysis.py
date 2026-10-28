@@ -10,28 +10,11 @@ from langchain_core.messages import HumanMessage
 from app.llm import ChatOllama
 
 from app.config import SUPPORTED_MODELS, get_settings
+from app.prompt_library import PromptProfile, render_prompt
 from app.retriever import get_retriever
 
 logger = logging.getLogger(__name__)
 
-_ANALYST_PROMPT = """\
-You are a senior data analyst with 20 years of experience in business intelligence \
-and research. Based solely on the provided context documents, deliver a structured, \
-evidence-based analysis.
-
-Focus on:
-1. Key facts, figures, and data points from the documents
-2. Patterns, trends, and notable correlations
-3. Identified risks, gaps, and opportunities
-4. Concrete, prioritized recommendations
-
-Context:
-{context}
-
-Question: {question}
-
-Provide a thorough, well-structured analysis with specific evidence from the documents. \
-Use bullet points, numbered lists, and clear section headings. Be precise and actionable."""
 
 _INSIGHTS_QUESTIONS = {
     "summary": (
@@ -147,7 +130,7 @@ def _score_response(text: str) -> int:
     return min(100, score)
 
 
-def _run_single_model(model: str, question: str, context: str) -> dict:
+def _run_single_model(model: str, question: str, context: str, profile: PromptProfile | None = None) -> dict:
     """Invoke one model and return a result dict with quality metrics."""
     settings = get_settings()
     t0 = time.perf_counter()
@@ -158,7 +141,7 @@ def _run_single_model(model: str, question: str, context: str) -> dict:
             temperature=0.1,
             keep_alive=settings.ollama_keep_alive,
         )
-        prompt = _ANALYST_PROMPT.format(context=context, question=question)
+        prompt = render_prompt('document_analysis', profile=profile, context=context, question=question, evidence_mode='documents')
         response = llm.invoke([HumanMessage(content=prompt)])
         elapsed = round(time.perf_counter() - t0, 1)
         content = response.content
@@ -186,6 +169,7 @@ def run_multi_model_analysis(
     question: str,
     top_k: int = 5,
     selected_models: list[str] | None = None,
+    profile: PromptProfile | None = None,
 ) -> list[dict]:
     """Retrieve context then fan out to selected models in parallel.
 
@@ -211,13 +195,13 @@ def run_multi_model_analysis(
     context = _build_context(docs)
     max_workers = min(len(models), 4)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(_run_single_model, m, question, context): m for m in models}
+        futures = {executor.submit(_run_single_model, m, question, context, profile): m for m in models}
         results = [f.result() for f in concurrent.futures.as_completed(futures)]
 
     return sorted(results, key=lambda x: (-x["quality_score"], x["model"]))
 
 
-def generate_insights(top_k: int = 10, model: str | None = None) -> dict[str, dict]:
+def generate_insights(top_k: int = 10, model: str | None = None, profile: PromptProfile | None = None) -> dict[str, dict]:
     """Auto-generate structured insights from the knowledge base using a single model."""
     settings = get_settings()
     if model is None:
@@ -240,7 +224,7 @@ def generate_insights(top_k: int = 10, model: str | None = None) -> dict[str, di
                 temperature=0,
                 keep_alive=settings.ollama_keep_alive,
             )
-            prompt = _ANALYST_PROMPT.format(context=context, question=question)
+            prompt = render_prompt('document_analysis', profile=profile, context=context, question=question, evidence_mode='documents')
             response = llm.invoke([HumanMessage(content=prompt)])
             output[key] = {"label": label, "content": response.content}
         except Exception as exc:
