@@ -4,7 +4,9 @@ import json
 import logging
 import re
 from typing import Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing import Literal
+from app.generation import validated_batches
 
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
@@ -12,6 +14,7 @@ from app.llm import ChatOllama
 
 from app.config import get_settings
 from app.retriever import get_retriever
+from app.prompt_library import PromptProfile, render_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -29,112 +32,39 @@ class WrittenEvaluation(BaseModel):
     hint: str = ''
     rubric: Rubric | None = None
 
+
+class QuizItem(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    type: Literal['mcq', 'true_false', 'short_answer']
+    question: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    difficulty: str = 'medium'
+    correct: str | bool | None = None
+    options: dict[str, str] = Field(default_factory=dict)
+    explanation: str = ''
+    sample_answer: str = ''
+    key_concepts: list[str] = Field(default_factory=list)
+
+    @model_validator(mode='after')
+    def valid_answer(self):
+        if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.correct not in self.options):
+            raise ValueError('MCQ needs four options and one matching answer')
+        if self.type == 'mcq' and any(not text for text in self.options.values()):
+            raise ValueError('Empty option')
+        if self.type in ('mcq', 'true_false') and not self.explanation:
+            raise ValueError('An explanation is required')
+        if self.type == 'true_false' and not isinstance(self.correct, bool):
+            raise ValueError('True/false needs a boolean answer')
+        if self.type == 'short_answer' and not self.sample_answer.strip():
+            raise ValueError('Short answer needs a reference')
+        return self
+
+
+class QuizBatch(BaseModel):
+    questions: list[QuizItem] = Field(max_length=2)
+
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
-_MCQ_PROMPT = """\
-You are an expert exam question writer. Using ONLY the content below, generate {n} \
-multiple-choice questions to help someone prepare for: {exam_type}.
-
-Topic focus: {topic}
-Difficulty: {difficulty}
-
-Rules:
-- Every question must be answerable from the provided content
-- 4 options per question labeled A, B, C, D — exactly one is correct
-- Explanation must quote or paraphrase the relevant content
-- source: the filename or URL the answer comes from
-
-Content:
-{context}
-
-Respond with ONLY a valid JSON array — no markdown fences, no extra text:
-[{{"type":"mcq","question":"...","options":{{"A":"...","B":"...","C":"...","D":"..."}},"correct":"A","explanation":"...","source":"...","difficulty":"{difficulty}"}}]"""
-
-_TRUE_FALSE_PROMPT = """\
-You are an expert exam question writer. Using ONLY the content below, generate {n} \
-true/false questions to help someone prepare for: {exam_type}.
-
-Topic focus: {topic}
-Difficulty: {difficulty}
-
-Rules:
-- Each statement must be factually verifiable from the content
-- Aim for ~50% true, ~50% false
-- False statements must be plausibly wrong, not obviously wrong
-- Explanation must reference the relevant part of the content
-
-Content:
-{context}
-
-Respond with ONLY a valid JSON array — no markdown fences, no extra text:
-[{{"type":"true_false","question":"...","correct":true,"explanation":"...","source":"...","difficulty":"{difficulty}"}}]"""
-
-_SHORT_ANSWER_PROMPT = """\
-You are an expert exam question writer. Using ONLY the content below, generate {n} \
-short-answer questions to help someone prepare for: {exam_type}.
-
-Topic focus: {topic}
-Difficulty: {difficulty}
-
-Rules:
-- Questions should require 2-4 sentence answers
-- For technical interviews: include conceptual + practical questions
-- For job interviews: include behavioral (STAR-method) questions
-- key_concepts must all appear in the sample_answer
-
-Content:
-{context}
-
-Respond with ONLY a valid JSON array — no markdown fences, no extra text:
-[{{"type":"short_answer","question":"...","sample_answer":"...","key_concepts":["..."],"source":"...","difficulty":"{difficulty}"}}]"""
-
-_MIXED_PROMPT = """\
-You are an expert exam question writer. Using ONLY the content below, generate {n} \
-questions of mixed types to help someone prepare for: {exam_type}.
-
-Topic focus: {topic}
-Difficulty: {difficulty}
-
-Include MCQ, true/false, and short-answer questions in roughly equal proportion.
-
-MCQ schema:    {{"type":"mcq","question":"...","options":{{"A":"...","B":"...","C":"...","D":"..."}},"correct":"A","explanation":"...","source":"...","difficulty":"..."}}
-TF schema:     {{"type":"true_false","question":"...","correct":true,"explanation":"...","source":"...","difficulty":"..."}}
-SA schema:     {{"type":"short_answer","question":"...","sample_answer":"...","key_concepts":["..."],"source":"...","difficulty":"..."}}
-
-Content:
-{context}
-
-Respond with ONLY a valid JSON array — no markdown fences, no extra text."""
-
-_VALIDATE_PROMPT = """\
-Grade this student answer fairly and precisely.
-
-Question: {question}
-Reference answer / sample: {correct}
-Student answer: {student_answer}
-
-Context excerpt (for short-answer scoring):
-{context}
-
-Scoring criteria (written answers):
-- Reasoning, assumptions, and key concepts: 40 pts
-- Factual/numerical accuracy, units, and dimensional consistency: 40 pts
-- Completeness and clarity: 20 pts
-Check each step against the reference. Accept equivalent valid derivations and
-appropriate rounding. Explain reasoning errors and give one concrete next step.
-If the reference is uncertain, acknowledge this rather than confidently inventing facts.
-
-Respond with ONLY valid JSON — no markdown:
-{{"score":85,"is_correct":true,"feedback":"...","key_missed":["..."],"hint":"Review the section about...","rubric":{{"reasoning":34,"accuracy":32,"clarity":19}}}}"""
-
-_EXPLAIN_PROMPT = """\
-Based ONLY on the following content, give a clear and thorough explanation of: {concept}
-
-Include: key definitions, how it works, real examples from the content, and common \
-misconceptions if present. If the content does not fully cover this topic, say so.
-
-Content:
-{context}"""
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -189,6 +119,7 @@ def generate_questions(
     exam_type: str = "general exam",
     model: str | None = None,
     top_k: int = 8,
+    profile: PromptProfile | None = None,
 ) -> list[dict]:
     """Generate quiz questions from the knowledge base on a given topic.
 
@@ -199,37 +130,46 @@ def generate_questions(
     retriever = get_retriever(top_k=top_k)
     docs = retriever.invoke(topic)
     if not docs:
-        logger.warning("No docs found for topic %r", topic)
+        logger.warning('No relevant documents found for quiz generation')
         return []
 
     context = _build_context(docs)
-    prompt_map = {
-        "mcq": _MCQ_PROMPT,
-        "true_false": _TRUE_FALSE_PROMPT,
-        "short_answer": _SHORT_ANSWER_PROMPT,
-        "mixed": _MIXED_PROMPT,
-    }
-    prompt_template = prompt_map.get(question_type, _MCQ_PROMPT)
-    prompt = prompt_template.format(
-        n=n,
-        topic=topic,
-        difficulty=difficulty,
-        exam_type=exam_type,
-        context=context,
-    )
-
-    llm = _get_llm(model, temperature=0.3)
+    schema = QuizBatch.model_json_schema()
+    if question_type != 'mixed':
+        item_schema = schema['$defs']['QuizItem']
+        props = item_schema['properties']
+        props['type']['enum'] = [question_type]
+        if question_type == 'mcq':
+            props['correct'] = dict(type='string', enum=list('ABCD'))
+            props['options'] = dict(type='object', properties={key: {'type': 'string', 'minLength': 1} for key in 'ABCD'},
+                                   required=list('ABCD'), additionalProperties=False)
+            item_schema['required'] += ['correct', 'options', 'explanation']
+            for key in ('sample_answer', 'key_concepts'):
+                props.pop(key)
+        elif question_type == 'true_false':
+            props['correct'] = dict(type='boolean')
+            item_schema['required'] += ['correct', 'explanation']
+        else:
+            item_schema['required'] += ['sample_answer']
+    sources = {str(doc.metadata.get('source', 'unknown')) for doc in docs}
+    schema['$defs']['QuizItem']['properties']['source']['enum'] = sorted(sources)
+    def validate(item):
+        if item['source'] not in sources:
+            raise ValueError('Unknown source')
+        if question_type != 'mixed' and item['type'] != question_type:
+            raise ValueError('Wrong question format')
+    def prompt(count, existing, repair, batch_schema, feedback):
+        return render_prompt('quiz_questions', profile=profile, count=count, topic=topic,
+            question_type=question_type, difficulty=difficulty, exam_context=exam_type,
+            evidence_mode='documents', context=context, schema=batch_schema, repair=repair,
+            source_labels=sorted(sources),
+            validation_feedback=feedback,
+            already_covered=[q['question'] for q in existing])
+    llm = _get_llm(model, temperature=0.2, response_format=schema)
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        questions = _extract_json(response.content)
-        if isinstance(questions, dict):
-            questions = [questions]
-        if not isinstance(questions, list):
-            logger.error("LLM returned non-list JSON for questions: %r", type(questions))
-            return []
-        return questions[:n]
+        return validated_batches(llm, prompt, _extract_json, QuizBatch, n, 'questions', 'question', validate, schema=schema)
     except Exception as exc:
-        logger.error("generate_questions failed: %s", exc)
+        logger.warning('Quiz generation failed', extra={'error_type': type(exc).__name__})
         return []
 
 
@@ -240,6 +180,8 @@ def validate_answer(
     question_type: str = "short_answer",
     model: str | None = None,
     context_docs: list[Document] | None = None,
+    profile: PromptProfile | None = None,
+    evidence_context: str = '',
 ) -> dict:
     """Grade a student answer.
 
@@ -258,13 +200,15 @@ def validate_answer(
             "hint": "",
         }
 
-    context = _build_context(context_docs[:3]) if context_docs else ""
-    llm = _get_llm(model, temperature=0)
-    prompt = _VALIDATE_PROMPT.format(
+    context = _build_context(context_docs[:3]) if context_docs else evidence_context
+    llm = _get_llm(model, temperature=0, response_format=WrittenEvaluation.model_json_schema())
+    prompt = render_prompt('grade_answer', profile=profile,
         question=question,
-        correct=str(correct_answer)[:8000],
+        reference=str(correct_answer)[:8000],
         student_answer=student_answer,
         context=context[:12000],
+        evidence_mode='documents' if context else 'reference',
+        schema=WrittenEvaluation.model_json_schema(),
     )
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
@@ -274,17 +218,17 @@ def validate_answer(
         result['is_correct'] = result['score'] >= 70
         return result
     except Exception as exc:
-        logger.error("validate_answer failed: %s", exc)
+        logger.warning('Answer evaluation failed', extra={'error_type': type(exc).__name__})
         return {
             "score": 0,
             "is_correct": False,
-            "feedback": f"Could not grade answer: {exc}",
+            "feedback": "Could not grade answer: the model returned no valid evaluation. Retry or choose another model.",
             "key_missed": [],
             "hint": "",
         }
 
 
-def explain_concept(concept: str, model: str | None = None, top_k: int = 6) -> str:
+def explain_concept(concept: str, model: str | None = None, top_k: int = 6, profile: PromptProfile | None = None) -> str:
     """Return a detailed explanation of a concept from the knowledge base."""
     retriever = get_retriever(top_k=top_k)
     docs = retriever.invoke(concept)
@@ -293,7 +237,7 @@ def explain_concept(concept: str, model: str | None = None, top_k: int = 6) -> s
 
     context = _build_context(docs)
     llm = _get_llm(model, temperature=0)
-    prompt = _EXPLAIN_PROMPT.format(concept=concept, context=context)
+    prompt = render_prompt('explain', profile=profile, concept=concept, context=context, evidence_mode='documents')
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
         return response.content

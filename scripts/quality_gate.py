@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from langchain_core.documents import Document
 from app.config import get_settings
+from app.prompt_library import PROMPT_VERSION, registry_digest
 
 DATASET = Path(__file__).resolve().parents[1] / 'evals/golden.json'
 
@@ -29,6 +30,7 @@ def run(live=False, model=None):
         assert case['source'] in {d.metadata['source'] for d in docs}
         assert case['terms']
     report = dict(dataset_version=data['version'], mode='live' if live else 'offline-contract',
+                  prompt_version=PROMPT_VERSION, prompt_sha256=registry_digest(),
                   dataset_sha256=hashlib.sha256(DATASET.read_bytes()).hexdigest(),
                   evaluated_at=datetime.now(timezone.utc).isoformat(),
                   model=model, embedding_model=get_settings().ollama_embedding_model, cases=[])

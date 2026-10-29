@@ -12,11 +12,14 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any
+from pydantic import BaseModel, ConfigDict, Field
+from app.generation import validated_batches
 
 from langchain_core.messages import HumanMessage
 from app.llm import ChatOllama
 
 from app.config import get_settings
+from app.prompt_library import PromptProfile, render_prompt
 from app.quiz import _extract_json  # robust JSON parsing shared with quiz gen
 from app.retriever import get_retriever
 
@@ -152,26 +155,21 @@ def delete_card(deck_id: str, card_id: str) -> bool:
 
 # ── LLM generation from the knowledge base ──────────────────────────────────
 
-_GEN_PROMPT = """\
-You are an expert study-aid creator. Using ONLY the context below, write {n} \
-flashcards about "{topic}".
 
-Each flashcard has:
-- "front": a concise question, term, or prompt
-- "back": a clear, correct, self-contained answer (1-3 sentences)
+class RecallCard(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    front: str = Field(min_length=1)
+    back: str = Field(min_length=1)
 
-Make them varied and useful for active recall. Do not repeat cards.
 
-Context:
-{context}
+class CardBatch(BaseModel):
+    cards: list[RecallCard] = Field(max_length=2)
 
-Return ONLY a JSON array, e.g.:
-[{{"front": "What is X?", "back": "X is ..."}}, ...]
-"""
 
 
 def generate_cards(
-    topic: str, n: int = 10, model: str | None = None, top_k: int = 8
+    topic: str, n: int = 10, model: str | None = None, top_k: int = 8,
+    profile: 'PromptProfile | None' = None,
 ) -> list[dict]:
     """Generate flashcards from KB context. Returns [] if nothing usable."""
     settings = get_settings()
@@ -186,26 +184,24 @@ def generate_cards(
         base_url=settings.ollama_base_url,
         temperature=0.3,
         keep_alive=settings.ollama_keep_alive,
+        format=CardBatch.model_json_schema(),
     )
-    prompt = _GEN_PROMPT.format(n=n, topic=topic, context=context)
+    def prompt(count, existing, repair, batch_schema, feedback):
+        return render_prompt('flashcards', profile=profile, count=count, topic=topic, context=context,
+            evidence_mode='documents', schema=batch_schema, repair=repair,
+            existing_fronts=[card['front'] for card in existing], validation_feedback=feedback)
     try:
-        raw = llm.invoke([HumanMessage(content=prompt)]).content
-        parsed: Any = _extract_json(raw)
-    except Exception:
-        logger.exception("Flashcard generation failed")
+        return validated_batches(llm, prompt, _extract_json, CardBatch, n, 'cards', 'front')
+    except Exception as exc:
+        logger.warning('Flashcard generation failed', extra={'error_type': type(exc).__name__})
         return []
-    cards = []
-    for item in parsed if isinstance(parsed, list) else []:
-        front, back = item.get("front"), item.get("back")
-        if front and back:
-            cards.append({"front": str(front), "back": str(back)})
-    return cards[:n]
 
 
 def generate_deck(
-    topic: str, n: int = 10, model: str | None = None, deck_name: str | None = None
+    topic: str, n: int = 10, model: str | None = None, deck_name: str | None = None,
+    profile: 'PromptProfile | None' = None,
 ) -> dict:
     """Generate cards from the KB and persist them as a new deck."""
-    cards = generate_cards(topic, n=n, model=model)
+    cards = generate_cards(topic, n=n, model=model, profile=profile)
     name = (deck_name or topic).strip() or topic
     return create_deck(name=name, cards=cards)

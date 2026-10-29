@@ -3,6 +3,7 @@ import json
 import sqlite3
 import time
 import uuid
+from copy import deepcopy
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
@@ -15,11 +16,14 @@ from app.config import get_settings
 from app.model_catalog import require_model
 from app.quiz import _build_context, _extract_json, _get_llm, validate_answer
 from app.retriever import get_retriever
+from app.prompt_library import PROMPT_VERSION, PromptProfile, render_prompt
+from app.generation import validation_feedback
 
 router = APIRouter(prefix='/api/coach', tags=['Preparation coach'])
 
 
 class Start(BaseModel):
+    profile: PromptProfile = Field(default_factory=PromptProfile)
     learner: str = Field(min_length=1, max_length=100)
     topic: str = Field(min_length=1, max_length=500)
     mode: Literal['recap', 'exam', 'interview', 'review'] = 'recap'
@@ -58,7 +62,7 @@ class QuestionBatch(BaseModel):
     questions: list[Question] = Field(min_length=1, max_length=2)
 
 
-def generate_questions(req: Start, model: str, prompt: str) -> list[dict]:
+def generate_questions(req: Start, model: str, context: str, focus: str) -> list[dict]:
     """Keep each response within the configured output budget, never accept partial JSON."""
     questions = []
     schema = QuestionBatch.model_json_schema()
@@ -73,14 +77,19 @@ def generate_questions(req: Start, model: str, prompt: str) -> list[dict]:
     llm = _get_llm(model, response_format=schema)
     while len(questions) < req.n:
         count = min(2, req.n - len(questions))
-        instruction = (f'Generate exactly {count} questions for this batch. '
-                       'Return a JSON object with a questions array. Keep each solution under 80 words. '
-                       f'Already covered: {json.dumps([q["question"] for q in questions])}.')
-        if req.mode == 'exam' and req.question_type == 'mixed':
-            instruction += ' Include one mcq and one short_answer when generating two questions.'
+        batch_schema = deepcopy(schema)
+        batch_schema['properties']['questions'].update(minItems=count, maxItems=count)
+        feedback = None
         for attempt in range(2):
             try:
-                response = llm.invoke([HumanMessage(content=prompt + '\n' + instruction)])
+                prompt = render_prompt('coach_questions', profile=req.profile, topic=focus,
+                    mode=req.mode, difficulty=req.difficulty, question_type=required_type,
+                    count=count, context=context, schema=batch_schema, repair=bool(attempt),
+                    validation_feedback=feedback,
+                    evidence_mode='documents' if context else 'general',
+                    already_covered=[q['question'] for q in questions],
+                    preferred_types=['mcq', 'short_answer'] if req.mode == 'exam' and required_type == 'mixed' and count == 2 else [])
+                response = llm.invoke([HumanMessage(content=prompt)], format=batch_schema)
                 if getattr(response, 'response_metadata', {}).get('done_reason') == 'length':
                     raise ValueError('Output limit reached')
                 raw = _extract_json(response.content)
@@ -99,10 +108,10 @@ def generate_questions(req: Start, model: str, prompt: str) -> list[dict]:
                         raise ValueError('Wrong question format')
                 questions.extend(q.model_dump() for q in batch.questions)
                 break
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as exc:
+                feedback = validation_feedback(exc)
                 if attempt:
                     raise
-                instruction += ' Your previous response was invalid. Follow the schema and requested count exactly.'
     return questions
 
 
@@ -196,22 +205,8 @@ def start(req: Start):
         docs = []
     context = _build_context(docs)[:12000]
     grounding = 'documents' if docs else 'model-general knowledge'
-    format_rule = ('Use only free_response questions.' if req.mode == 'interview' else
-                   f'Use only {req.question_type} questions.' if req.question_type != 'mixed' else
-                   'Use a mix of mcq, true_false, short_answer and free_response questions.')
-    prompt = f'''Create {req.difficulty} questions about {focus} for {req.mode}.
-Cover sciences, mathematics, engineering or other fields as requested.
-For recap: progress from definitions to application. For interview: probe reasoning,
-tradeoffs, assumptions and derivations. Include calculation, units, multi-step problems
-and interpretation when appropriate. {format_rule}
-Use only the context when present. Otherwise use general knowledge, acknowledge uncertainty,
-and never invent sources. Include a precise reference answer and solution in explanation.
-Return ONLY a JSON object with a questions array. Each question has: type, question, topic (specific subtopic),
-answer (A/B/C/D for mcq, True/False for true_false, reference answer otherwise),
-options (A/B/C/D object for mcq, empty object otherwise), explanation.
-Context: {context or 'No relevant documents: general knowledge.'}'''
     try:
-        questions = generate_questions(req, model, prompt)
+        questions = generate_questions(req, model, context, focus)
         if len(questions) != req.n:
             raise ValueError(f'Expected {req.n} questions; received {len(questions)}')
         for q in questions:
@@ -230,6 +225,7 @@ Context: {context or 'No relevant documents: general knowledge.'}'''
         raise HTTPException(502, 'The model could not finish a valid question set. Try fewer questions or choose another installed model. Your topic and settings have been kept.') from exc
     now = time.time()
     session = dict(id=uuid.uuid4().hex, learner=req.learner, topic=focus, mode=req.mode,
+                   profile=req.profile.model_dump(), prompt_version=PROMPT_VERSION,
                    model=model, questions=questions, answers=[], started=now, last_answer=now,
                    deadline=now + req.minutes * 60 if req.mode == 'exam' and req.minutes else 0,
                    context=context, grounding=grounding, sources=[dict(source=d.metadata.get('source', 'unknown'),
@@ -258,7 +254,9 @@ def answer(session_id: str, req: Answer):
     q = session['questions'][index]
     submitted_at = time.time()
     require_model(session['model'])
-    result = validate_answer(q['question'], q['answer'], req.answer, q['type'], session['model'])
+    profile = PromptProfile.model_validate(session.get('profile', {}))
+    result = validate_answer(q['question'], q['answer'], req.answer, q['type'], session['model'],
+                             profile=profile, evidence_context=session.get('context', ''))
     if result['feedback'].startswith('Could not grade answer:'):
         raise HTTPException(502, 'Grading failed; your answer has not been recorded. Retry.')
     result['score'] = max(0, min(100, int(result['score'])))
@@ -268,13 +266,12 @@ def answer(session_id: str, req: Answer):
         question_type=q['type'], grounding=session['grounding'],
         result=result, reference=q['answer'], explanation=q['explanation']))
     if session['mode'] == 'interview' and not session['followed_up']:
-        prompt = f'''Ask one technical follow-up probing a gap or extending the learner's reasoning.
-Question: {q['question']}\nAnswer: {req.answer}\nFeedback: {result['feedback']}
-Use only this source material when supplied: {session.get('context', '')}
-Return JSON with type="free_response", question, topic, answer (reference), explanation, options={{}}.'''
+        prompt = render_prompt('interview_followup', profile=profile, question=q['question'],
+            student_answer=req.answer, feedback=result['feedback'], context=session.get('context', ''),
+            evidence_mode='documents' if session.get('context') else 'general', schema=Question.model_json_schema())
         try:
             follow = Question.model_validate(_extract_json(
-                _get_llm(session['model']).invoke([HumanMessage(content=prompt)]).content))
+                _get_llm(session['model'], response_format=Question.model_json_schema()).invoke([HumanMessage(content=prompt)]).content))
             if follow.type != 'free_response':
                 raise ValueError('Interview follow-up must be written')
             session['questions'].insert(index + 1, follow.model_dump())
@@ -283,14 +280,13 @@ Return JSON with type="free_response", question, topic, answer (reference), expl
             pass
     if session['mode'] in ('recap', 'review') and result['score'] < 70 and index + 1 < len(session['questions']):
         expected_type = session['questions'][index + 1]['type']
-        prompt = f'''Create one easier scaffolded question to address this misconception: {result.get('key_missed', [])}.
-Topic: {q['topic']}. Feedback: {result['feedback']}. Learner confidence: {req.confidence}/5.
-Use only this source material when present: {session.get('context', '')}
-Return JSON with type="{expected_type}", question, topic, answer (worked reference), explanation,
-options (A/B/C/D for mcq, empty object otherwise). MCQ answer is a letter; true_false answer is True or False.'''
+        prompt = render_prompt('adaptive_question', profile=profile, topic=q['topic'],
+            misconceptions=result.get('key_missed', []), feedback=result['feedback'], confidence=req.confidence,
+            expected_type=expected_type, context=session.get('context', ''),
+            evidence_mode='documents' if session.get('context') else 'general', schema=Question.model_json_schema())
         try:
             adapted = Question.model_validate(_extract_json(
-                _get_llm(session['model']).invoke([HumanMessage(content=prompt)]).content))
+                _get_llm(session['model'], response_format=Question.model_json_schema()).invoke([HumanMessage(content=prompt)]).content))
             if adapted.type == expected_type:
                 session['questions'][index + 1] = {**adapted.model_dump(), 'adaptive': True}
         except Exception:
