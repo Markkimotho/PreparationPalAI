@@ -1,9 +1,27 @@
 """Optional browser QA for the two documentation portals (Playwright + Chrome)."""
 import argparse
 import os
+import re
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright, expect
+
+
+def check_button_contrast(page):
+    colours = page.get_by_role('link', name='Find a contribution', exact=True).evaluate('''el => [
+        getComputedStyle(el).color, getComputedStyle(document.body).getPropertyValue('--md-default-bg-color').trim()]''')
+    def luminance(css):
+        if css.startswith('#'):
+            value = css[1:]
+            if len(value) == 3:
+                value = ''.join(char * 2 for char in value)
+            channels = [int(value[index:index + 2], 16) for index in (0, 2, 4)]
+        else:
+            channels = [float(value) for value in re.findall(r'[\d.]+', css)[:3]]
+        linear = [channel / 255 / 12.92 if channel / 255 <= .04045 else ((channel / 255 + .055) / 1.055) ** 2.4 for channel in channels]
+        return sum(value * weight for value, weight in zip(linear, (.2126, .7152, .0722)))
+    a, b = sorted(map(luminance, colours))
+    assert (b + .05) / (a + .05) >= 4.5, colours
 
 
 def main():
@@ -19,7 +37,14 @@ def main():
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.goto(args.base_url)
         expect(page.locator('h1')).to_have_count(1)
-        expect(page.get_by_role('heading', level=1)).to_contain_text('Make your next')
+        expect(page.get_by_role('heading', level=1)).to_contain_text('Study with')
+        page.evaluate('document.fonts.ready')
+        assert page.evaluate('document.fonts.check(\'600 20px "Manrope"\')')
+        assert page.evaluate('document.fonts.check(\'400 17px "Source Sans 3"\')')
+        assert page.evaluate('''() => ['Manrope', 'Source Sans 3'].every(name =>
+            [...document.fonts].some(font => font.family.replace(/["']/g, '') === name && font.status === 'loaded'))''')
+        expect(page.locator('.pp-study-note')).to_be_visible()
+        expect(page.locator('.pp-equation')).to_contain_text('F = ma')
         page.screenshot(path=str(args.screenshots / 'product-desktop.png'), full_page=True)
         page.get_by_title('Switch to dark mode', exact=True).click()
         expect(page.locator('body')).to_have_attribute('data-md-color-scheme', 'slate')
@@ -34,10 +59,13 @@ def main():
         page.keyboard.press('Escape')
         page.get_by_role('link', name='Start your first session').click()
         expect(page.get_by_role('heading', level=1)).to_contain_text('Your first study session')
+        page.screenshot(path=str(args.screenshots / 'product-content.png'), full_page=True)
         for width in (320, 375, 768):
             page.set_viewport_size(dict(width=width, height=900))
             page.goto(args.base_url)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), width
+            expect(page.locator('.pp-study-note')).to_be_visible()
+            expect(page.locator('.md-header__option label:visible')).to_have_count(1)
             page.screenshot(path=str(args.screenshots / f'product-{width}.png'), full_page=True)
         page.locator('label.md-header__button[for="__drawer"]').click()
         expect(page.locator('#__drawer')).to_be_checked()
@@ -46,14 +74,24 @@ def main():
         overlay.click(position=dict(x=bounds['width'] - 4, y=200))
         page.set_viewport_size(dict(width=1440, height=1000))
         page.goto(args.base_url + 'contribute/')
-        expect(page.get_by_role('heading', level=1)).to_contain_text('Make studying better, together.')
+        expect(page.get_by_role('heading', level=1)).to_contain_text('Contributor handbook')
+        check_button_contrast(page)
         page.screenshot(path=str(args.screenshots / 'contributors-desktop.png'), full_page=True)
+        page.get_by_title('Switch to dark mode', exact=True).click()
+        check_button_contrast(page)
+        page.screenshot(path=str(args.screenshots / 'contributors-dark.png'), full_page=True)
+        page.get_by_title('Switch to light mode', exact=True).click()
         search = page.get_by_role('textbox', name='Search', exact=True)
         search.type('AUTH_TOKENS')
         expect(page.locator('.md-search-result__item').first).to_be_visible()
         page.keyboard.press('Escape')
         page.get_by_role('link', name='Back to the user guide').click()
-        expect(page.get_by_role('heading', level=1)).to_contain_text('Make your next')
+        expect(page.get_by_role('heading', level=1)).to_contain_text('Study with')
+        for path in ('start/first-session/', 'contribute/development/'):
+            for width in (375, 1440):
+                page.set_viewport_size(dict(width=width, height=900))
+                page.goto(args.base_url + path)
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), (path, width)
         assert not errors, errors
         browser.close()
     print(f'Documentation search, themes, navigation and responsive checks passed. Screenshots: {args.screenshots}')
