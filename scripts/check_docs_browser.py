@@ -1,9 +1,27 @@
 """Optional browser QA for the two documentation portals (Playwright + Chrome)."""
 import argparse
 import os
+import re
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright, expect
+
+
+def check_button_contrast(page):
+    colours = page.get_by_role('link', name='Find a contribution', exact=True).evaluate('''el => [
+        getComputedStyle(el).color, getComputedStyle(document.body).getPropertyValue('--md-default-bg-color').trim()]''')
+    def luminance(css):
+        if css.startswith('#'):
+            value = css[1:]
+            if len(value) == 3:
+                value = ''.join(char * 2 for char in value)
+            channels = [int(value[index:index + 2], 16) for index in (0, 2, 4)]
+        else:
+            channels = [float(value) for value in re.findall(r'[\d.]+', css)[:3]]
+        linear = [channel / 255 / 12.92 if channel / 255 <= .04045 else ((channel / 255 + .055) / 1.055) ** 2.4 for channel in channels]
+        return sum(value * weight for value, weight in zip(linear, (.2126, .7152, .0722)))
+    a, b = sorted(map(luminance, colours))
+    assert (b + .05) / (a + .05) >= 4.5, colours
 
 
 def main():
@@ -57,7 +75,12 @@ def main():
         page.set_viewport_size(dict(width=1440, height=1000))
         page.goto(args.base_url + 'contribute/')
         expect(page.get_by_role('heading', level=1)).to_contain_text('Contributor handbook')
+        check_button_contrast(page)
         page.screenshot(path=str(args.screenshots / 'contributors-desktop.png'), full_page=True)
+        page.get_by_title('Switch to dark mode', exact=True).click()
+        check_button_contrast(page)
+        page.screenshot(path=str(args.screenshots / 'contributors-dark.png'), full_page=True)
+        page.get_by_title('Switch to light mode', exact=True).click()
         search = page.get_by_role('textbox', name='Search', exact=True)
         search.type('AUTH_TOKENS')
         expect(page.locator('.md-search-result__item').first).to_be_visible()
