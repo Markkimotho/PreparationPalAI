@@ -1,4 +1,4 @@
-"""FastAPI backend for the Prep Pal AI React frontend.
+"""FastAPI backend for the PreparationPalAI React frontend.
 
 This is a thin adapter: every route delegates to an existing engine module in
 `app/` and shapes the result for HTTP. Conversational endpoints stream tokens
@@ -74,7 +74,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Prep Pal AI", version="1.1.0")
+app = FastAPI(title="PreparationPalAI", version="1.1.0")
 
 # Dev: Vite serves the SPA on :5173 and proxies /api here. Allow it for CORS.
 app.add_middleware(

@@ -7,11 +7,11 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Prep Pal AI FastAPI backend. Reachable as `web:8000` when this stack is
+  # PreparationPalAI FastAPI backend. Reachable as `web:8000` when this stack is
   # launched in the same Compose project (see docker-compose.monitoring.yml).
-  - job_name: preppal-web
+  - job_name: preparationpalai-web
     metrics_path: /metrics
     static_configs:
       - targets: ["web:8000"]
         labels:
-          service: preppal-web
+          service: preparationpalai-web

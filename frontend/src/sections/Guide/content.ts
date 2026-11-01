@@ -14,7 +14,7 @@ export const GUIDE: GuideSection[] = [
     title: "Overview",
     group: "Getting started",
     body: `
-# Prep Pal AI
+# PreparationPalAI
 
 A fully local AI study tool. Upload PDFs or images (or scrape the web), then
 study with quizzes, an AI tutor, flashcards, a code companion, and document
@@ -282,16 +282,16 @@ docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up --build
 | Prometheus | http://localhost:9090 |
 | Metrics | http://localhost:8000/metrics |
 
-Grafana opens with the **"Prep Pal AI — Overview"** dashboard: Ollama up, KB
+Grafana opens with the **"PreparationPalAI — Overview"** dashboard: Ollama up, KB
 size, request/error rates, LLM latency p95 by surface, tokens/sec, and a live
 log panel.
 
 ### Custom metrics
 
-- \`preppal_llm_request_duration_seconds\` (by surface)
-- \`preppal_llm_requests_total\` (surface, status)
-- \`preppal_stream_tokens_total\` (surface)
-- \`preppal_ollama_up\`, \`preppal_kb_chunks\`
+- \`preparationpalai_llm_request_duration_seconds\` (by surface)
+- \`preparationpalai_llm_requests_total\` (surface, status)
+- \`preparationpalai_stream_tokens_total\` (surface)
+- \`preparationpalai_ollama_up\`, \`preparationpalai_kb_chunks\`
 
 ### Using Loki (logs) — step by step
 
@@ -308,8 +308,8 @@ Promtail tags each line with these labels:
 | Label | Examples |
 | --- | --- |
 | \`compose_service\` | \`web\`, \`ollama\`, \`grafana\`, \`prometheus\` |
-| \`container\` | \`prep-pal-web\`, \`prep-pal-ollama\` |
-| \`compose_project\` | \`rag-ai-chat-bot-with-langchain\` |
+| \`container\` | \`preparationpalai-web\`, \`preparationpalai-ollama\` |
+| \`compose_project\` | \`PreparationPalAI\` |
 
 **LogQL queries you'll use**
 

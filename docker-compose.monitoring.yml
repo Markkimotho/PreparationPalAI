@@ -5,13 +5,13 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up --build
 #
-# Then open Grafana at http://localhost:3000 (admin / admin) — the "Prep Pal AI
+# Then open Grafana at http://localhost:3000 (admin / admin) — the "PreparationPalAI
 # — Overview" dashboard and both datasources are provisioned automatically.
 
 services:
   prometheus:
     image: prom/prometheus:latest
-    container_name: prep-pal-prometheus
+    container_name: preparationpalai-prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=7d"
@@ -24,7 +24,7 @@ services:
 
   loki:
     image: grafana/loki:2.9.8
-    container_name: prep-pal-loki
+    container_name: preparationpalai-loki
     command: ["-config.file=/etc/loki/config.yml"]
     volumes:
       - ./monitoring/loki-config.yml:/etc/loki/config.yml:ro
@@ -37,7 +37,7 @@ services:
     # 3.x bundles a Docker API client new enough for Docker Engine 27+/Desktop 29
     # (the 2.9 client is capped at API 1.42 and the daemon now requires ≥1.44).
     image: grafana/promtail:3.4.1
-    container_name: prep-pal-promtail
+    container_name: preparationpalai-promtail
     command: ["-config.file=/etc/promtail/config.yml"]
     environment:
       - DOCKER_API_VERSION=1.44
@@ -50,7 +50,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: prep-pal-grafana
+    container_name: preparationpalai-grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
