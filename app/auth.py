@@ -1,0 +1,62 @@
+"""Bearer-key workspace authentication. Revocation takes effect on the next request."""
+import hashlib
+import hmac
+
+from fastapi import APIRouter
+from starlette.responses import JSONResponse
+
+from app.config import get_base_settings
+from app.workspace import workspace_id, identity_id
+
+router = APIRouter(prefix='/api/auth', tags=['Access'])
+
+
+@router.get('/status')
+def status():
+    return {'enabled': get_base_settings().auth_enabled}
+
+
+@router.get('/me')
+def me():
+    return {'workspace': workspace_id.get(), 'identity': identity_id.get()}
+
+
+def mutation(path: str, method: str) -> bool:
+    return method not in ('GET', 'HEAD', 'OPTIONS') and (
+        path.startswith('/api/kb') or path.startswith('/api/flashcards') or
+        path == '/api/models/pull')
+
+
+class WorkspaceAuth:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] != 'http':
+            return await self.app(scope, receive, send)
+        settings = get_base_settings()
+        path = scope['path']
+        protected = (path.startswith('/api/') and path != '/api/auth/status') or path == '/metrics'
+        workspace, identity = 'local', 'local'
+        if settings.auth_enabled and protected and scope['method'] != 'OPTIONS':
+            headers = dict(scope['headers'])
+            header = headers.get(b'authorization', b'').decode('latin-1')
+            raw = header[7:] if header.startswith('Bearer ') else ''
+            digest = hashlib.sha256(raw.encode()).hexdigest()
+            principal = next((v for key, v in settings.auth_tokens.items()
+                              if raw and hmac.compare_digest(key, digest)), None)
+            if not principal:
+                response = JSONResponse({'detail': 'Sign in with a valid workspace access key.'}, 401,
+                                        headers={'WWW-Authenticate': 'Bearer'})
+                return await response(scope, receive, send)
+            if ((mutation(path, scope['method']) and principal['role'] == 'reader') or
+                ((path == '/api/models/pull' or path == '/metrics') and principal['role'] != 'admin')):
+                return await JSONResponse({'detail': 'Your role cannot perform this operation.'}, 403)(scope, receive, send)
+            workspace, identity = principal['workspace'], digest[:16]
+        wtoken = workspace_id.set(workspace)
+        itoken = identity_id.set(identity)
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            workspace_id.reset(wtoken)
+            identity_id.reset(itoken)

@@ -60,6 +60,7 @@ from app.config import get_settings
 from app.model_catalog import catalogue, require_model
 from app.coach import router as coach_router
 from app.public_site import router as public_router
+from app.auth import router as auth_router, WorkspaceAuth
 from app.ingestion import IMAGE_EXTENSIONS, load_and_chunk_image, load_and_chunk_pdf
 from app.memory import clear_history
 from app.quiz import explain_concept, generate_questions, validate_answer
@@ -80,6 +81,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="PreparationPalAI", version="1.1.0")
 app.include_router(coach_router)
 app.include_router(public_router)
+app.include_router(auth_router)
+app.add_middleware(WorkspaceAuth)
 
 # Dev: Vite serves the SPA on :5173 and proxies /api here. Allow it for CORS.
 app.add_middleware(
