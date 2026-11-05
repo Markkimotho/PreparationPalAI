@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useKnowledgeBase } from "../context/KnowledgeBaseContext";
 import { Spinner } from "./Spinner";
 import styles from "./KnowledgeBasePanel.module.css";
+import { api } from '../api/client';
 
 type Status = { kind: "ok" | "err"; text: string } | null;
 
 export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
-  const { sources, count, busy, upload, scrape, clear, refresh } =
+  const { jobs, sources, count, busy, upload, scrape, clear, refresh } =
     useKnowledgeBase();
   const fileRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -69,6 +70,11 @@ export function KnowledgeBasePanel({ onClose }: { onClose: () => void }) {
           {sources.length} file{sources.length !== 1 ? "s" : ""} · {count} chunks
         </span>
       </div>
+      {jobs?.length > 0 && <details><summary>Recent ingestion jobs</summary>
+        {jobs.map(job => <div key={job.id}><p>{job.id.slice(0, 8)} · {job.state}</p>
+          {job.state === 'failed' && <button onClick={async () => { await api.kbRetryJob(job.id); await refresh(); }}>Retry ingestion</button>}
+        </div>)}
+      </details>}
 
       <div className={styles.actions}>
         <input

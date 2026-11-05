@@ -18,3 +18,13 @@ groups:
         for: 10m
         annotations:
           summary: Inference p95 exceeds two minutes
+      - alert: IngestionBacklog
+        expr: preparationpalai_ingestion_jobs{state="pending"} > 10
+        for: 5m
+        annotations:
+          summary: Ingestion backlog exceeds ten jobs
+      - alert: IngestionWorkerUnavailable
+        expr: time() - preparationpalai_worker_heartbeat_timestamp > 60
+        for: 2m
+        annotations:
+          summary: Ingestion worker heartbeat is stale

@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     upload_max_files: int = Field(default=3, ge=1, le=10)
     extract_timeout: float = Field(default=120, gt=0, le=600)
     scanner_command: list[str] = []
+    jobs_dir: str = 'data/jobs'
+    embedded_worker: bool = True
+    job_lease_seconds: int = Field(default=300, ge=30)
 
     @model_validator(mode='after')
     def validate_security(self):

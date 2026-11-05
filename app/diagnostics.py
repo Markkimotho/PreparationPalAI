@@ -54,6 +54,10 @@ class RequestDiagnostics:
             return await self.app(scope, receive, send)
         # Generate server-owned IDs; client input cannot inject log content.
         rid = uuid.uuid4().hex
+        if scope['path'] == '/metrics':
+            from app.jobs import queue_status
+            from starlette.concurrency import run_in_threadpool
+            await run_in_threadpool(queue_status)
         token = request_id.set(rid)
         started = time.monotonic()
         status, workspace = 500, 'local'
@@ -105,6 +109,13 @@ def ready():
     for name, up in dependencies.items():
         if not up:
             DEPENDENCY_UP.labels(name).inc()
+    success = all(dependencies.values())
+    from app.jobs import queue_status
+    try:
+        queue = queue_status()
+        dependencies['worker'] = queue['worker'] or not (settings.production or queue['pending'] or queue['running'])
+    except Exception:
+        dependencies['worker'] = False
     success = all(dependencies.values())
     from app.metrics import OLLAMA_UP
     OLLAMA_UP.set(dependencies['ollama'])

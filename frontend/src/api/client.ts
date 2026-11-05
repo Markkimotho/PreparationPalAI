@@ -9,6 +9,7 @@ import type {
   Difficulty,
   Health,
   IngestResponse,
+  IngestionJob,
   Models,
   PullResponse,
   QuestionType,
@@ -56,7 +57,7 @@ export const api = {
   kbCount: () => request<CountResponse>("/api/kb/count"),
   kbSources: () => request<SourcesResponse>("/api/kb/sources"),
   kbScrape: (topic: string, num_results = 3) =>
-    request<IngestResponse>("/api/kb/scrape", {
+    request<IngestResponse | { jobs: IngestionJob[] }>("/api/kb/jobs/scrape", {
       method: "POST",
       body: JSON.stringify({ topic, num_results }),
     }),
@@ -66,12 +67,16 @@ export const api = {
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
     // Let the browser set the multipart boundary; do not send JSON header.
-    return request<IngestResponse>("/api/kb/upload", {
+    return request<IngestResponse | { jobs: IngestionJob[] }>("/api/kb/jobs/upload", {
       method: "POST",
       headers: {},
       body: form,
     });
   },
+
+  kbJobs: () => request<{ jobs: IngestionJob[] }>('/api/kb/jobs'),
+  kbJob: (id: string) => request<IngestionJob>(`/api/kb/jobs/${id}`),
+  kbRetryJob: (id: string) => request<IngestionJob>(`/api/kb/jobs/${id}/retry`, { method: 'POST' }),
 
   quizGenerate: (body: {
     topic: string;

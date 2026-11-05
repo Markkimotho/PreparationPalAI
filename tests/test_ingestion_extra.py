@@ -79,7 +79,7 @@ def test_ingest_skips_already_indexed_chunks():
         added = vs.ingest_documents(docs)
 
     assert added == 2
-    added_ids = collection.add.call_args.kwargs["ids"]
+    added_ids = collection.upsert.call_args.kwargs["ids"]
     assert "id0" not in added_ids
     assert set(added_ids) == {"id1", "id2"}
 

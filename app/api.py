@@ -15,6 +15,8 @@ import json
 import logging
 import tempfile
 import time
+import threading
+from contextlib import asynccontextmanager
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -63,6 +65,7 @@ from app.public_site import router as public_router
 from app.auth import router as auth_router, WorkspaceAuth
 from app.limits import consume
 from app.diagnostics import router as diagnostics_router, RequestDiagnostics, configure_logging
+from app.jobs import router as jobs_router, worker_loop
 from fastapi import Request
 from app.ingestion import IMAGE_EXTENSIONS
 from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
@@ -84,11 +87,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 configure_logging()
 
-app = FastAPI(title="PreparationPalAI", version="1.1.0")
+@asynccontextmanager
+async def lifespan(app):
+    stopped = threading.Event()
+    thread = None
+    if get_settings().embedded_worker:
+        thread = threading.Thread(target=worker_loop, args=(stopped,), daemon=True)
+        thread.start()
+    yield
+    stopped.set()
+    if thread:
+        thread.join(timeout=5)
+
+
+app = FastAPI(title="PreparationPalAI", version="1.1.0", lifespan=lifespan)
 app.include_router(coach_router)
 app.include_router(public_router)
 app.include_router(auth_router)
 app.include_router(diagnostics_router)
+app.include_router(jobs_router)
 
 
 @app.middleware('http')
@@ -222,6 +239,8 @@ def kb_sources() -> SourcesResponse:
 
 @app.post("/api/kb/upload", response_model=IngestResponse)
 async def kb_upload(files: list[UploadFile] = File(...)) -> IngestResponse:
+    if get_settings().production:
+        raise HTTPException(409, 'Use /api/kb/jobs/upload for queued ingestion')
     if len(files) > get_settings().upload_max_files:
         raise HTTPException(413, 'Too many files in one upload')
     total = 0
@@ -265,6 +284,8 @@ async def kb_upload(files: list[UploadFile] = File(...)) -> IngestResponse:
 
 @app.post("/api/kb/scrape", response_model=IngestResponse)
 def kb_scrape(req: ScrapeRequest) -> IngestResponse:
+    if get_settings().production:
+        raise HTTPException(409, 'Use /api/kb/jobs/scrape for queued ingestion')
     try:
         chunks = search_and_scrape(req.topic.strip(), num_results=req.num_results)
     except Exception as exc:  # noqa: BLE001

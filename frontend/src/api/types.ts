@@ -31,6 +31,11 @@ export interface IngestResponse {
   detail: string;
 }
 
+export interface IngestionJob {
+  id: string; state: 'pending' | 'running' | 'completed' | 'failed';
+  attempts?: number; result?: { chunks_added?: number }; error?: string;
+}
+
 export interface KBSource {
   source: string;
   chunks: number;
