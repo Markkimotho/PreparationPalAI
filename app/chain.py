@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.memory import add_messages, get_chat_history
 from app.prompts import CONTEXTUALIZE_PROMPT, QA_PROMPT
 from app.retriever import get_retriever
+from langchain_core.prompts import PromptTemplate
 
 
 def _build_chain(model: str | None = None, top_k: int | None = None):
@@ -26,7 +27,8 @@ def _build_chain(model: str | None = None, top_k: int | None = None):
     history_aware_retriever = create_history_aware_retriever(
         llm, retriever, CONTEXTUALIZE_PROMPT
     )
-    question_answer_chain = create_stuff_documents_chain(llm, QA_PROMPT)
+    question_answer_chain = create_stuff_documents_chain(llm, QA_PROMPT,
+        document_prompt=PromptTemplate.from_template('[Source: {source}, page {page}]\n{page_content}'))
     return create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
 

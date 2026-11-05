@@ -66,7 +66,7 @@ def generate(state: GraphState, config: RunnableConfig) -> dict:
     model = config.get("configurable", {}).get("model")
     llm = _get_llm(model)
 
-    context = "\n\n".join(doc.page_content for doc in state["documents"])
+    context = "\n\n".join(f"[Source: {doc.metadata.get('source', 'unknown')}, page {doc.metadata.get('page', '?')}]\n{doc.page_content}" for doc in state["documents"])
     messages = list(state["messages"])
 
     prompt_value = QA_PROMPT.invoke(
