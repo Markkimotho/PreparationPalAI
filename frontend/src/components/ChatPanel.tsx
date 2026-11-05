@@ -48,6 +48,7 @@ export function ChatPanel({
 
   return (
     <div className={styles.panel}>
+      <span className="sr-only" role="status">{streaming ? "Generating response" : messages.length ? "Response ready" : "Ready for your question"}</span>
       <div className={styles.scroll} ref={scrollRef}>
         {messages.length === 0 && empty ? (
           <div className={styles.emptyWrap}>{empty}</div>

@@ -8,6 +8,13 @@ export interface Health {
 export interface Models {
   supported: string[];
   installed: string[];
+  catalogue?: ModelInfo[];
+}
+
+export interface ModelInfo {
+  id: string; installed: boolean; availability: string;
+  recommended_use: string; tools: boolean | null;
+  structured_output: boolean | null; resources: string;
 }
 
 export interface PullResponse {

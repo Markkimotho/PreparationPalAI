@@ -115,6 +115,10 @@
 }
 
 @media (max-width: 767px) {
+  .bar { height: auto; min-height: var(--topbar-h); flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+  .left { width: 100%; }
+  .right { width: 100%; justify-content: space-between; min-width: 0; }
+  .title { white-space: normal; }
   .right {
     gap: var(--space-2);
   }

@@ -1,4 +1,6 @@
 .panel {
+  max-height: calc(100dvh - 150px);
+  overflow-y: auto;
   position: absolute;
   top: calc(100% + 8px);
   right: 0;

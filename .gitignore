@@ -22,6 +22,8 @@ build/
 # Data
 data/pdfs/
 data/chroma/
+data/coach/
+data/flashcards/
 
 # OS
 .DS_Store

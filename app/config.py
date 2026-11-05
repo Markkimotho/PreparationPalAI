@@ -47,6 +47,12 @@ class Settings(BaseSettings):
 
     # Flashcards persisted store (mount a volume here in Docker to keep decks).
     flashcards_dir: str = "data/flashcards"
+    coach_db: str = "data/coach/sessions.sqlite3"
+    glm_model: str = "glm4:9b"
+    deepseek_model: str = "deepseek-r1:7b"
+    extra_models: list[str] = []
+    public_base_url: str = ""
+    social_image: str = "/social-preview.png"
 
 
 @lru_cache

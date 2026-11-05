@@ -6,6 +6,94 @@ The primary interface is a **React** single-page app with a collapsible navbar â
 
 Built on React + FastAPI + LangChain + LangGraph + ChromaDB + Ollama.
 
+## Preparation coach
+
+Open **Preparation Coach** at `/prepare` to learn/recap, practise exams, simulate
+technical interviews, or review weak areas. Choose any topic, question format,
+difficulty, and question count. Exam sessions support an optional server-enforced
+timer. Written answers are evaluated for reasoning, factual/numerical accuracy,
+units, and clarity. Interview sessions add a response-dependent follow-up.
+
+Sessions, confidence ratings, and results persist in SQLite. Recent sessions can
+be resumed after refresh. Review mode prioritises subtopics with an average score
+below 70%. Results include a per-topic breakdown and revision actions.
+
+The coach uses retrieved documents when available, displaying their source labels.
+Without documents it uses clearly labelled general model knowledge. The original
+Quiz Prep screen remains document-based. Equations in Markdown use `$inline$` or
+`$$display$$` notation. Small local models can produce invalid JSON or inaccurate
+answers: generation errors offer a retry/model change, and rubric scores are
+practice feedback rather than official marks.
+
+The browser stores a random learner identifier; this is a local learning profile,
+not authentication. Clearing browser storage creates a new profile. This release
+does not implement the separate multi-user authentication/isolation issue #1.
+
+### GLM and DeepSeek
+
+The model picker merges the backend catalogue with all installed Ollama chat
+models. Select a model and choose **Pull** to download it. Pulling shows a pending
+state and a final success/error message (not byte-level download progress). Model
+info explains the recommended use, memory/speed guidance, and known or unverified
+capabilities. Requests fail with an actionable message before inference if the
+selected model is missing. Existing selections are retained across catalogue refreshes.
+
+Default additional choices are [`glm4:9b`](https://ollama.com/library/glm4) and
+[`deepseek-r1:7b`](https://ollama.com/library/deepseek-r1). Override their exact
+tags with `GLM_MODEL` and `DEEPSEEK_MODEL`. Custom recommendations can be supplied
+as JSON, for example `EXTRA_MODELS='["my-model:local"]'`. Downloads are explicit;
+Docker's initial setup continues to pull only the default Qwen and embedding models.
+Inference uses `OLLAMA_BASE_URL` throughout; there is no automatic cloud fallback.
+
+### Public landing page and SEO
+
+FastAPI serves a complete public HTML landing page at `/`, independently of
+Ollama and JavaScript. The study workspace starts at `/prepare`. Configure
+`PUBLIC_BASE_URL=https://your-domain.example` to enable the canonical URL, public
+sitemap, and indexable homepage. Without a public URL, robots rules disallow
+indexing. Workspace pages include `noindex, nofollow`; the sitemap contains only
+the public homepage. Search directives are not access controls.
+
+`SOCIAL_IMAGE` defaults to `/social-preview.png` (bundled 1200Ã—630 PNG); it can be
+an absolute HTTPS image URL or a public site path. Regenerate the bundled card
+with `python scripts/social_preview.py`. The site also serves Open Graph/Twitter
+metadata, SoftwareApplication JSON-LD, a favicon, and a web manifest. In Vite dev
+mode, view the public landing page on the backend port; Vite serves the workspace.
+
+Additional settings:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `COACH_DB` | `data/coach/sessions.sqlite3` | Persistent local learning sessions |
+| `GLM_MODEL` | `glm4:9b` | Configurable GLM recommendation |
+| `DEEPSEEK_MODEL` | `deepseek-r1:7b` | Configurable DeepSeek recommendation |
+| `EXTRA_MODELS` | `[]` | Additional recommended Ollama tags |
+| `PUBLIC_BASE_URL` | empty | Public origin for canonical URLs and indexing |
+| `SOCIAL_IMAGE` | `/social-preview.png` | Social sharing image |
+
+Docker mounts a separate `coach_data` volume. Back up this volume along with
+`chroma_data` and `flashcards_data` to preserve learning history and material.
+
+### Verification
+
+Run `python -m pytest tests -q` and `cd frontend && npm test && npm run build`.
+For browser smoke checks, run the built app with
+`uvicorn app.api:app --port 8018`, install Playwright/Chromium if needed, and run
+`python scripts/check_responsive.py`. To use an installed Chrome, set
+`CHECK_BROWSER=chrome`. This checks all seven workspace routes at 320, 375, 768,
+and 1440px, button heights, horizontal overflow, mobile menu focus restoration,
+browser errors, and the public page. Screenshots are saved under
+`/tmp/preparationpal-screenshots` (override with `CHECK_OUTPUT`).
+
+Manual responsive QA should also cover an active timed session, long answers and
+equations, the on-screen keyboard, the knowledge-base upload panel, model-pull
+feedback, quiz radio controls, keyboard-only flashcard study, screen-reader status
+announcements, and reduced-motion settings. Automated tests mock local models;
+run the optional `evals/` suite against installed models before a quality release.
+For fixed science-grading checks with GLM and DeepSeek, run
+`COACH_EVAL_MODELS='glm4:9b,deepseek-r1:7b' pytest evals/test_coach_eval.py -m eval -v`.
+Unavailable models are skipped; this command never downloads models.
+
 ---
 
 ## Quick Start

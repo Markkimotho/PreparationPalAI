@@ -57,6 +57,9 @@ from app.api_models import (
     SourcesResponse,
 )
 from app.config import get_settings
+from app.model_catalog import catalogue, require_model
+from app.coach import router as coach_router
+from app.public_site import router as public_router
 from app.ingestion import IMAGE_EXTENSIONS, load_and_chunk_image, load_and_chunk_pdf
 from app.memory import clear_history
 from app.quiz import explain_concept, generate_questions, validate_answer
@@ -75,6 +78,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PreparationPalAI", version="1.1.0")
+app.include_router(coach_router)
+app.include_router(public_router)
 
 # Dev: Vite serves the SPA on :5173 and proxies /api here. Allow it for CORS.
 app.add_middleware(
@@ -160,9 +165,12 @@ def health() -> HealthResponse:
 
 @app.get("/api/models", response_model=ModelsResponse)
 def models() -> ModelsResponse:
+    installed = get_installed_models()
+    entries = catalogue(installed, get_chat_models())
     return ModelsResponse(
-        supported=get_chat_models(),
-        installed=sorted(get_installed_models()),
+        supported=[m['id'] for m in entries],
+        installed=sorted(installed),
+        catalogue=entries,
     )
 
 
@@ -251,6 +259,7 @@ def kb_clear() -> ClearResponse:
 
 @app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest) -> StreamingResponse:
+    req.model = require_model(req.model)
     if req.mode == "langgraph":
         events = langgraph_module.stream(
             question=req.question,
@@ -279,6 +288,7 @@ def chat_clear(session_id: str) -> ClearResponse:
 
 @app.post("/api/code-chat/stream")
 def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
+    req.model = require_model(req.model)
     events = code_assistant.stream_code_assistant(
         message=req.message,
         thread_id=req.thread_id,
@@ -293,6 +303,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
 
 @app.post("/api/agent/stream")
 def agent_stream(req: AgentRequest) -> StreamingResponse:
+    req.model = require_model(req.model)
     events = quiz_agent.stream_agent(
         message=req.message, thread_id=req.thread_id, model=req.model
     )
@@ -304,6 +315,7 @@ def agent_stream(req: AgentRequest) -> StreamingResponse:
 
 @app.post("/api/quiz/generate")
 def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
+    req.model = require_model(req.model)
     start = time.perf_counter()
     status = "success"
     try:
@@ -326,6 +338,8 @@ def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
 
 @app.post("/api/quiz/validate")
 def quiz_validate(req: QuizValidateRequest) -> dict:
+    if req.question_type == 'short_answer':
+        req.model = require_model(req.model)
     return validate_answer(
         question=req.question,
         correct_answer=req.correct_answer,
@@ -337,6 +351,7 @@ def quiz_validate(req: QuizValidateRequest) -> dict:
 
 @app.post("/api/quiz/explain", response_model=ExplainResponse)
 def quiz_explain(req: ExplainRequest) -> ExplainResponse:
+    req.model = require_model(req.model)
     return ExplainResponse(explanation=explain_concept(req.concept, model=req.model))
 
 
@@ -355,6 +370,7 @@ def flashcards_create(req: CreateDeckRequest) -> Deck:
 
 @app.post("/api/flashcards/generate", response_model=Deck)
 def flashcards_generate(req: GenerateDeckRequest) -> Deck:
+    req.model = require_model(req.model)
     start = time.perf_counter()
     status = "success"
     try:

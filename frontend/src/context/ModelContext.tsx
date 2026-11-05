@@ -8,8 +8,10 @@ import {
   type ReactNode,
 } from "react";
 import { api } from "../api/client";
+import type { ModelInfo } from "../api/types";
 
 interface ModelState {
+  catalogue: ModelInfo[];
   supported: string[];
   installed: string[];
   selected: string;
@@ -25,6 +27,7 @@ const ModelContext = createContext<ModelState | null>(null);
 const STORAGE_KEY = "exam-prep.selected-model";
 
 export function ModelProvider({ children }: { children: ReactNode }) {
+  const [catalogue, setCatalogue] = useState<ModelInfo[]>([]);
   const [supported, setSupported] = useState<string[]>([]);
   const [installed, setInstalled] = useState<string[]>([]);
   const [selected, setSelectedState] = useState<string>(
@@ -43,11 +46,12 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     try {
       const [models, health] = await Promise.all([api.models(), api.health()]);
       setSupported(models.supported);
+      setCatalogue(models.catalogue ?? []);
       setInstalled(models.installed);
       setOnline(health.online);
       setModelCount(health.model_count);
       setSelectedState((cur) => {
-        if (cur && models.supported.includes(cur)) return cur;
+        if (cur) return cur;
         const next = models.installed[0] ?? models.supported[0] ?? "";
         if (next) localStorage.setItem(STORAGE_KEY, next);
         return next;
@@ -75,6 +79,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      catalogue,
       supported,
       installed,
       selected,
@@ -84,7 +89,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       setSelected,
       refresh,
     }),
-    [supported, installed, selected, online, modelCount, loading, setSelected, refresh],
+    [catalogue, supported, installed, selected, online, modelCount, loading, setSelected, refresh],
   );
 
   return <ModelContext.Provider value={value}>{children}</ModelContext.Provider>;

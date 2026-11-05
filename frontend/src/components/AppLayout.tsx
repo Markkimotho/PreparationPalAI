@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { sectionForPath } from "../sections/registry";
@@ -12,11 +12,13 @@ export function AppLayout() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const section = sectionForPath(location.pathname);
+  useEffect(() => { document.title = `${section.label} · PreparationPalAI`; }, [section.label]);
 
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(COLLAPSE_KEY) === "1",
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => {
@@ -36,7 +38,7 @@ export function AppLayout() {
         onToggleCollapse={toggleCollapse}
         isMobile={isMobile}
         mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
+          onCloseMobile={closeMobile}
       />
       <div className={styles.main}>
         <TopBar

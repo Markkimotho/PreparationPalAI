@@ -47,6 +47,7 @@ export function TopBar({ title, isMobile, onOpenMenu }: Props) {
           <button
             type="button"
             className={styles.kbButton}
+            aria-label="Knowledge base"
             aria-haspopup="dialog"
             aria-expanded={kbOpen}
             onClick={() => setKbOpen((o) => !o)}
