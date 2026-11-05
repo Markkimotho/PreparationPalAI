@@ -62,6 +62,7 @@ from app.coach import router as coach_router
 from app.public_site import router as public_router
 from app.auth import router as auth_router, WorkspaceAuth
 from app.limits import consume
+from app.diagnostics import router as diagnostics_router, RequestDiagnostics, configure_logging
 from fastapi import Request
 from app.ingestion import IMAGE_EXTENSIONS
 from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
@@ -81,11 +82,13 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s -- %(message)s",
 )
 logger = logging.getLogger(__name__)
+configure_logging()
 
 app = FastAPI(title="PreparationPalAI", version="1.1.0")
 app.include_router(coach_router)
 app.include_router(public_router)
 app.include_router(auth_router)
+app.include_router(diagnostics_router)
 
 
 @app.middleware('http')
@@ -108,6 +111,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(WorkspaceAuth)
+app.add_middleware(RequestDiagnostics)
 
 # Default HTTP metrics (request count + latency per route) at GET /metrics.
 # Exposed before the SPA mount so "/" never shadows it.
@@ -145,14 +149,14 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
                     frame = {"type": "tool", "name": payload}
                 elif kind == "error":
                     status = "error"
-                    frame = {"type": "error", "message": payload}
+                    frame = {"type": "error", "message": "Model request failed. Retry or share the request ID with your administrator."}
                 else:
                     continue
                 yield f"data: {json.dumps(frame)}\n\n"
         except Exception as exc:  # noqa: BLE001 — surface any engine failure to client
             status = "error"
             logger.exception("SSE stream failed")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Model request failed. Retry or share the request ID with your administrator.'})}\n\n"
         finally:
             metrics.LLM_LATENCY.labels(surface).observe(time.perf_counter() - start)
             metrics.LLM_REQUESTS.labels(surface, status).inc()
