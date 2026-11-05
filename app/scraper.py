@@ -8,7 +8,7 @@ import hashlib
 import logging
 import re
 
-import httpx
+from app.safe_fetch import fetch_text
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -84,9 +84,7 @@ def scrape_url(url: str, timeout: int = 20) -> list[Document]:
     """
     settings = get_settings()
     try:
-        resp = httpx.get(url, headers=_HEADERS, timeout=timeout, follow_redirects=True)
-        resp.raise_for_status()
-        text = _extract_text(resp.text)
+        text = _extract_text(fetch_text(url, timeout=timeout))
         if not text or len(text.strip()) < 200:
             logger.warning("No useful text extracted from %s", url)
             return []

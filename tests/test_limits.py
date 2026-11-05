@@ -23,7 +23,7 @@ def test_budgets_are_durable_and_per_identity(monkeypatch):
 
 
 def test_inference_is_bounded():
-    with patch('app.llm._ChatOllama') as llm:
+    with patch('app.llm.GuardedChatOllama') as llm:
         ChatOllama(model='test', num_ctx=999999, num_predict=999999)
     assert llm.call_args.kwargs['num_ctx'] == get_base_settings().llm_context_tokens
     assert llm.call_args.kwargs['num_predict'] == get_base_settings().llm_output_tokens
