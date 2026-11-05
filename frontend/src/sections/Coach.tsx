@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useModelContext } from '../context/ModelContext';
 import { Markdown } from '../components/Markdown';
 import styles from './Coach.module.css';
+import { apiFetch } from '../api/access';
 
 interface Result { score: number; feedback: string; key_missed: string[]; hint: string }
 interface Session {
@@ -20,7 +21,7 @@ function learnerId() {
   return id;
 }
 async function request<T>(path: string, body?: unknown): Promise<T> {
-  const r = await fetch(`/api/coach${path}`, body ? {
+  const r = await apiFetch(`/api/coach${path}`, body ? {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   } : undefined);
   const data = await r.json();

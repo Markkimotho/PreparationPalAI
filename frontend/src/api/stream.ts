@@ -3,6 +3,7 @@
 // parse "data: {json}\n\n" frames ourselves.
 
 import type { StreamEvent } from "./types";
+import { apiFetch } from './access';
 
 export function parseSSEChunk(
   buffer: string,
@@ -34,7 +35,7 @@ export async function streamPost(
   body: unknown,
   { onEvent, signal }: StreamHandlers,
 ): Promise<void> {
-  const res = await fetch(path, {
+  const res = await apiFetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
