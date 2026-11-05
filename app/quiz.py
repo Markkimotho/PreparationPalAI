@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 
 from app.config import get_settings
 from app.retriever import get_retriever

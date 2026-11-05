@@ -61,6 +61,8 @@ from app.model_catalog import catalogue, require_model
 from app.coach import router as coach_router
 from app.public_site import router as public_router
 from app.auth import router as auth_router, WorkspaceAuth
+from app.limits import consume
+from fastapi import Request
 from app.ingestion import IMAGE_EXTENSIONS, load_and_chunk_image, load_and_chunk_pdf
 from app.memory import clear_history
 from app.quiz import explain_concept, generate_questions, validate_answer
@@ -82,15 +84,28 @@ app = FastAPI(title="PreparationPalAI", version="1.1.0")
 app.include_router(coach_router)
 app.include_router(public_router)
 app.include_router(auth_router)
-app.add_middleware(WorkspaceAuth)
+
+
+@app.middleware('http')
+async def budget_requests(request: Request, call_next):
+    # The auth middleware is installed outermost below, so budgets use trusted identity.
+    if request.method == 'POST' and request.url.path.startswith('/api/'):
+        from starlette.concurrency import run_in_threadpool
+        try:
+            await run_in_threadpool(consume)
+        except HTTPException as exc:
+            from fastapi.responses import JSONResponse
+            return JSONResponse({'detail': exc.detail}, exc.status_code, headers=exc.headers)
+    return await call_next(request)
 
 # Dev: Vite serves the SPA on :5173 and proxies /api here. Allow it for CORS.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=get_settings().cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(WorkspaceAuth)
 
 # Default HTTP metrics (request count + latency per route) at GET /metrics.
 # Exposed before the SPA mount so "/" never shadows it.

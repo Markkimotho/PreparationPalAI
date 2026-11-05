@@ -8,7 +8,7 @@ from typing import Annotated, Sequence, TypedDict
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
