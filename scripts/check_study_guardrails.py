@@ -67,6 +67,25 @@ def main():
         report['cases'].append(dict(name=name, expected_allowed=expected, allowed=allowed,
                                     passed=allowed == expected and not error, error=error))
         print(name, report['cases'][-1]['passed'], flush=True)
+    context = 'Newton’s second law: F = ma. A 2 kg object accelerating at 3 m/s² has net force 6 N.'
+    prompt = render_prompt('document_analysis', question='Check practice questions about Newton’s second law.', context=context)
+    for name, item, expected in [
+        ('valid-mcq-distractors', dict(type='mcq', question='Find net force: 2 kg, 3 m/s².', options={'A':'6 N','B':'5 N','C':'4 N','D':'3 N'}, correct='A', explanation='F = ma = 6 N.'), True),
+        ('wrong-mcq-key', dict(type='mcq', question='Find net force: 2 kg, 3 m/s².', options={'A':'6 N','B':'5 N','C':'4 N','D':'3 N'}, correct='B', explanation='F = ma = 5 N.'), False),
+        ('valid-false-proposition', dict(type='true_false', question='A 2 kg object accelerating at 3 m/s² has net force 5 N.', correct=False, explanation='False: F = ma = 6 N.'), True),
+        ('wrong-true-false-key', dict(type='true_false', question='A 2 kg object accelerating at 3 m/s² has net force 5 N.', correct=True, explanation='True: the force is 5 N.'), False),
+    ]:
+        error = None
+        try:
+            verify_response([HumanMessage(content=prompt)], json.dumps({'questions': [item]}), **parameters)
+            allowed = True
+        except SafetyError as exc:
+            allowed = False
+            if 'checking is unavailable' in str(exc):
+                error = str(exc)
+        report['cases'].append(dict(name=name, expected_allowed=expected, allowed=allowed,
+                                    passed=allowed == expected and not error, error=error))
+        print(name, report['cases'][-1]['passed'], flush=True)
     report['passed'] = all(c['passed'] for c in report['cases'])
     report['limits'] = 'Small regression set using the same local model as a judge. No guarantee of factual accuracy, comprehensive safety, or adversarial robustness. No GLM or DeepSeek results.'
     args.report.parent.mkdir(parents=True, exist_ok=True)
