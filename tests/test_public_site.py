@@ -13,7 +13,7 @@ def test_public_html_without_ollama(monkeypatch):
     monkeypatch.setattr(get_settings(), 'public_base_url', 'https://prep.example')
     r = client.get('/')
     assert r.status_code == 200
-    assert '<h1>Study deeply.' in r.text
+    assert '<h1>Practise the questions' in r.text
     assert 'rel="canonical" href="https://prep.example/"' in r.text
     assert 'property="og:image" content="https://prep.example/social-preview.png"' in r.text
     schema = json.loads(re.search(r'application/ld\+json">(.*?)</script>', r.text)[1])
