@@ -23,6 +23,9 @@ Changing to a different model does not install the first one automatically.
 
 The first request can take longer while a model loads. Larger models and long
 written answers also take more time.
+Requests now include safety checks, and grounded answers include a separate review.
+The app waits for those checks before displaying the answer, so a pause before any
+text appears is expected.
 
 Try a shorter session, fewer questions, or a smaller installed model. Avoid
 submitting the same request repeatedly while the current one is still working.

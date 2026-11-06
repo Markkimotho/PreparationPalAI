@@ -237,10 +237,11 @@ def validate_answer(
 
 def explain_concept(concept: str, model: str | None = None, top_k: int = 6, profile: PromptProfile | None = None) -> str:
     """Return a detailed explanation of a concept from the knowledge base."""
+    check_language(concept)
     retriever = get_retriever(top_k=top_k)
     docs = retriever.invoke(concept)
     if not docs:
-        return f"No information found about '{concept}' in the knowledge base."
+        return 'No relevant information was found in the knowledge base. Upload material covering this concept.'
 
     context = _build_context(docs)
     llm = _get_llm(model, temperature=0)

@@ -247,8 +247,8 @@ def stream_agent(
 ) -> Iterator[tuple[str, object]]:
     """Stream the agent's response token-by-token.
 
-    Yields ("token", str) for assistant text deltas and ("tool", str) once per
-    tool the agent decides to call. Errors are surfaced as ("error", str).
+    Yields one checked ("token", str) final response, then optional validated
+    ("questions", list) for study-pack export. Nested tool tokens are withheld.
     """
     # LangGraph's messages stream includes nested generation inside tools.
     # Release only the completed result, never reasoning or raw tool JSON.

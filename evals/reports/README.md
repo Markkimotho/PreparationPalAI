@@ -1,5 +1,22 @@
 # Recorded local-model checks
 
+## Study-v2 guardrails
+
+`study-v2-guardrails-qwen2.5-7b.json` is the unedited output of:
+
+```bash
+python -m scripts.check_study_guardrails --model qwen2.5:7b --report evals/reports/study-v2-guardrails-qwen2.5-7b.json
+```
+
+It checks safe physics, non-graphic clinical education, support-seeking, rejection
+of suicide-method and explicit-sexual requests, an instruction-override attempt,
+and acceptance/rejection of relevant physics versus unrelated Bible evidence.
+It records exact model, prompt and policy identifiers. This is a small same-model
+classifier/verifier regression, not an independent safety or factual-quality audit.
+The older report below predates these runtime checks and does not measure v2.
+
+## Study-v1 baseline
+
 `study-v1-qwen2.5-7b.json` is the unedited output of:
 
 ```bash

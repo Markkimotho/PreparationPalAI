@@ -60,3 +60,18 @@ schedule spaced-repetition reminders. Choose your own review routine.
 
 The [contributor handbook](/PreparationPalAI/contribute/) covers development,
 architecture, tests, security, and deployment separately from this user guide.
+
+## Why was a request or response withheld?
+
+The app checks requests and model responses before showing them. It aims to block
+explicit sexual content, profanity, abuse, and instructions for self-harm or other
+harmful acts. Non-graphic anatomy, clinical study, safe science, and asking for
+emotional support remain legitimate study uses.
+
+Source-based answers and generated study items receive an additional grounding
+and answer-consistency check. If a response fails, add material that directly
+covers your topic or retry with a clearer request. If safety checking is unavailable,
+the app withholds the response until checking can run again.
+
+These checks use your installation’s local model and can make mistakes. They add
+time to responses and do not replace checking the original material yourself.

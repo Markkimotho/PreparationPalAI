@@ -20,6 +20,7 @@ nav:
       - Preparation Coach: features/coach.md
       - Your study material: features/material.md
       - Quiz Prep: features/quizzes.md
+      - Download study packs: features/exports.md
       - Study Agent: features/tutor.md
       - Document chat: features/chat.md
       - Flashcards: features/flashcards.md

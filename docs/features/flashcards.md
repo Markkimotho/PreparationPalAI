@@ -45,6 +45,8 @@ without first reviewing every answer.
 Decks persist across normal restarts. The current study run can be lost when
 you leave the page. There are no automatic spaced-repetition reminders; choose
 your own review schedule.
+Open a deck to [download a study pack](exports.md). Card fronts become questions;
+card backs appear only in the separate answer key.
 
 !!! warning "Deleting is permanent in the app"
     Deleting a card or deck has no learner-facing undo. In a shared workspace,

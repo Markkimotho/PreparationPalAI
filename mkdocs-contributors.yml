@@ -22,6 +22,7 @@ nav:
   - Operate:
       - Workspace access: runbooks/security.md
       - Bounded inference: runbooks/inference.md
+      - Study guardrails and exports: runbooks/study-guardrails.md
       - Ingestion boundaries: runbooks/ingestion.md
       - Quality and release policy: runbooks/quality.md
       - Diagnostics and triage: runbooks/operations.md
