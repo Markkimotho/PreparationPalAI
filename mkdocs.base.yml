@@ -1,6 +1,6 @@
 repo_url: https://github.com/Markkimotho/PreparationPalAI
 repo_name: PreparationPalAI
-copyright: PreparationPalAI · Learn with curiosity. Practise with purpose.
+copyright: PreparationPalAI
 strict: true
 theme:
   name: material
@@ -25,8 +25,6 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
   features:
-    - navigation.tabs
-    - navigation.tabs.sticky
     - navigation.sections
     - navigation.indexes
     - navigation.top
