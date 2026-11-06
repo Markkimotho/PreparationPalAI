@@ -91,7 +91,7 @@ html { scroll-padding-top: 6rem; }
 .md-typeset a { text-underline-offset: 3px; }
 .md-typeset p a, .md-typeset li a { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--md-typeset-a-color) 40%, transparent); }
 a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible, label[tabindex]:focus-visible { outline: 2px solid var(--md-typeset-a-color); outline-offset: 3px; }
-.md-typeset .md-button { border-radius: 6px; font-size: .8rem; min-height: 44px; padding: .6em 1em; border-width: 1px; font-weight: 600; }
+.md-typeset .md-button { border-radius: 6px; font-size: .8rem; min-height: 44px; padding: .6em 1em; border: 1px solid var(--pp-border); color: var(--md-typeset-a-color); background: transparent; font-weight: 600; text-decoration: none; }
 .md-typeset .md-button--primary { background: var(--md-typeset-a-color); border-color: var(--md-typeset-a-color); color: var(--pp-on-accent); text-decoration: none; }
 .md-typeset .md-button:active { transform: scale(.98); }
 .md-typeset code { border-radius: 3px; }
@@ -136,6 +136,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .pp-contributor-hero p { max-width: 34rem; color: var(--pp-muted); }
 @media (hover: hover) and (pointer: fine) {
   .md-typeset a:hover { text-decoration: underline; text-decoration-color: currentColor; }
+  .md-typeset .md-button:hover { background: var(--pp-paper); border-color: var(--md-typeset-a-color); text-decoration: none; }
   .md-typeset .md-button--primary:hover { background: var(--pp-ink); border-color: var(--pp-ink); color: var(--md-default-bg-color); text-decoration: none; }
 }
 @media (max-width: 76.234375em) {
