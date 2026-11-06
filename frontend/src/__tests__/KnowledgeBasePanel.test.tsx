@@ -8,6 +8,7 @@ const apiMock = vi.hoisted(() => ({
   kbUpload: vi.fn(),
   kbScrape: vi.fn(),
   kbClear: vi.fn(),
+  kbJobs: vi.fn(async () => ({ jobs: [] })),
 }));
 vi.mock("../api/client", () => ({ api: apiMock, ApiError: class extends Error {} }));
 
@@ -24,6 +25,7 @@ function renderPanel() {
 
 afterEach(() => {
   Object.values(apiMock).forEach((m) => m.mockReset());
+  apiMock.kbJobs.mockResolvedValue({ jobs: [] });
 });
 
 describe("KnowledgeBasePanel", () => {

@@ -1,29 +1,34 @@
 import { useState } from "react";
-import { api } from "../api/client";
+import { streamPost } from '../api/stream';
 import { useModelContext } from "../context/ModelContext";
 import { Select, type SelectOption } from "./Select";
 import styles from "./ModelPicker.module.css";
 
 export function ModelPicker() {
-  const { supported, installed, selected, setSelected, refresh } =
+  const { supported, installed, selected, setSelected, refresh, catalogue, online } =
     useModelContext();
   const [pulling, setPulling] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const isInstalled = installed.includes(selected);
+  const info = catalogue?.find(m => m.id === selected);
+  const isInstalled = info?.installed ?? installed.includes(selected);
 
-  const options: SelectOption[] = supported.map((m) => ({
+  const options: SelectOption[] = [...new Set([...supported, ...(selected ? [selected] : [])])].map((m) => ({
     value: m,
     label: m,
-    hint: installed.includes(m) ? undefined : "not installed",
+    hint: !online ? 'unavailable: Ollama offline' : catalogue?.find(entry => entry.id === m)?.installed || installed.includes(m) ? "installed" : catalogue?.find(entry => entry.id === m)?.availability ?? 'unknown',
   }));
 
   const pull = async () => {
     setPulling(true);
     setMsg(`Pulling ${selected}…`);
     try {
-      const res = await api.pullModel(selected);
-      setMsg(res.message);
+      let failed = false;
+      await streamPost('/api/models/pull/stream', { model: selected }, { onEvent(event) {
+        if (event.type === 'progress') setMsg(`${event.status}${event.total ? ` · ${Math.round(event.completed / event.total * 100)}%` : ''}`);
+        if (event.type === 'error') { failed = true; setMsg(event.message); }
+      } });
+      if (!failed) setMsg('Model ready.');
       await refresh();
     } catch {
       setMsg("Pull failed.");
@@ -53,7 +58,11 @@ export function ModelPicker() {
           {pulling ? "Pulling…" : "Pull"}
         </button>
       )}
-      {msg && <span className={styles.msg}>{msg}</span>}
+      {info && <details className={styles.info}><summary>Model info</summary>
+        <p>{info.recommended_use}</p><p>{info.resources}</p>
+        <p>Tool calling: {info.tools === null ? 'unverified' : info.tools ? 'supported' : 'unsupported'}. Structured output: {info.structured_output === null ? 'unverified' : info.structured_output ? 'supported' : 'unsupported'}.</p>
+      </details>}
+      {msg && <span role="status" className={styles.msg}>{msg}</span>}
     </div>
   );
 }

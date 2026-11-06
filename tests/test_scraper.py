@@ -75,7 +75,7 @@ def test_extract_text_falls_back_to_body():
 # ── scrape_url ────────────────────────────────────────────────────────────────
 
 
-@patch("app.scraper.httpx.get")
+@patch("app.scraper.fetch_text")
 @patch("app.scraper.get_settings")
 def test_scrape_url_returns_documents(mock_settings, mock_get):
     mock_settings.return_value = MagicMock(chunk_size=1000, chunk_overlap=200)
@@ -88,7 +88,7 @@ def test_scrape_url_returns_documents(mock_settings, mock_get):
     mock_resp = MagicMock()
     mock_resp.text = _html
     mock_resp.raise_for_status = MagicMock()
-    mock_get.return_value = mock_resp
+    mock_get.return_value = _html
 
     docs = scrape_url("https://example.com/page")
     assert len(docs) > 0
@@ -98,7 +98,7 @@ def test_scrape_url_returns_documents(mock_settings, mock_get):
         assert "chunk_index" in doc.metadata
 
 
-@patch("app.scraper.httpx.get")
+@patch("app.scraper.fetch_text")
 @patch("app.scraper.get_settings")
 def test_scrape_url_returns_empty_on_sparse_content(mock_settings, mock_get):
     mock_settings.return_value = MagicMock(chunk_size=1000, chunk_overlap=200)
@@ -106,13 +106,13 @@ def test_scrape_url_returns_empty_on_sparse_content(mock_settings, mock_get):
     mock_resp = MagicMock()
     mock_resp.text = "<html><body><p>Too short.</p></body></html>"
     mock_resp.raise_for_status = MagicMock()
-    mock_get.return_value = mock_resp
+    mock_get.return_value = mock_resp.text
 
     docs = scrape_url("https://example.com/empty")
     assert docs == []
 
 
-@patch("app.scraper.httpx.get")
+@patch("app.scraper.fetch_text")
 def test_scrape_url_returns_empty_on_http_error(mock_get):
     import httpx
 

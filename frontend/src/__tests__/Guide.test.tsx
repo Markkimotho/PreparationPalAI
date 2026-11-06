@@ -19,7 +19,8 @@ describe("Guide", () => {
   it("renders a table of contents grouped by section group", () => {
     render(<Guide />);
     expect(screen.getByText("Core features")).toBeInTheDocument();
-    expect(screen.getByText("Developer")).toBeInTheDocument();
+    expect(screen.queryByText("Developer")).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Full user guide ↗' })).toHaveAttribute('href', 'https://markkimotho.github.io/PreparationPalAI/');
   });
 
   it("renders every guide section's content", () => {
@@ -30,18 +31,16 @@ describe("Guide", () => {
     }
   });
 
-  it("includes the Loki guide and the developer API reference", () => {
+  it("keeps engineering instructions outside the learner guide", () => {
     render(<Guide />);
-    expect(screen.getByText(/Using Loki/i)).toBeInTheDocument();
-    // a known LogQL label from the monitoring section (appears several times)
-    expect(
-      screen.getAllByText(/compose_service/, { exact: false }).length,
-    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/Using Loki/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/compose_service/, { exact: false })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contribute to the project ↗' })).toHaveAttribute('href', 'https://markkimotho.github.io/PreparationPalAI/contribute/');
   });
 
   it("TOC entries are clickable buttons", async () => {
     render(<Guide />);
-    const tocButton = screen.getByRole("button", { name: "Monitoring & Loki" });
+    const tocButton = screen.getByRole("button", { name: "Preparation Coach" });
     await userEvent.click(tocButton);
     expect(tocButton).toBeInTheDocument();
   });

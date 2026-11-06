@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import styles from "./Markdown.module.css";
 
 function CopyButton({ getText }: { getText: () => string }) {
@@ -38,8 +41,12 @@ export function Markdown({ children }: { children: string }) {
   return (
     <div className={`md ${styles.md}`}>
       <ReactMarkdown
-        rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }], [rehypeKatex, { strict: false, trust: false }]]}
         components={{
+          // Model/document text must not trigger automatic requests to arbitrary
+          // image hosts (which could encode private content in a URL).
+          img: ({ alt }) => <span>[Image omitted{alt ? `: ${alt}` : ''}]</span>,
           pre: ({ children }) => {
             const text = extractText(children);
             return (

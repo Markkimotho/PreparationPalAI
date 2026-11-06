@@ -17,11 +17,12 @@ from collections.abc import Iterator
 
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
 from app.config import get_settings
+from app.workspace import scoped_thread
 from app.quiz import explain_concept, generate_questions, validate_answer
 from app.retriever import get_retriever
 from app.scraper import search_and_scrape
@@ -225,7 +226,7 @@ def invoke_agent(
     try:
         result = agent.invoke(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": thread_id}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id)}},
         )
         messages = result.get("messages", [])
         return messages[-1].content if messages else "No response from agent."
@@ -261,7 +262,7 @@ def stream_agent(
     try:
         for msg_chunk, _metadata in agent.stream(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": thread_id}},
+            config={"configurable": {"thread_id": scoped_thread(thread_id)}},
             stream_mode="messages",
         ):
             for tc in getattr(msg_chunk, "tool_call_chunks", None) or []:

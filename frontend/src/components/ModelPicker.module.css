@@ -3,10 +3,14 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
+  flex-wrap: wrap;
 }
 .selectBox {
   width: 200px;
+  max-width: 100%;
 }
+.info { font-size: 12px; max-width: 260px; }
+.info p { margin-top: 8px; line-height: 1.5; }
 .pull {
   border: 1px solid var(--accent-border);
   background: var(--accent-soft);
@@ -24,7 +28,5 @@
   color: var(--text-dim);
 }
 @media (max-width: 767px) {
-  .msg {
-    display: none;
-  }
+  .selectBox { width: 160px; }
 }

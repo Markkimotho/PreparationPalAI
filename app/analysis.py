@@ -7,7 +7,7 @@ import time
 
 import httpx
 from langchain_core.messages import HumanMessage
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 
 from app.config import SUPPORTED_MODELS, get_settings
 from app.retriever import get_retriever

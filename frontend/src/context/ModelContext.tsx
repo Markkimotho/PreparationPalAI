@@ -8,8 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import { api } from "../api/client";
+import type { ModelInfo } from "../api/types";
+import { useLocation } from 'react-router-dom';
 
 interface ModelState {
+  catalogue: ModelInfo[];
   supported: string[];
   installed: string[];
   selected: string;
@@ -25,10 +28,14 @@ const ModelContext = createContext<ModelState | null>(null);
 const STORAGE_KEY = "exam-prep.selected-model";
 
 export function ModelProvider({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const surface = location.pathname.split('/')[1] || 'prepare';
+  const storageKey = `${STORAGE_KEY}:${surface}`;
+  const [catalogue, setCatalogue] = useState<ModelInfo[]>([]);
   const [supported, setSupported] = useState<string[]>([]);
   const [installed, setInstalled] = useState<string[]>([]);
   const [selected, setSelectedState] = useState<string>(
-    () => localStorage.getItem(STORAGE_KEY) ?? "",
+    () => localStorage.getItem(storageKey) ?? localStorage.getItem(STORAGE_KEY) ?? "",
   );
   const [online, setOnline] = useState(false);
   const [modelCount, setModelCount] = useState(0);
@@ -36,20 +43,25 @@ export function ModelProvider({ children }: { children: ReactNode }) {
 
   const setSelected = useCallback((m: string) => {
     setSelectedState(m);
-    localStorage.setItem(STORAGE_KEY, m);
-  }, []);
+    localStorage.setItem(storageKey, m);
+  }, [storageKey]);
+
+  useEffect(() => {
+    setSelectedState(localStorage.getItem(storageKey) ?? localStorage.getItem(STORAGE_KEY) ?? '');
+  }, [storageKey]);
 
   const refresh = useCallback(async () => {
     try {
       const [models, health] = await Promise.all([api.models(), api.health()]);
       setSupported(models.supported);
+      setCatalogue(models.catalogue ?? []);
       setInstalled(models.installed);
       setOnline(health.online);
       setModelCount(health.model_count);
       setSelectedState((cur) => {
-        if (cur && models.supported.includes(cur)) return cur;
+        if (cur) return cur;
         const next = models.installed[0] ?? models.supported[0] ?? "";
-        if (next) localStorage.setItem(STORAGE_KEY, next);
+        if (next) localStorage.setItem(storageKey, next);
         return next;
       });
     } catch {
@@ -57,7 +69,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     refresh();
@@ -75,6 +87,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      catalogue,
       supported,
       installed,
       selected,
@@ -84,7 +97,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       setSelected,
       refresh,
     }),
-    [supported, installed, selected, online, modelCount, loading, setSelected, refresh],
+    [catalogue, supported, installed, selected, online, modelCount, loading, setSelected, refresh],
   );
 
   return <ModelContext.Provider value={value}>{children}</ModelContext.Provider>;

@@ -8,11 +8,12 @@ from typing import Annotated, Sequence, TypedDict
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_ollama import ChatOllama
+from app.llm import ChatOllama
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
 from app.config import get_settings
+from app.workspace import scoped_thread
 from app.memory import get_memory_saver
 from app.prompts import CONTEXTUALIZE_PROMPT, QA_PROMPT
 from app.retriever import get_retriever
@@ -65,7 +66,7 @@ def generate(state: GraphState, config: RunnableConfig) -> dict:
     model = config.get("configurable", {}).get("model")
     llm = _get_llm(model)
 
-    context = "\n\n".join(doc.page_content for doc in state["documents"])
+    context = "\n\n".join(f"[Source: {doc.metadata.get('source', 'unknown')}, page {doc.metadata.get('page', '?')}]\n{doc.page_content}" for doc in state["documents"])
     messages = list(state["messages"])
 
     prompt_value = QA_PROMPT.invoke(
@@ -123,7 +124,7 @@ def invoke(
         },
         config={
             "configurable": {
-                "thread_id": thread_id,
+                "thread_id": scoped_thread(thread_id),
                 "model": model,
                 "top_k": top_k,
             }
@@ -156,7 +157,7 @@ def stream(
     """
     graph = get_graph()
     config: dict = {
-        "configurable": {"thread_id": thread_id, "model": model, "top_k": top_k}
+        "configurable": {"thread_id": scoped_thread(thread_id), "model": model, "top_k": top_k}
     }
     inputs = {
         "messages": [HumanMessage(content=question)],

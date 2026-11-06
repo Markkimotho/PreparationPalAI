@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 export type SectionId =
+  | "prepare"
   | "quiz"
   | "agent"
   | "code"
@@ -85,6 +86,7 @@ const GuideIcon = (
 );
 
 export const SECTIONS: SectionDef[] = [
+  { id: "prepare", path: "/prepare", label: "Preparation Coach", blurb: "Learn, practise, interview, and review weak areas.", icon: QuizIcon },
   {
     id: "quiz",
     path: "/quiz",
@@ -124,7 +126,7 @@ export const SECTIONS: SectionDef[] = [
     id: "guide",
     path: "/guide",
     label: "Guide",
-    blurb: "How to use the app + developer docs.",
+    blurb: "Study walkthroughs, feature help, and troubleshooting.",
     icon: GuideIcon,
   },
 ];
