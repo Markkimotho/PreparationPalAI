@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
 from app.generation import validated_batches
 from app.safety import SafetyError, check_language
+from app.drawing_requirements import normalize_requirement
 
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
@@ -38,6 +39,8 @@ class QuizItem(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     type: Literal['mcq', 'true_false', 'short_answer']
     question: str = Field(min_length=1)
+    drawing_required: bool = False
+    drawing_prompt: str = Field(default='', max_length=1000)
     source: str = Field(min_length=1)
     difficulty: str = 'medium'
     correct: str | bool | None = None
@@ -48,6 +51,9 @@ class QuizItem(BaseModel):
 
     @model_validator(mode='after')
     def valid_answer(self):
+        normalize_requirement(self)
+        if self.drawing_required and self.type != 'short_answer':
+            raise ValueError('Drawing tasks require a written-answer question')
         if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.correct not in self.options):
             raise ValueError('MCQ needs four options and one matching answer')
         if self.type == 'mcq' and any(not text for text in self.options.values()):
@@ -136,6 +142,7 @@ def generate_questions(
 
     context = _build_context(docs)
     schema = QuizBatch.model_json_schema()
+    schema['$defs']['QuizItem']['required'] += ['drawing_required', 'drawing_prompt']
     if question_type != 'mixed':
         item_schema = schema['$defs']['QuizItem']
         props = item_schema['properties']

@@ -19,6 +19,7 @@ from app.retriever import get_retriever
 from app.prompt_library import PROMPT_VERSION, PromptProfile, render_prompt
 from app.generation import validation_feedback
 from app.safety import SafetyError
+from app.drawing_requirements import normalize_requirement
 
 router = APIRouter(prefix='/api/coach', tags=['Preparation coach'])
 
@@ -38,6 +39,8 @@ class Start(BaseModel):
 class Question(BaseModel):
     type: Literal['mcq', 'true_false', 'short_answer', 'free_response']
     question: str = Field(min_length=1)
+    drawing_required: bool = False
+    drawing_prompt: str = Field(default='', max_length=1000)
     topic: str = Field(min_length=1)
     answer: str = Field(min_length=1)
     options: dict[str, str] = {}
@@ -45,6 +48,9 @@ class Question(BaseModel):
 
     @model_validator(mode='after')
     def validate_answer_shape(self):
+        normalize_requirement(self)
+        if self.drawing_required and self.type in ('mcq', 'true_false'):
+            raise ValueError('Drawing tasks require a written-answer question')
         if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.answer not in self.options):
             raise ValueError('MCQ requires four options and a matching answer')
         if self.type == 'true_false' and self.answer.lower() not in ('true', 'false'):
@@ -67,6 +73,7 @@ def generate_questions(req: Start, model: str, context: str, focus: str) -> list
     """Keep each response within the configured output budget, never accept partial JSON."""
     questions = []
     schema = QuestionBatch.model_json_schema()
+    schema['$defs']['Question']['required'] += ['drawing_required', 'drawing_prompt']
     required_type = 'free_response' if req.mode == 'interview' else req.question_type
     if required_type != 'mixed':
         properties = schema['$defs']['Question']['properties']

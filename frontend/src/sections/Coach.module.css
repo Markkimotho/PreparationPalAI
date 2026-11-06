@@ -8,9 +8,9 @@
 .card form { display: grid; gap: 20px; }
 .card p, .card li { line-height: 1.65; }
 .card label { display: grid; gap: 8px; font-size: 14px; font-weight: 500; }
-.card input, .card textarea, .card select { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: var(--fs-md); }
-.card button { min-height: 44px; }
-.card button:not([aria-haspopup]) { padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); text-align: left; }
+.card input:not(:global(.excalidraw) *), .card textarea:not(:global(.excalidraw) *), .card select:not(:global(.excalidraw) *) { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: var(--fs-md); }
+.card button:not(:global(.excalidraw) *) { min-height: 44px; }
+.card button:not([aria-haspopup]):not(:global(.excalidraw) *) { padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); text-align: left; }
 .card button:disabled { opacity: .6; cursor: not-allowed; }
 .modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .modes button { display: grid; gap: 8px; }

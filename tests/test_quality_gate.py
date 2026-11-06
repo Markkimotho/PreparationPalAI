@@ -5,7 +5,7 @@ def test_versioned_golden_contract():
     report = run()
     assert report['passed'] and report['dataset_version'] == '1.0'
     assert report['mode'] == 'offline-contract'
-    assert report['prompt_version'] == 'study-v2'
+    assert report['prompt_version'] == 'study-v3'
     assert len(report['prompt_sha256']) == 64
 
 

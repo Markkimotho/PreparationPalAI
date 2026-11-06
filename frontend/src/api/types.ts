@@ -57,6 +57,8 @@ export type QuestionType = "mcq" | "true_false" | "short_answer" | "mixed";
 export type Difficulty = "easy" | "medium" | "hard" | "mixed";
 
 export interface QuizQuestion {
+  drawing_required?: boolean;
+  drawing_prompt?: string;
   type: QuestionType;
   question: string;
   options?: Record<string, string>;

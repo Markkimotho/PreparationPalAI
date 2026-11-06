@@ -51,7 +51,7 @@ describe("Sidebar", () => {
     renderAt("/quiz", { collapsed: true });
     expect(screen.queryByText("Quiz Prep")).not.toBeInTheDocument();
     // Links remain (icon-only) and accessible via title.
-    expect(screen.getAllByRole("link")).toHaveLength(7);
+    expect(screen.getAllByRole("link")).toHaveLength(8);
   });
 
   it("traps focus and closes on Escape when used as a mobile drawer", async () => {

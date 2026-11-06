@@ -69,6 +69,7 @@ from app.jobs import router as jobs_router, worker_loop
 from fastapi import Request
 from app.ingestion import IMAGE_EXTENSIONS
 from app.exports import router as exports_router
+from app.drawings import router as drawings_router
 from app.safety import SafetyError
 from fastapi.responses import JSONResponse
 from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
@@ -110,6 +111,7 @@ app.include_router(auth_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
 app.include_router(exports_router)
+app.include_router(drawings_router)
 
 
 @app.exception_handler(SafetyError)
@@ -534,7 +536,7 @@ class SPAStaticFiles(StaticFiles):
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
             if exc.status_code == 404 and path.strip('/').split('/')[0] in {
-                'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide'
+                'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide', 'drawings'
             }:
                 return await super().get_response("index.html", scope)
             raise
