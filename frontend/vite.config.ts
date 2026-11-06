@@ -20,9 +20,9 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          math: ["katex", "remark-math", "rehype-katex"],
-          syntax: ["highlight.js", "rehype-highlight"],
+        manualChunks(id) {
+          if (/node_modules\/(katex|remark-math|rehype-katex)\//.test(id)) return 'math';
+          if (/node_modules\/(highlight.js|rehype-highlight)\//.test(id)) return 'syntax';
         },
       },
     },
