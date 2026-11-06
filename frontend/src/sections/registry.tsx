@@ -126,7 +126,7 @@ export const SECTIONS: SectionDef[] = [
     id: "guide",
     path: "/guide",
     label: "Guide",
-    blurb: "How to use the app + developer docs.",
+    blurb: "Study walkthroughs, feature help, and troubleshooting.",
     icon: GuideIcon,
   },
 ];

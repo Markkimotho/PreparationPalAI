@@ -53,8 +53,10 @@ directory, which would remove the handbook nested inside it.
 
 ## Publish
 
-The Pages workflow builds and validates on pull requests. Publishing is restricted
-to this repository’s configured publication branches and manual runs. It uses
+The Pages workflow builds and validates on pull requests. It publishes from `main`
+and explicit manual runs. The initial `feat/preparation-coach` publication is allowed
+only while `main` has no MkDocs configuration; after merge, that bootstrap branch
+cannot overwrite the main documentation. It uses
 GitHub’s Pages artifacts and deployment actions rather than uploading app data.
 The site is static documentation; it does not host the FastAPI study application.
 
