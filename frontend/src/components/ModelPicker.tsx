@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { api } from "../api/client";
+import { streamPost } from '../api/stream';
 import { useModelContext } from "../context/ModelContext";
 import { Select, type SelectOption } from "./Select";
 import styles from "./ModelPicker.module.css";
 
 export function ModelPicker() {
-  const { supported, installed, selected, setSelected, refresh, catalogue } =
+  const { supported, installed, selected, setSelected, refresh, catalogue, online } =
     useModelContext();
   const [pulling, setPulling] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -16,15 +16,19 @@ export function ModelPicker() {
   const options: SelectOption[] = [...new Set([...supported, ...(selected ? [selected] : [])])].map((m) => ({
     value: m,
     label: m,
-    hint: catalogue?.find(entry => entry.id === m)?.installed || installed.includes(m) ? "installed" : "downloadable",
+    hint: !online ? 'unavailable: Ollama offline' : catalogue?.find(entry => entry.id === m)?.installed || installed.includes(m) ? "installed" : catalogue?.find(entry => entry.id === m)?.availability ?? 'unknown',
   }));
 
   const pull = async () => {
     setPulling(true);
     setMsg(`Pulling ${selected}…`);
     try {
-      const res = await api.pullModel(selected);
-      setMsg(res.message);
+      let failed = false;
+      await streamPost('/api/models/pull/stream', { model: selected }, { onEvent(event) {
+        if (event.type === 'progress') setMsg(`${event.status}${event.total ? ` · ${Math.round(event.completed / event.total * 100)}%` : ''}`);
+        if (event.type === 'error') { failed = true; setMsg(event.message); }
+      } });
+      if (!failed) setMsg('Model ready.');
       await refresh();
     } catch {
       setMsg("Pull failed.");
