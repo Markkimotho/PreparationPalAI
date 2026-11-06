@@ -13,4 +13,10 @@
   <meta name="twitter:description" content="{{ description | e }}">
   <meta name="twitter:image" content="{{ config.site_url }}assets/images/share.png">
 {% endblock %}
-{% block announce %}{% endblock %}
+{% block announce %}
+  {% if config.extra.audience == "contributor" %}
+    You’re in the contributor handbook. <a href="{{ config.extra.other_portal_url }}">Looking for help using the app? →</a>
+  {% else %}
+    Your companion for exams, interviews, and the topics you want to understand.
+  {% endif %}
+{% endblock %}

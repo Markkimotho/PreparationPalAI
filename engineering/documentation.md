@@ -46,9 +46,11 @@ directory, which would remove the handbook nested inside it.
 
 - Add product pages to `mkdocs.yml` and engineering pages to `mkdocs-contributors.yml`.
 - Shared typography, colour, cards, and responsive rules live in the brand stylesheet.
-- Custom templates add social metadata and links between the two audiences.
-- Fonts use the system stack; search assets are hosted with the site. There is no
-  analytics integration or external font request.
+- Custom templates add the product homepage, social metadata, and audience links.
+- Body text uses Source Sans 3 and headings use Manrope. Both variable fonts are
+  hosted in `docs_theme/assets/fonts/` with their OFL licenses; system fonts are
+  fallbacks. Search assets are also hosted with the site. There is no analytics
+  integration or external font request.
 - Use descriptive page metadata and normal relative Markdown links within each portal.
 
 ## Publish
