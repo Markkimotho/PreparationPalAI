@@ -89,6 +89,11 @@ class Settings(BaseSettings):
             raise ValueError('Set OLLAMA_MODEL and OLLAMA_EMBEDDING_MODEL to non-empty installed tags')
         if self.production and '*' in self.cors_origins:
             raise ValueError('Production CORS_ORIGINS must list explicit origins')
+        if self.public_base_url:
+            public = urlsplit(self.public_base_url)
+            if (public.scheme not in ('http', 'https') or not public.hostname or public.username or
+                public.password or public.path not in ('', '/') or public.query or public.fragment):
+                raise ValueError('PUBLIC_BASE_URL must be an HTTP(S) origin without path or credentials')
         if self.auth_enabled and not self.auth_tokens:
             raise ValueError('AUTH_TOKENS must contain at least one token digest')
         for digest, principal in self.auth_tokens.items():

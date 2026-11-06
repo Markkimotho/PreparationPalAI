@@ -7,8 +7,8 @@ __pycache__
 .env
 .venv
 venv
-data/chroma
-data/pdfs
+data/
+.env*
 *.egg-info
 dist
 build
