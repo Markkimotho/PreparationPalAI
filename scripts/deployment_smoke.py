@@ -19,7 +19,7 @@ def main():
     with httpx.Client(base_url=base, headers=headers, timeout=180) as client:
         assert client.get('/health/live').status_code == 200
         assert client.get('/health/ready').status_code == 200, 'Deployment is not ready'
-        assert 'Study deeply.' in client.get('/').text
+        assert 'Practise the questions' in client.get('/').text
         assert client.get('/api/kb/sources').status_code == 200
         assert client.get('/prepare').status_code == 200
         if args.exercise:

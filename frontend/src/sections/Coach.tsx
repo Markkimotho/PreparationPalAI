@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useModelContext } from '../context/ModelContext';
 import { Markdown } from '../components/Markdown';
+import { Select } from '../components/Select';
 import styles from './Coach.module.css';
 import { apiFetch } from '../api/access';
 
@@ -69,8 +70,8 @@ export function Coach() {
     setFeedback(false); setAnswer('');
   }); }
   return <div className={styles.scroll}><div className={styles.container}>
-    <header className={styles.hero}><span className={styles.eyebrow}>YOUR NEXT BREAKTHROUGH</span>
-      <h2>Prepare with purpose.</h2><p>Understand the science. Defend your reasoning. Walk into your next exam or interview prepared.</p></header>
+    <header className={styles.hero}>
+      <h2>What would you like to practise?</h2><p>Choose a topic, answer questions, and review the concepts you missed.</p></header>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     <p className="sr-only" role="status">{busy ? 'Working with your local model. This may take a moment.' : 'Ready'}</p>
     {!session ? <>
@@ -78,26 +79,26 @@ export function Coach() {
         setSession(await request<Session>('/sessions', { learner, topic, mode, difficulty, n, minutes, question_type: questionType, model: selected || undefined }));
         setFeedback(false); await refresh();
       }); }}>
-        <h3>What are you working towards?</h3>
+        <h3>Study session</h3>
         <div className={styles.modes}>{[
           ['recap', 'Learn & recap', 'Build understanding, then test recall.'],
           ['exam', 'Exam practice', 'Mixed questions, with an optional timer.'],
           ['interview', 'Technical interview', 'Explain your reasoning and tackle follow-ups.'],
           ['review', 'Weak-area review', 'Return to the concepts you missed.'],
-        ].map(([id, title, description]) => <button key={id} type="button" aria-pressed={mode === id}
+        ].map(([id, title, description]) => <button key={id} type="button" disabled={busy} aria-pressed={mode === id}
           className={mode === id ? styles.active : ''} onClick={() => setMode(id)}>
           <strong>{title}</strong><span>{description}</span></button>)}</div>
-        <label>Topic, subject, or syllabus focus<input required maxLength={500} value={topic}
+        <label>Topic, subject, or syllabus focus<input required disabled={busy} maxLength={500} value={topic}
           placeholder="Thermodynamics, molecular biology, quantum mechanics…" onChange={e => setTopic(e.target.value)} /></label>
         <div className={styles.row}>
-          {mode !== 'interview' && <label>Question format<select value={questionType} onChange={e => setQuestionType(e.target.value)}>
-            {Object.entries({ mixed: 'Mixed', mcq: 'Multiple choice', true_false: 'True / false', short_answer: 'Short answer', free_response: 'Extended reasoning' }).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>}
-          <label>Difficulty<select value={difficulty} onChange={e => setDifficulty(e.target.value)}>
-            {['easy', 'medium', 'hard', 'mixed'].map(d => <option key={d}>{d}</option>)}</select></label>
-          <label>Questions<select value={n} onChange={e => setN(Number(e.target.value))}>
-            {[3, 5, 10, 15, 20].map(v => <option key={v}>{v}</option>)}</select></label>
-          {mode === 'exam' && <label>Time limit<select value={minutes} onChange={e => setMinutes(Number(e.target.value))}>
-            {[0, 10, 20, 30, 60].map(v => <option key={v} value={v}>{v ? `${v} minutes` : 'Untimed'}</option>)}</select></label>}
+          {mode !== 'interview' && <Select label="Question format" value={questionType} onChange={setQuestionType}
+            disabled={busy} options={Object.entries({ mixed: 'Mixed', mcq: 'Multiple choice', true_false: 'True / false', short_answer: 'Short answer', free_response: 'Extended reasoning' }).map(([value, label]) => ({ value, label }))} />}
+          <Select label="Difficulty" value={difficulty} onChange={setDifficulty} disabled={busy}
+            options={['easy', 'medium', 'hard', 'mixed'].map(value => ({ value, label: value[0].toUpperCase() + value.slice(1) }))} />
+          <Select label="Questions" value={String(n)} onChange={value => setN(Number(value))} disabled={busy}
+            options={[3, 5, 10, 15, 20].map(value => ({ value: String(value), label: String(value) }))} />
+          {mode === 'exam' && <Select label="Time limit" value={String(minutes)} onChange={value => setMinutes(Number(value))} disabled={busy}
+            options={[0, 10, 20, 30, 60].map(value => ({ value: String(value), label: value ? `${value} minutes` : 'Untimed' }))} />}
         </div>
         {mode === 'review' && <p>Priority topics: {history.weak_topics.join(', ') || 'Complete a session to discover weak areas. Your chosen topic will be used for now.'}</p>}
         <p>Uses uploaded material when available. Otherwise, questions are labelled as general model knowledge.</p>
@@ -141,8 +142,8 @@ export function Coach() {
           {Object.entries(session.question.type === 'true_false' ? { True: 'True', False: 'False' } : session.question.options).map(([key, value]) =>
             <label className={styles.choice} key={key}><input type="radio" name="answer" value={key} required checked={answer === key} onChange={() => setAnswer(key)} />{key}: {value}</label>)}
         </fieldset> : <label>Your reasoning<textarea required rows={7} maxLength={20000} value={answer} onChange={e => setAnswer(e.target.value)} placeholder="Show assumptions, steps, units, and conclusions." /></label>}
-        <label>Confidence<select value={confidence} onChange={e => setConfidence(Number(e.target.value))}>
-          {[1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v} / 5{v === 1 ? ' — guessing' : v === 5 ? ' — confident' : ''}</option>)}</select></label>
+        <Select label="Confidence" value={String(confidence)} onChange={value => setConfidence(Number(value))} disabled={busy}
+          options={[1, 2, 3, 4, 5].map(value => ({ value: String(value), label: `${value} / 5${value === 1 ? ' — guessing' : value === 5 ? ' — confident' : ''}` }))} />
         <button className={styles.primary} disabled={busy || !answer.trim() || expired}>{busy ? 'Evaluating your answer…' : 'Submit answer'}</button>
       </form>}
     </section>}

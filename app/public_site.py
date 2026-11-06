@@ -20,7 +20,7 @@ def base_url() -> str:
 @router.get('/', response_class=HTMLResponse)
 def landing():
     base = base_url()
-    title = 'PreparationPalAI — Study deeply. Prepare confidently.'
+    title = 'PreparationPalAI — Exam and interview practice with local AI'
     description = 'Prepare for science exams and technical interviews with local AI: adaptive practice, document study, mock interviews, and flashcards.'
     image = get_settings().social_image
     image = image if image.startswith('https://') else base + '/' + image.lstrip('/')
@@ -38,29 +38,26 @@ def landing():
 <meta name="twitter:title" content="{title}"><meta name="twitter:description" content="{description}">
 <meta name="twitter:image" content="{html.escape(image)}"><link rel="icon" href="/favicon.svg">
 <link rel="manifest" href="/manifest.webmanifest"><script type="application/ld+json">{schema}</script>
-<style>
-*{{box-sizing:border-box}}body{{margin:0;background:#f5f6f2;color:#152b26;font:16px/1.7 system-ui,sans-serif}}
-a{{color:inherit}}nav,main,footer{{max-width:1120px;margin:auto;padding:24px}}
-nav{{display:flex;align-items:center;justify-content:space-between;gap:20px}}nav a{{text-decoration:none;font-weight:700}}
-.hero{{padding:70px 0 50px;max-width:840px}}.tag{{font-size:12px;letter-spacing:.16em;color:#336c57;font-weight:700}}
-h1{{font-size:clamp(40px,7vw,82px);line-height:1.08;letter-spacing:-.055em;margin:24px 0}}
-.intro{{font-size:clamp(18px,2.3vw,23px);max-width:700px;color:#53645d}}.cta{{display:inline-block;background:#194f3c;color:white;border-radius:9px;padding:14px 23px;text-decoration:none;margin:20px 14px 12px 0;min-height:44px}}
-.grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:30px 0 60px}}
-article{{background:white;padding:28px;border:1px solid #dce4db;border-radius:16px}}h2{{font-size:30px;line-height:1.25}}h3{{font-size:21px}}code{{overflow-wrap:anywhere}}:focus-visible{{outline:3px solid #348159;outline-offset:4px}}
-footer{{border-top:1px solid #dce4db;color:#53645d}}@media(max-width:600px){{.grid{{grid-template-columns:1fr}}.hero{{padding-top:32px}}nav{{flex-wrap:wrap}}}}
-</style></head><body><nav aria-label="Main"><a href="/">◆ PreparationPalAI</a><a href="/prepare">Open study workspace →</a></nav>
-<main><section class="hero"><p class="tag">LOCAL AI. LASTING UNDERSTANDING.</p>
-<h1>Study deeply.<br>Prepare confidently.</h1><p class="intro">From a difficult physics exam to a demanding technical interview: turn your notes, questions, and curiosity into deliberate practice.</p>
-<a class="cta" href="/prepare">Start preparing →</a><a href="#setup">Set up locally</a>
-<p>Powered by your local Ollama models. Choose Qwen, GLM, DeepSeek, and more.</p></section>
-<h2>A study partner for the hard questions.</h2><section class="grid" aria-label="Study modes">
-<article><h3>Learn & recap</h3><p>Build understanding through recall, worked reasoning, and focused practice across science, mathematics, engineering, and more.</p></article>
-<article><h3>Practise under pressure</h3><p>Try mixed-format exam sessions with optional time limits. See where your understanding holds up and where to revise.</p></article>
-<article><h3>Defend your reasoning</h3><p>Practise technical interviews one question at a time, with follow-ups that probe your approach and assumptions.</p></article>
-<article><h3>Close the gaps</h3><p>Return to weak topics, review feedback, and create flashcards from your study material.</p></article></section>
-<section><h2>Your material. Your machine.</h2><p>Upload PDFs or images, including scanned notes. Ask document questions with source references, or practise any topic using clearly labelled general model knowledge. Inference runs through your configured Ollama server; web search contacts external sources when you choose it.</p></section>
-<section id="setup"><h2>Start locally in three steps.</h2><ol><li>Clone the <a href="https://github.com/Markkimotho/PreparationPalAI">GitHub repository</a>.</li><li>Run <code>docker compose up --build</code>. The first run downloads the default models.</li><li>Open <code>http://localhost:8000/prepare</code>, choose a topic, and begin.</li></ol><a class="cta" href="/prepare">Open preparation coach →</a></section>
-</main><footer>PreparationPalAI · Learn with curiosity. Practise with purpose. <a href="/guide">User guide</a></footer></body></html>''')
+<link rel="stylesheet" href="/fonts.css"><link rel="stylesheet" href="/landing.css">
+</head><body>
+<nav aria-label="Main"><a class="brand" href="/">PreparationPalAI</a><div><a href="https://markkimotho.github.io/PreparationPalAI/">User guide</a><a href="/prepare">Open workspace</a></div></nav>
+<main>
+<section class="hero">
+<h1>Practise the questions<br>you need to answer.</h1>
+<p>Exam revision and technical interview practice, powered by local AI.</p>
+<div class="actions"><a class="primary" href="/prepare">Start a practice session</a><a href="#setup">Set up on your computer</a></div>
+</section>
+<figure class="workspace"><img src="/workspace-preview.png" width="1440" height="960" alt="The Preparation Coach workspace with topic, study mode, and question settings" fetchpriority="high"><figcaption>The preparation workspace. Choose a topic and start with a short session.</figcaption></figure>
+<section class="tools"><div><h2>Bring your notes.<br>Work through the gaps.</h2><p>Use your course material or start with a topic. Review generated answers against your references.</p></div>
+<dl>
+<div><dt>Exam practice</dt><dd>Answer mixed questions with an optional timer, then review missed topics.</dd></div>
+<div><dt>Technical interviews</dt><dd>Explain your approach and work through follow-up questions.</dd></div>
+<div><dt>Revision</dt><dd>Ask about your documents, recap a concept, or build a flashcard deck.</dd></div>
+</dl></section>
+<section class="setup" id="setup"><div><h2>Run it locally.</h2><p>Choose an installed Qwen, GLM, DeepSeek, or another supported Ollama model. Upload PDFs and images when you want document-based practice.</p><p>Inference uses your configured Ollama server. Optional web search contacts external sources.</p></div>
+<ol><li><a href="https://github.com/Markkimotho/PreparationPalAI">Clone the repository</a>.</li><li>Run <code>docker compose up --build</code>. The first run downloads the default models.</li><li>Open <code>localhost:8000/prepare</code> and choose a topic.</li></ol></section>
+</main><footer><span>PreparationPalAI</span><div><a href="https://markkimotho.github.io/PreparationPalAI/">Documentation</a><a href="https://github.com/Markkimotho/PreparationPalAI">GitHub</a></div></footer>
+</body></html>''')
 
 
 @router.get('/robots.txt')
