@@ -80,6 +80,8 @@ TASKS = {
         ('topic', 'mode', 'difficulty', 'question_type', 'count', 'schema')),
     'quiz_questions': Task(
         'Write distinct, source-grounded quiz questions for the requested objectives and exam context. '
+        'Do not repeat already_covered questions. Copy source exactly from source_labels, without adding page numbers or citation syntax. '
+        'If repair is true, correct the previous invalid batch and follow the schema and count. '
         'Use the specified question_type, count and difficulty. MCQ distractors should represent plausible misconceptions, '
         'with exactly one correct option and no grammatical or length giveaways. True/false tests one clear claim. '
         'Short answers require explanation/application, not a vague opinion. Quote or paraphrase evidence in the explanation. '
