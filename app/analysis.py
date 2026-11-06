@@ -10,28 +10,11 @@ from langchain_core.messages import HumanMessage
 from app.llm import ChatOllama
 
 from app.config import SUPPORTED_MODELS, get_settings
+from app.prompt_library import render_prompt
 from app.retriever import get_retriever
 
 logger = logging.getLogger(__name__)
 
-_ANALYST_PROMPT = """\
-You are a senior data analyst with 20 years of experience in business intelligence \
-and research. Based solely on the provided context documents, deliver a structured, \
-evidence-based analysis.
-
-Focus on:
-1. Key facts, figures, and data points from the documents
-2. Patterns, trends, and notable correlations
-3. Identified risks, gaps, and opportunities
-4. Concrete, prioritized recommendations
-
-Context:
-{context}
-
-Question: {question}
-
-Provide a thorough, well-structured analysis with specific evidence from the documents. \
-Use bullet points, numbered lists, and clear section headings. Be precise and actionable."""
 
 _INSIGHTS_QUESTIONS = {
     "summary": (
@@ -158,7 +141,7 @@ def _run_single_model(model: str, question: str, context: str) -> dict:
             temperature=0.1,
             keep_alive=settings.ollama_keep_alive,
         )
-        prompt = _ANALYST_PROMPT.format(context=context, question=question)
+        prompt = render_prompt('document_analysis', context=context, question=question, evidence_mode='documents')
         response = llm.invoke([HumanMessage(content=prompt)])
         elapsed = round(time.perf_counter() - t0, 1)
         content = response.content
@@ -240,7 +223,7 @@ def generate_insights(top_k: int = 10, model: str | None = None) -> dict[str, di
                 temperature=0,
                 keep_alive=settings.ollama_keep_alive,
             )
-            prompt = _ANALYST_PROMPT.format(context=context, question=question)
+            prompt = render_prompt('document_analysis', context=context, question=question, evidence_mode='documents')
             response = llm.invoke([HumanMessage(content=prompt)])
             output[key] = {"label": label, "content": response.content}
         except Exception as exc:

@@ -179,5 +179,5 @@ def test_requested_format_is_enforced_by_schema_and_prompt(local_runtime):
     assert schema['answer']['enum'] == list('ABCD')
     assert schema['options']['required'] == list('ABCD')
     prompt = llm.return_value.invoke.call_args.args[0][0].content
-    assert 'Use only mcq questions.' in prompt
+    assert '"question_type": "mcq"' in prompt
     assert 'For mixed use' not in prompt
