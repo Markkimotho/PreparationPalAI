@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -42,4 +42,18 @@ it('retains the drawing and explanation when submission fails', async () => {
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Safety checking is unavailable'));
   expect(screen.getByLabelText('Canvas draft')).toHaveValue('Force arrow');
   expect(screen.getByLabelText('Explain your drawing')).toHaveValue('Gravity acts downward.');
+});
+
+it('does not attach a late submission response to a different question', async () => {
+  let complete!: (response: unknown) => void;
+  const fetchMock = vi.fn(() => new Promise(resolve => { complete = resolve; }));
+  vi.stubGlobal('fetch', fetchMock);
+  const { rerender } = render(<MemoryRouter><DrawingWorkspace question="Draw a circuit diagram." /></MemoryRouter>);
+  await screen.findByLabelText('Canvas draft');
+  await userEvent.click(screen.getByRole('button', { name: 'Submit drawing for review' }));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  rerender(<MemoryRouter><DrawingWorkspace question="Draw a labelled cell diagram." /></MemoryRouter>);
+  await act(async () => { complete({ ok: true, json: async () => ({ id: 'old-drawing' }) }); });
+  expect(screen.queryByRole('link', { name: /Open drawing reviews/ })).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Explain your drawing')).toHaveValue('');
 });

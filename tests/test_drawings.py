@@ -1,6 +1,7 @@
 import base64
 import io
 import hashlib
+import time
 from unittest.mock import patch
 
 import pytest
@@ -10,6 +11,7 @@ from PIL import Image
 from app.api import app
 from app.config import get_base_settings
 from app.drawings import normalized_png
+from app.workspace import workspace_id
 
 
 @pytest.fixture
@@ -143,3 +145,30 @@ def test_review_pagination_does_not_hide_older_submissions(client):
     second = client.get(f"/api/drawings?limit=2&before={body['next_cursor']}").json()
     assert second['drawings'][0]['id'] == created[0]
     assert second['next_cursor'] is None
+
+
+def seed_coach_session(expired=False):
+    from app.coach import connect, save
+    token = workspace_id.set('classroom')
+    try:
+        session = dict(id='session-1', learner='learner-1', topic='Mechanics', mode='exam', model='qwen2.5:7b',
+            questions=[dict(type='short_answer', question='Draw an isolated block.', topic='Mechanics', answer='PRIVATE reference key', explanation='', options={})],
+            answers=[], deadline=time.time() + (-10 if expired else 600), grounding='model-general knowledge', sources=[], started=time.time(), last_answer=time.time())
+        with connect() as db:
+            save(db, session)
+    finally: workspace_id.reset(token)
+
+
+def test_coach_submission_uses_server_question_and_hides_reference(client):
+    seed_coach_session()
+    body = client.post('/api/drawings', json={**submission(), 'question': 'Forged question', 'session_id': 'session-1', 'learner': 'learner-1'}).json()
+    assert body['question'] == 'Draw an isolated block.'
+    assert 'PRIVATE' not in str(body)
+
+
+@pytest.mark.parametrize('expired,index,expected', [(True, 0, 409), (False, 1, 409)])
+def test_coach_submission_rejects_expired_or_completed_question(client, expired, index, expected):
+    seed_coach_session(expired)
+    response = client.post('/api/drawings', json={**submission(), 'session_id': 'session-1', 'learner': 'learner-1', 'index': index})
+    assert response.status_code == expected
+    assert client.get('/api/drawings').json()['drawings'] == []
