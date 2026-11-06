@@ -4,6 +4,7 @@ import time
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from chromadb.config import Settings as ChromaSettings
 
 from app.config import get_settings
 from app.embeddings import get_embeddings
@@ -23,7 +24,8 @@ def get_vectorstore() -> Chroma:
             settings = get_settings()
             _workspace_stores[workspace] = Chroma(
                 collection_name=settings.chroma_collection_name,
-                embedding_function=get_embeddings(), persist_directory=settings.chroma_persist_dir)
+                embedding_function=get_embeddings(), persist_directory=settings.chroma_persist_dir,
+                client_settings=ChromaSettings(anonymized_telemetry=False))
         return _workspace_stores[workspace]
     if _vectorstore is None:
         settings = get_settings()
@@ -31,6 +33,7 @@ def get_vectorstore() -> Chroma:
             collection_name=settings.chroma_collection_name,
             embedding_function=get_embeddings(),
             persist_directory=settings.chroma_persist_dir,
+            client_settings=ChromaSettings(anonymized_telemetry=False),
         )
     return _vectorstore
 

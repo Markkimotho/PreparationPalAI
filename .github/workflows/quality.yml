@@ -8,6 +8,9 @@ on:
     - cron: '0 3 * * *'
 permissions:
   contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   container-smoke:
     runs-on: ubuntu-latest
