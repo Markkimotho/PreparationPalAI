@@ -80,7 +80,7 @@ def search_and_add_to_kb(topic: str, num_results: int = 3, config: RunnableConfi
         return f"Web search failed: {exc}"
 
 
-@tool
+@tool(return_direct=True)
 def make_quiz(
     topic: str,
     question_type: str = "mcq",
@@ -147,7 +147,7 @@ def check_answer(
     return json.dumps(result)
 
 
-@tool
+@tool(return_direct=True)
 def explain(concept: str, config: RunnableConfig = None) -> str:
     """Get a detailed explanation of a concept from the knowledge base.
 
@@ -223,7 +223,7 @@ def invoke_agent(
     try:
         result = agent.invoke(
             {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model,
+            config={"recursion_limit": 8, "configurable": {"thread_id": scoped_thread(thread_id), "model": model,
                                      "profile": profile.model_dump() if profile else {}, "allow_web": allow_web}},
         )
         messages = result.get("messages", [])
@@ -290,4 +290,13 @@ def _final_answer(messages) -> str:
                 sections.append(f'### {len(sections) + 1}. {q.question}\n\n' +
                     '\n'.join(f'- **{k}.** {v}' for k, v in q.options.items()))
         return '\n\n'.join(sections) + '\n\nReply with your answers when you are ready.'
+    for msg in reversed(messages[start + 1:]):
+        if msg.type == 'tool' and msg.name == 'check_answer':
+            try:
+                result = json.loads(msg.content)
+                if result.get('error'):
+                    return result['error']
+                return f"**Score: {result['score']}/100**\n\n{result.get('feedback', '')}\n\n{result.get('hint', '')}"
+            except (ValueError, TypeError, KeyError):
+                return 'I could not grade that answer reliably. Please retry.'
     return messages[-1].content if messages else 'No response from agent.'

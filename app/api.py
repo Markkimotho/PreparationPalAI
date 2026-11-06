@@ -181,6 +181,9 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
                 else:
                     continue
                 yield f"data: {json.dumps(frame)}\n\n"
+        except SafetyError as exc:
+            status = 'error'
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
         except Exception as exc:  # noqa: BLE001 — surface any engine failure to client
             status = "error"
             logger.exception("SSE stream failed")

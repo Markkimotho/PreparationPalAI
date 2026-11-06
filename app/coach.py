@@ -18,6 +18,7 @@ from app.quiz import _build_context, _extract_json, _get_llm, validate_answer
 from app.retriever import get_retriever
 from app.prompt_library import PROMPT_VERSION, PromptProfile, render_prompt
 from app.generation import validation_feedback
+from app.safety import SafetyError
 
 router = APIRouter(prefix='/api/coach', tags=['Preparation coach'])
 
@@ -222,6 +223,8 @@ def start(req: Start):
         if req.mode == 'exam' and req.question_type == 'mixed' and len({q['type'] for q in questions}) < 2:
             raise ValueError('Exam model output must include mixed formats; retry')
     except Exception as exc:
+        if isinstance(exc, SafetyError):
+            raise
         raise HTTPException(502, 'The model could not finish a valid question set. Try fewer questions or choose another installed model. Your topic and settings have been kept.') from exc
     now = time.time()
     session = dict(id=uuid.uuid4().hex, learner=req.learner, topic=focus, mode=req.mode,

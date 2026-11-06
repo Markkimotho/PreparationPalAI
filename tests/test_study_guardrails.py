@@ -74,3 +74,37 @@ def test_profanity_backstop_does_not_block_scientific_terms():
     check_language('Discuss the classic classification of chemical substances and reproductive anatomy.')
     with pytest.raises(SafetyError):
         check_language('ＦＵＣＫ this')
+
+
+@pytest.mark.asyncio
+async def test_async_output_is_checked_before_first_chunk():
+    from app.llm import ChatOllama
+    raw = ChatResult(generations=[ChatGeneration(message=AIMessage(content='unsafe payload'))])
+    with patch('app.llm.moderate', side_effect=[None, SafetyError('blocked')]), \
+         patch('langchain_ollama.ChatOllama._generate', return_value=raw):
+        with pytest.raises(SafetyError):
+            await anext(ChatOllama(model='test').astream([HumanMessage(content='safe input')]))
+
+
+def test_safety_failures_do_not_retry_or_become_empty_quizzes():
+    from app.quiz import generate_questions
+    retriever = patch('app.quiz.get_retriever')
+    with retriever as get_retriever, patch('app.quiz._get_llm') as get_llm:
+        get_retriever.return_value.invoke.return_value = [Document(page_content='Newton: F = ma.', metadata={'source': 'physics.pdf'})]
+        get_llm.return_value.invoke.side_effect = SafetyError('blocked')
+        with pytest.raises(SafetyError):
+            generate_questions('Newton')
+        assert get_llm.return_value.invoke.call_count == 1
+
+
+def test_sse_safety_message_is_actionable_without_output_leak():
+    from app.api import app
+    from fastapi.testclient import TestClient
+    def blocked(*args, **kwargs):
+        raise SafetyError('Safety checking is unavailable. Please retry.')
+        yield  # generator boundary
+    with patch('app.api.require_model', return_value='test'), patch('app.api.lcel_chain.stream', side_effect=blocked):
+        response = TestClient(app).post('/api/chat/stream', json={'question': 'Explain force.'})
+    assert 'Safety checking is unavailable' in response.text
+    assert '"type": "token"' not in response.text
+    assert '"type": "done"' in response.text

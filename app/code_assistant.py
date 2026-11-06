@@ -20,6 +20,7 @@ from app.config import get_settings
 from app.prompt_library import PromptProfile, render_prompt
 from app.workspace import scoped_thread
 from app.retriever import get_retriever
+from app.safety import SafetyError
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,8 @@ def invoke_code_assistant(
         return messages[-1].content if messages else "No response."
     except Exception as exc:
         logger.exception("Code assistant invocation failed")
+        if isinstance(exc, SafetyError):
+            return str(exc)
         return f"Code assistant error: {exc}"
 
 
@@ -152,4 +155,6 @@ def stream_code_assistant(
                 yield ("token", token)
     except Exception as exc:
         logger.exception("Code assistant stream failed")
+        if isinstance(exc, SafetyError):
+            raise
         yield ("error", f"Code assistant error: {exc}")
