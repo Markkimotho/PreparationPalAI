@@ -1,16 +1,13 @@
 import { useRef } from 'react';
 import { Excalidraw, MainMenu, exportToBlob } from '@excalidraw/excalidraw';
-import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import '@excalidraw/excalidraw/index.css';
 
 export interface DrawingSnapshot { image: string; scene: Record<string, unknown> }
-interface Props { onReady: (snapshot: () => Promise<DrawingSnapshot>) => void; onDirty?: () => void }
+interface Props { onReady: (snapshot: () => Promise<DrawingSnapshot>) => void; onDirty?: () => void; disabled?: boolean }
 
-export default function DrawingCanvas({ onReady, onDirty }: Props) {
-  const api = useRef<ExcalidrawImperativeAPI | null>(null);
+export default function DrawingCanvas({ onReady, onDirty, disabled }: Props) {
   const revision = useRef('');
   return <Excalidraw excalidrawAPI={value => {
-    api.current = value;
     onReady(async () => {
       const elements = value.getSceneElements().filter(e => !e.isDeleted);
       if (!elements.length) throw new Error('Add a drawing before submitting.');
@@ -27,7 +24,7 @@ export default function DrawingCanvas({ onReady, onDirty }: Props) {
   }} onChange={elements => {
     const next = elements.map(element => `${element.id}:${element.version}:${element.isDeleted}`).join('|');
     if (next !== revision.current) { revision.current = next; onDirty?.(); }
-  }} theme="light" handleKeyboardGlobally={false} autoFocus={false} aiEnabled={false}
+  }} theme="light" viewModeEnabled={disabled} handleKeyboardGlobally={false} autoFocus={false} aiEnabled={false}
     initialData={{ appState: { viewBackgroundColor: '#ffffff' } }}
     onPaste={() => false} validateEmbeddable={() => false}
     UIOptions={{ tools: { image: false }, canvasActions: { loadScene: false, export: false, saveToActiveFile: false, saveAsImage: false } }}>

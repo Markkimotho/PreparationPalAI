@@ -20,12 +20,14 @@ export function DrawingWorkspace({ question, required = false, brief, sessionId,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [submission, setSubmission] = useState('');
+  const currentQuestion = useRef(question);
+  currentQuestion.current = question;
   const snapshot = useRef<{ question: string; take: () => Promise<DrawingSnapshot> } | null>(null);
   const [readyQuestion, setReadyQuestion] = useState('');
   const onReady = useCallback((take: () => Promise<DrawingSnapshot>) => {
     snapshot.current = { question, take }; setReadyQuestion(question);
   }, [question]);
-  useEffect(() => { setOpen(suggested); setHasOpened(suggested); setExplanation(''); setSubmission(''); setError(''); }, [question, suggested]);
+  useEffect(() => { setOpen(suggested); setHasOpened(suggested); setExplanation(''); setSubmission(''); setError(''); setBusy(false); }, [question, suggested]);
   async function submit() {
     if (!snapshot.current || snapshot.current.question !== question) return;
     setBusy(true); setError('');
@@ -37,9 +39,9 @@ export function DrawingWorkspace({ question, required = false, brief, sessionId,
       });
       const body = await response.json();
       if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : 'Could not submit the drawing.');
-      setSubmission(body.id);
-    } catch (e) { setError((e as Error).message); }
-    finally { setBusy(false); }
+      if (currentQuestion.current === question) setSubmission(body.id);
+    } catch (e) { if (currentQuestion.current === question) setError((e as Error).message); }
+    finally { if (currentQuestion.current === question) setBusy(false); }
   }
   async function saveLocal(kind: 'png' | 'scene') {
     if (!snapshot.current || snapshot.current.question !== question) return;
@@ -60,9 +62,9 @@ export function DrawingWorkspace({ question, required = false, brief, sessionId,
       <p>{brief || 'Use shapes, arrows, labels or freehand drawing to explain your answer.'}</p>
       <p>Drawings are reviewed separately from written-answer scores. Your work stays in this workspace.</p>
       <div className={styles.canvas} key={question}><Suspense fallback={<p role="status">Loading drawing tools…</p>}>
-        <DrawingCanvas onReady={onReady} onDirty={() => setSubmission('')} />
+        <DrawingCanvas onReady={onReady} onDirty={() => setSubmission('')} disabled={busy} />
       </Suspense></div>
-      <label>Explain your drawing<textarea rows={3} maxLength={10000} value={explanation}
+      <label>Explain your drawing<textarea rows={3} maxLength={10000} value={explanation} disabled={busy}
         onChange={e => { setExplanation(e.target.value); setSubmission(''); }} placeholder="Describe labels, assumptions, units, and anything the reviewer should check." /></label>
       <button className={styles.submit} type="button" disabled={busy || readyQuestion !== question} onClick={submit}>{busy ? 'Saving drawing…' : 'Submit drawing for review'}</button>
       <div className={styles.downloads}><button type="button" disabled={busy || readyQuestion !== question} onClick={() => saveLocal('png')}>Save PNG</button>
