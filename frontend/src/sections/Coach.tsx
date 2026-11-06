@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useModelContext } from '../context/ModelContext';
 import { Markdown } from '../components/Markdown';
 import { Select } from '../components/Select';
+import { StudyExport } from '../components/StudyExport';
 import styles from './Coach.module.css';
 import { apiFetch } from '../api/access';
 
@@ -73,6 +74,7 @@ export function Coach() {
     <header className={styles.hero}>
       <h2>What would you like to practise?</h2><p>Choose a topic, answer questions, and review the concepts you missed.</p></header>
     {error && <p role="alert" className={styles.error}>{error}</p>}
+    {session && <StudyExport title={session.topic} sessionId={session.id} learner={learner} answersAvailable={session.done} />}
     <p className="sr-only" role="status">{busy ? 'Working with your local model. This may take a moment.' : 'Ready'}</p>
     {!session ? <>
       <form className={styles.card} onSubmit={e => { e.preventDefault(); run(async () => {

@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
 from app.generation import validated_batches
+from app.safety import SafetyError, check_language
 
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
@@ -168,6 +169,8 @@ def generate_questions(
     llm = _get_llm(model, temperature=0.2, response_format=schema)
     try:
         return validated_batches(llm, prompt, _extract_json, QuizBatch, n, 'questions', 'question', validate, schema=schema)
+    except SafetyError:
+        raise
     except Exception as exc:
         logger.warning('Quiz generation failed', extra={'error_type': type(exc).__name__})
         return []
@@ -188,6 +191,8 @@ def validate_answer(
     Returns: {"score": 0-100, "is_correct": bool, "feedback": str, "key_missed": list, "hint": str}
     MCQ and True/False are graded deterministically; short answer uses the LLM.
     """
+    for text in (question, str(correct_answer), student_answer):
+        check_language(text)
     if question_type in ("mcq", "true_false"):
         expected = str(correct_answer).strip().upper()
         given = student_answer.strip().upper()
@@ -218,6 +223,8 @@ def validate_answer(
         result['is_correct'] = result['score'] >= 70
         return result
     except Exception as exc:
+        if isinstance(exc, SafetyError):
+            raise
         logger.warning('Answer evaluation failed', extra={'error_type': type(exc).__name__})
         return {
             "score": 0,
@@ -230,10 +237,11 @@ def validate_answer(
 
 def explain_concept(concept: str, model: str | None = None, top_k: int = 6, profile: PromptProfile | None = None) -> str:
     """Return a detailed explanation of a concept from the knowledge base."""
+    check_language(concept)
     retriever = get_retriever(top_k=top_k)
     docs = retriever.invoke(concept)
     if not docs:
-        return f"No information found about '{concept}' in the knowledge base."
+        return 'No relevant information was found in the knowledge base. Upload material covering this concept.'
 
     context = _build_context(docs)
     llm = _get_llm(model, temperature=0)
@@ -242,4 +250,6 @@ def explain_concept(concept: str, model: str | None = None, top_k: int = 6, prof
         response = llm.invoke([HumanMessage(content=prompt)])
         return response.content
     except Exception as exc:
+        if isinstance(exc, SafetyError):
+            raise
         return f"Error generating explanation: {exc}"

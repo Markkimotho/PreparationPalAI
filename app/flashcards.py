@@ -22,6 +22,7 @@ from app.config import get_settings
 from app.prompt_library import PromptProfile, render_prompt
 from app.quiz import _extract_json  # robust JSON parsing shared with quiz gen
 from app.retriever import get_retriever
+from app.safety import SafetyError
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +194,8 @@ def generate_cards(
     try:
         return validated_batches(llm, prompt, _extract_json, CardBatch, n, 'cards', 'front')
     except Exception as exc:
+        if isinstance(exc, SafetyError):
+            raise
         logger.warning('Flashcard generation failed', extra={'error_type': type(exc).__name__})
         return []
 

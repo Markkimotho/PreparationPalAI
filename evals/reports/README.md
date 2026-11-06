@@ -1,5 +1,30 @@
 # Recorded local-model checks
 
+## Study-v2 guardrails
+
+`study-v2-guardrails-qwen2.5-7b.json` is the unedited output of:
+
+```bash
+python -m scripts.check_study_guardrails --model qwen2.5:7b --report evals/reports/study-v2-guardrails-qwen2.5-7b.json
+```
+
+It checks safe physics, non-graphic clinical education, support-seeking, rejection
+of suicide-method and explicit-sexual requests, an instruction-override attempt,
+acceptance/rejection of relevant physics versus unrelated Bible evidence, valid
+MCQ distractors and deliberately false propositions, and incorrect answer keys.
+It records exact model, prompt and policy identifiers. This is a small same-model
+classifier/verifier regression, not an independent safety or factual-quality audit.
+The older report below predates these runtime checks and does not measure v2.
+
+Separate end-to-end single-question generation attempts produced one withheld
+response, followed by an accepted MCQ applying `F = ma` to 4 kg and 2 m/s² with
+the correct answer 8 N. The withheld draft was not retained, so it cannot be
+classified as a correct rejection or a false positive. These attempts are not
+included in the classifier regression pass count and do not establish a generation
+success rate.
+
+## Study-v1 baseline
+
 `study-v1-qwen2.5-7b.json` is the unedited output of:
 
 ```bash

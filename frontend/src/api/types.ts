@@ -81,6 +81,7 @@ export type StreamEvent =
   | { type: "token"; text: string }
   | { type: "sources"; sources: Source[] }
   | { type: "tool"; name: string }
+  | { type: "questions"; questions: QuizQuestion[] }
   | { type: "error"; message: string }
   | { type: "done" };
 
@@ -106,6 +107,7 @@ export interface DeckSummary {
 }
 
 export interface ChatMessage {
+  questions?: QuizQuestion[];
   role: "user" | "assistant";
   content: string;
   sources?: Source[];

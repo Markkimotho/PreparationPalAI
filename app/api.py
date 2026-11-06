@@ -68,6 +68,9 @@ from app.diagnostics import router as diagnostics_router, RequestDiagnostics, co
 from app.jobs import router as jobs_router, worker_loop
 from fastapi import Request
 from app.ingestion import IMAGE_EXTENSIONS
+from app.exports import router as exports_router
+from app.safety import SafetyError
+from fastapi.responses import JSONResponse
 from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
 from app.upload_safety import validate_upload
 from app.memory import clear_history
@@ -106,6 +109,12 @@ app.include_router(public_router)
 app.include_router(auth_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
+app.include_router(exports_router)
+
+
+@app.exception_handler(SafetyError)
+async def safety_error_handler(request, exc):
+    return JSONResponse(status_code=422, content={'detail': str(exc)})
 
 
 @app.middleware('http')
@@ -164,12 +173,17 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
                     frame = {"type": "sources", "sources": payload}
                 elif kind == "tool":
                     frame = {"type": "tool", "name": payload}
+                elif kind == "questions":
+                    frame = {"type": "questions", "questions": payload}
                 elif kind == "error":
                     status = "error"
                     frame = {"type": "error", "message": "Model request failed. Retry or share the request ID with your administrator."}
                 else:
                     continue
                 yield f"data: {json.dumps(frame)}\n\n"
+        except SafetyError as exc:
+            status = 'error'
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
         except Exception as exc:  # noqa: BLE001 — surface any engine failure to client
             status = "error"
             logger.exception("SSE stream failed")
@@ -383,7 +397,8 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
 def agent_stream(req: AgentRequest) -> StreamingResponse:
     req.model = require_model(req.model)
     events = quiz_agent.stream_agent(
-        message=req.message, thread_id=req.thread_id, model=req.model, profile=req.profile
+        message=req.message, thread_id=req.thread_id, model=req.model, profile=req.profile,
+        allow_web=req.allow_web
     )
     return _sse(events, surface="agent")
 

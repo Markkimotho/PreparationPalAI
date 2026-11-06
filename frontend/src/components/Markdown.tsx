@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkMath from "remark-math";
+import remarkGfm from 'remark-gfm';
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import styles from "./Markdown.module.css";
@@ -38,10 +39,15 @@ function extractText(node: ReactNode): string {
 }
 
 export function Markdown({ children }: { children: string }) {
+  // Local models commonly emit LaTeX's delimiters instead of Markdown math.
+  // Keep fenced and inline code literal, including code containing backslashes.
+  const formatted = children.split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) =>
+    i % 2 ? part : part.replace(/\\\[([\s\S]*?)\\\]/g, '\n$$$$\n$1\n$$$$\n')
+      .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$')).join('');
   return (
     <div className={`md ${styles.md}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkMath]}
+        remarkPlugins={[remarkMath, remarkGfm]}
         rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }], [rehypeKatex, { strict: false, trust: false }]]}
         components={{
           // Model/document text must not trigger automatic requests to arbitrary
@@ -58,7 +64,7 @@ export function Markdown({ children }: { children: string }) {
           },
         }}
       >
-        {children}
+        {formatted}
       </ReactMarkdown>
     </div>
   );

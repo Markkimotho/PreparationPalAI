@@ -18,8 +18,14 @@ Be specific about your subject, level, and the kind of help you want. For exampl
 
 > Explain binary search from my uploaded notes, then give me a boundary-case question.
 
-The agent may use web search to expand the knowledge base when a topic is not
-already covered. Web searches contact external services.
+Web search starts disabled. Select **Allow web search and add sources** when you
+want the agent to find material online and save it to your knowledge base. This
+requires an editor or administrator key in shared workspaces. Web searches contact
+external services. Leave the box unchecked to work only with your existing material.
+
+If your material does not cover the topic, the agent asks for relevant sources
+instead of substituting questions from another subject. Successful quizzes also
+offer [study-pack downloads](exports.md).
 
 ## Make it an active conversation
 

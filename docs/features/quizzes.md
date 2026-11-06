@@ -37,6 +37,8 @@ you missed a fact, misunderstood a relationship, or applied the wrong method.
 
 For a longer-term record of weak topics, complete your practice in Preparation Coach.
 Quiz Prep’s current quiz state can be lost when you leave or refresh the page.
+Use [Download study packs](exports.md) to keep a fillable exam, worksheet, revision
+checklist, or separate answer key before leaving.
 
 !!! question "No questions were generated?"
     Check that indexing has completed and that the selected material actually covers

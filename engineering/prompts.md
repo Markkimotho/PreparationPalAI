@@ -3,6 +3,10 @@ description: Configure learner profiles, maintain task-specific prompts, and eva
 ---
 # Study prompts
 
+The current registry is `study-v2`. Runtime checks complement these prompts; see
+[study guardrails and exports](runbooks/study-guardrails.md) for the enforced
+boundaries, live regressions, and limitations.
+
 `app/prompt_library.py` is the versioned source for the application’s study prompts.
 The goal is clear tasks, explicit evidence rules and measurable outputs, rather
 than relying on a model’s claimed expertise or making every prompt longer.

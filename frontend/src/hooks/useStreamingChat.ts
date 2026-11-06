@@ -81,6 +81,9 @@ export function useStreamingChat(): StreamingChat {
           case "tool":
             patchLast((m) => ({ ...m, tools: [...(m.tools ?? []), ev.name] }));
             break;
+          case "questions":
+            patchLast((m) => ({ ...m, questions: ev.questions }));
+            break;
           case "error":
             patchLast((m) => ({
               ...m,

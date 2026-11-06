@@ -24,7 +24,7 @@ def test_search_and_add_to_kb_success(mock_scrape, mock_ingest):
     ]
     mock_ingest.return_value = 1
 
-    result = search_and_add_to_kb.invoke({"topic": "Python decorators", "num_results": 2})
+    result = search_and_add_to_kb.invoke({"topic": "Python decorators", "num_results": 2}, config={'configurable': {'allow_web': True}})
     assert "Added 1" in result
     assert "Python decorators" in result
 
@@ -34,7 +34,7 @@ def test_search_and_add_to_kb_no_content(mock_scrape):
     from app.quiz_agent import search_and_add_to_kb
 
     mock_scrape.return_value = []
-    result = search_and_add_to_kb.invoke({"topic": "nonexistent topic xyz"})
+    result = search_and_add_to_kb.invoke({"topic": "nonexistent topic xyz"}, config={'configurable': {'allow_web': True}})
     assert "No content" in result or "not found" in result.lower()
 
 
@@ -43,7 +43,7 @@ def test_search_and_add_to_kb_handles_exception(mock_scrape):
     from app.quiz_agent import search_and_add_to_kb
 
     mock_scrape.side_effect = RuntimeError("network error")
-    result = search_and_add_to_kb.invoke({"topic": "anything"})
+    result = search_and_add_to_kb.invoke({"topic": "anything"}, config={'configurable': {'allow_web': True}})
     assert "failed" in result.lower() or "error" in result.lower()
 
 
@@ -184,6 +184,7 @@ def test_invoke_agent_constructs_real_agent():
 
     # No Ollama server here, so the agent's model call fails — but the failure
     # must be a connection/runtime error, NOT a TypeError about bad kwargs.
-    result = invoke_agent("hello", thread_id="build-check", model="qwen2.5:7b")
+    with patch('app.llm.moderate', side_effect=RuntimeError('offline')):
+        result = invoke_agent("hello", thread_id="build-check", model="qwen2.5:7b")
     assert "unexpected keyword" not in result
     assert "state_modifier" not in result

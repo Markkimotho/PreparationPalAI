@@ -17,6 +17,7 @@ export function StudyAgent() {
   const { messages, streaming, send, cancel, reset } = useStreamingChat();
   const threadId = useRef(`agent-${crypto.randomUUID()}`);
   const [, force] = useState(0);
+  const [allowWeb, setAllowWeb] = useState(false);
 
   const onSend = (text: string) =>
     send(text, {
@@ -26,6 +27,7 @@ export function StudyAgent() {
         message,
         thread_id: threadId.current,
         model: selected || undefined,
+        allow_web: allowWeb,
       }),
     });
 
@@ -44,6 +46,9 @@ export function StudyAgent() {
         onSend={onSend}
         onStop={cancel}
         toolbar={
+          <>
+          <label><input type="checkbox" checked={allowWeb} disabled={streaming}
+            onChange={(e) => setAllowWeb(e.target.checked)} /> Allow web search and add sources</label>
           <button
             type="button"
             className={styles.toolbarBtn}
@@ -52,6 +57,7 @@ export function StudyAgent() {
           >
             New session
           </button>
+          </>
         }
         empty={
           <EmptyState

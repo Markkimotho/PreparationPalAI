@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from app.config import get_base_settings
-from app.workspace import workspace_id, identity_id
+from app.workspace import workspace_id, identity_id, role
 
 router = APIRouter(prefix='/api/auth', tags=['Access'])
 
@@ -73,8 +73,10 @@ class WorkspaceAuth:
             workspace, identity = principal['workspace'], digest[:16]
         wtoken = workspace_id.set(workspace)
         itoken = identity_id.set(identity)
+        rtoken = role.set(principal['role'] if settings.auth_enabled and protected and scope['method'] != 'OPTIONS' else 'admin')
         try:
             await self.app(scope, bounded_receive, send)
         finally:
             workspace_id.reset(wtoken)
             identity_id.reset(itoken)
+            role.reset(rtoken)

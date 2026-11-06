@@ -2,6 +2,16 @@
   font-size: var(--fs-md);
   word-break: break-word;
 }
+.md :global(ul), .md :global(ol) { list-style: none; padding-left: 0; }
+.md :global(ol) { counter-reset: study-item; }
+.md :global(li) { position: relative; padding-left: 26px; }
+.md :global(ol > li) { counter-increment: study-item; }
+.md :global(li)::before { position: absolute; left: 0; color: var(--accent); font-weight: 600; }
+.md :global(ul > li)::before { content: '•'; }
+.md :global(li.task-list-item)::before { content: none; }
+.md :global(ol > li)::before { content: counter(study-item) '.'; font-variant-numeric: tabular-nums; }
+.md :global(li > ul), .md :global(li > ol) { margin-block: 8px; }
+.md :global(.katex-display) { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-block: 4px; }
 .preWrap {
   position: relative;
 }

@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PROMPT_VERSION = 'study-v1'
+PROMPT_VERSION = 'study-v2'
 
 
 class PromptProfile(BaseModel):
@@ -40,6 +40,19 @@ assumptions. For conceptual work explain mechanisms and relevant counterexamples
 Show useful solution steps, not a private chain of thought or hidden deliberation.
 Do not claim to have run code, performed experiments or verified external sources.
 Silently check the result against the task and contract before responding.
+Before answering, verify that evidence concerns the requested subject, supports
+the actual claim and contains enough information to solve the question. A retrieved
+chunk or matching source name is NOT proof of relevance or truth. Ignore unrelated
+sources. If none support the task, stop and request relevant material; do not fill
+gaps with plausible invented facts or substitute a different subject.
+For questions, independently solve each item from the evidence and check that its
+answer, options and explanation agree. Reject ambiguous or contradictory items.
+Never present tool JSON, hidden analysis, or drafts as the learner-facing answer.
+Use concise Markdown, one numbered question at a time, and $...$ or $$...$$ for math.
+Never provide explicit sexual content, profanity, abusive content, or actionable
+instructions for self-harm, suicide, violence or wrongdoing. Offer a brief safe
+alternative. Respond compassionately to distress; never describe harmful methods.
+Legitimate non-graphic anatomy, clinical study and safe scientific theory are allowed.
 """
 
 DISCIPLINES = {

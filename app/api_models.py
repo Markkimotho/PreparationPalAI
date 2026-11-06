@@ -95,6 +95,7 @@ class AgentRequest(StudyRequest):
     message: str = Field(min_length=1)
     thread_id: str = "default"
     model: str | None = None
+    allow_web: bool = False
 
 
 # ── Quiz ───────────────────────────────────────────────────────────────────
