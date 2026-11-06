@@ -1,19 +1,23 @@
 """Small, validated structured-output batches for constrained local models."""
 from collections.abc import Callable
+from copy import deepcopy
 
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
 
 def validated_batches(llm, render: Callable, parse: Callable, batch_model: type[BaseModel],
-                      n: int, key: str, unique_key: str, validate: Callable | None = None) -> list[dict]:
+                      n: int, key: str, unique_key: str, validate: Callable | None = None,
+                      schema: dict | None = None) -> list[dict]:
     items = []
     seen = set()
     while len(items) < n:
         count = min(2, n - len(items))
+        batch_schema = deepcopy(schema or batch_model.model_json_schema())
+        batch_schema['properties'][key]['maxItems'] = count
         for attempt in range(2):
             try:
-                response = llm.invoke([HumanMessage(content=render(count, items, bool(attempt)))])
+                response = llm.invoke([HumanMessage(content=render(count, items, bool(attempt), batch_schema))], format=batch_schema)
                 if getattr(response, 'response_metadata', {}).get('done_reason') == 'length':
                     raise ValueError('Output limit reached')
                 raw = parse(response.content)

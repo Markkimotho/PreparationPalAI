@@ -3,6 +3,7 @@ import json
 import sqlite3
 import time
 import uuid
+from copy import deepcopy
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
@@ -75,15 +76,17 @@ def generate_questions(req: Start, model: str, context: str, focus: str) -> list
     llm = _get_llm(model, response_format=schema)
     while len(questions) < req.n:
         count = min(2, req.n - len(questions))
+        batch_schema = deepcopy(schema)
+        batch_schema['properties']['questions'].update(minItems=count, maxItems=count)
         for attempt in range(2):
             try:
                 prompt = render_prompt('coach_questions', profile=req.profile, topic=focus,
                     mode=req.mode, difficulty=req.difficulty, question_type=required_type,
-                    count=count, context=context, schema=schema, repair=bool(attempt),
+                    count=count, context=context, schema=batch_schema, repair=bool(attempt),
                     evidence_mode='documents' if context else 'general',
                     already_covered=[q['question'] for q in questions],
                     preferred_types=['mcq', 'short_answer'] if req.mode == 'exam' and required_type == 'mixed' and count == 2 else [])
-                response = llm.invoke([HumanMessage(content=prompt)])
+                response = llm.invoke([HumanMessage(content=prompt)], format=batch_schema)
                 if getattr(response, 'response_metadata', {}).get('done_reason') == 'length':
                     raise ValueError('Output limit reached')
                 raw = _extract_json(response.content)
@@ -248,7 +251,8 @@ def answer(session_id: str, req: Answer):
     submitted_at = time.time()
     require_model(session['model'])
     profile = PromptProfile.model_validate(session.get('profile', {}))
-    result = validate_answer(q['question'], q['answer'], req.answer, q['type'], session['model'], profile=profile)
+    result = validate_answer(q['question'], q['answer'], req.answer, q['type'], session['model'],
+                             profile=profile, evidence_context=session.get('context', ''))
     if result['feedback'].startswith('Could not grade answer:'):
         raise HTTPException(502, 'Grading failed; your answer has not been recorded. Retry.')
     result['score'] = max(0, min(100, int(result['score'])))

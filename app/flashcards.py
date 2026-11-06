@@ -12,7 +12,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from app.generation import validated_batches
 
 from langchain_core.messages import HumanMessage
@@ -157,6 +157,7 @@ def delete_card(deck_id: str, card_id: str) -> bool:
 
 
 class RecallCard(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     front: str = Field(min_length=1)
     back: str = Field(min_length=1)
 
@@ -185,14 +186,14 @@ def generate_cards(
         keep_alive=settings.ollama_keep_alive,
         format=CardBatch.model_json_schema(),
     )
-    def prompt(count, existing, repair):
+    def prompt(count, existing, repair, batch_schema):
         return render_prompt('flashcards', profile=profile, count=count, topic=topic, context=context,
-            evidence_mode='documents', schema=CardBatch.model_json_schema(), repair=repair,
+            evidence_mode='documents', schema=batch_schema, repair=repair,
             existing_fronts=[card['front'] for card in existing])
     try:
         return validated_batches(llm, prompt, _extract_json, CardBatch, n, 'cards', 'front')
-    except Exception:
-        logger.exception("Flashcard generation failed")
+    except Exception as exc:
+        logger.warning('Flashcard generation failed', extra={'error_type': type(exc).__name__})
         return []
 
 
