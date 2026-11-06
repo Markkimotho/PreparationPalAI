@@ -88,7 +88,9 @@ Structured outputs use Ollama’s schema parameter as well as a schema in the pr
 then validate the returned data with Pydantic. Quizzes, cards and coach sessions
 generate at most two items per response, with one retry for invalid output. Duplicate
 questions/card fronts are rejected. Coach requires the full count before saving a
-session; document quizzes and cards may return fewer supported items. Legacy JSON
+session; document quizzes and cards may return fewer supported items. They continue
+after a short batch and preserve previously validated items if a later batch still
+fails after retry. Retry prompts include the validation feedback. Legacy JSON
 arrays are still accepted when an older runner ignores the wrapper schema.
 
 Long evidence payloads are capped at 12,000 characters with an explicit truncation

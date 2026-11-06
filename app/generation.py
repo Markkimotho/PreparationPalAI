@@ -1,9 +1,18 @@
 """Small, validated structured-output batches for constrained local models."""
 from collections.abc import Callable
 from copy import deepcopy
+import logging
 
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+logger = logging.getLogger(__name__)
+
+
+def validation_feedback(exc: Exception):
+    if isinstance(exc, ValidationError):
+        return [{'path': error['loc'], 'message': error['msg']} for error in exc.errors(include_input=False)]
+    return {'message': str(exc)}
 
 
 def validated_batches(llm, render: Callable, parse: Callable, batch_model: type[BaseModel],
@@ -15,9 +24,10 @@ def validated_batches(llm, render: Callable, parse: Callable, batch_model: type[
         count = min(2, n - len(items))
         batch_schema = deepcopy(schema or batch_model.model_json_schema())
         batch_schema['properties'][key]['maxItems'] = count
+        feedback = None
         for attempt in range(2):
             try:
-                response = llm.invoke([HumanMessage(content=render(count, items, bool(attempt), batch_schema))], format=batch_schema)
+                response = llm.invoke([HumanMessage(content=render(count, items, bool(attempt), batch_schema, feedback))], format=batch_schema)
                 if getattr(response, 'response_metadata', {}).get('done_reason') == 'length':
                     raise ValueError('Output limit reached')
                 raw = parse(response.content)
@@ -37,9 +47,13 @@ def validated_batches(llm, render: Callable, parse: Callable, batch_model: type[
                 items.extend(entry.model_dump(exclude_none=True) for entry in entries)
                 seen.update(current)
                 break
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as exc:
+                feedback = validation_feedback(exc)
                 if attempt:
+                    if items:
+                        logger.warning('Generation stopped after an invalid batch', extra={'completed': len(items), 'requested': n, 'kind': key})
+                        return items
                     raise
-        if len(entries) < count:
-            break  # The evidence may support fewer useful items than requested.
+        if not entries:
+            break  # No more supported, distinct items; never invent one just to fill a count.
     return items

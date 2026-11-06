@@ -67,7 +67,7 @@ class Task:
 TASKS = {
     'coach_questions': Task(
         'Write exactly count distinct practice questions. Cover the objectives without repeating already_covered questions. '
-        'When preferred_types is supplied, include those types. If repair is true, correct the previous invalid batch and follow the schema exactly. '
+        'When preferred_types is supplied, include those types. If repair is true, use validation_feedback to correct the batch and follow the schema exactly. '
         'In recap/review, progress from recall to application; in exam mode use realistic solvable tasks; in interviews probe explanation and tradeoffs. '
         'Respect question_type exactly. For mixed exams include at least two types across the session. '
         'MCQ: four plausible A/B/C/D options, exactly one defensible answer, no answer-length clues or all/none-of-the-above. '
@@ -81,7 +81,7 @@ TASKS = {
     'quiz_questions': Task(
         'Write distinct, source-grounded quiz questions for the requested objectives and exam context. '
         'Do not repeat already_covered questions. Copy source exactly from source_labels, without adding page numbers or citation syntax. '
-        'If repair is true, correct the previous invalid batch and follow the schema and count. '
+        'If repair is true, use validation_feedback to correct the invalid batch and follow the schema and count. '
         'Use the specified question_type, count and difficulty. MCQ distractors should represent plausible misconceptions, '
         'with exactly one correct option and no grammatical or length giveaways. True/false tests one clear claim. '
         'Short answers require explanation/application, not a vague opinion. Quote or paraphrase evidence in the explanation. '
@@ -113,6 +113,7 @@ TASKS = {
         ('question', 'reference', 'student_answer', 'schema')),
     'flashcards': Task(
         'Create atomic active-recall cards from the supplied evidence. One assessable concept per card. '
+        'If repair is true, use validation_feedback to correct the batch. '
         'The front must stand alone, identify its scope and not reveal the answer. '
         'The back gives a precise answer in 1–3 sentences, with units or conditions when required. '
         'Prefer definitions, mechanisms, contrasts, assumptions and common misconceptions; avoid trivia and long lists. '

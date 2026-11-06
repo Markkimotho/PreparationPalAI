@@ -17,6 +17,7 @@ from app.model_catalog import require_model
 from app.quiz import _build_context, _extract_json, _get_llm, validate_answer
 from app.retriever import get_retriever
 from app.prompt_library import PROMPT_VERSION, PromptProfile, render_prompt
+from app.generation import validation_feedback
 
 router = APIRouter(prefix='/api/coach', tags=['Preparation coach'])
 
@@ -78,11 +79,13 @@ def generate_questions(req: Start, model: str, context: str, focus: str) -> list
         count = min(2, req.n - len(questions))
         batch_schema = deepcopy(schema)
         batch_schema['properties']['questions'].update(minItems=count, maxItems=count)
+        feedback = None
         for attempt in range(2):
             try:
                 prompt = render_prompt('coach_questions', profile=req.profile, topic=focus,
                     mode=req.mode, difficulty=req.difficulty, question_type=required_type,
                     count=count, context=context, schema=batch_schema, repair=bool(attempt),
+                    validation_feedback=feedback,
                     evidence_mode='documents' if context else 'general',
                     already_covered=[q['question'] for q in questions],
                     preferred_types=['mcq', 'short_answer'] if req.mode == 'exam' and required_type == 'mixed' and count == 2 else [])
@@ -105,7 +108,8 @@ def generate_questions(req: Start, model: str, context: str, focus: str) -> list
                         raise ValueError('Wrong question format')
                 questions.extend(q.model_dump() for q in batch.questions)
                 break
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as exc:
+                feedback = validation_feedback(exc)
                 if attempt:
                     raise
     return questions
