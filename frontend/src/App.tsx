@@ -9,6 +9,7 @@ import { QuizPrep } from "./sections/QuizPrep";
 import { RegularChat } from "./sections/RegularChat";
 import { StudyAgent } from "./sections/StudyAgent";
 import { Coach } from "./sections/Coach";
+import { DrawingReviews } from './sections/DrawingReviews';
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
             <Route path="/chat" element={<RegularChat />} />
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/guide" element={<Guide />} />
+            <Route path="/drawings" element={<DrawingReviews />} />
             <Route path="*" element={<Navigate to="/quiz" replace />} />
           </Route>
         </Routes>

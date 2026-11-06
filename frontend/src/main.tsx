@@ -8,6 +8,7 @@ import "./styles/theme.css";
 import "./styles/global.css";
 
 installDiagnostics();
+(window as Window & { EXCALIDRAW_ASSET_PATH?: string }).EXCALIDRAW_ASSET_PATH = '/excalidraw/';
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>

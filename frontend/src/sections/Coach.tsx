@@ -4,6 +4,7 @@ import { useModelContext } from '../context/ModelContext';
 import { Markdown } from '../components/Markdown';
 import { Select } from '../components/Select';
 import { StudyExport } from '../components/StudyExport';
+import { DrawingWorkspace } from '../components/DrawingWorkspace';
 import styles from './Coach.module.css';
 import { apiFetch } from '../api/access';
 
@@ -12,7 +13,7 @@ interface Session {
   id: string; topic: string; mode: string; model: string; index: number; total: number;
   deadline: number; done: boolean; grounding: string;
   sources: { source: string; page: string | number }[];
-  question: { type: string; question: string; topic: string; options: Record<string, string>; adaptive?: boolean } | null;
+  question: { type: string; question: string; topic: string; options: Record<string, string>; adaptive?: boolean; drawing_required?: boolean; drawing_prompt?: string } | null;
   answers: { question: string; reference: string; explanation: string; result: Result }[];
   summary: { score: number; topics: { topic: string; score: number; missed: string[] }[]; next_actions: string[] } | null;
 }
@@ -144,6 +145,8 @@ export function Coach() {
           {Object.entries(session.question.type === 'true_false' ? { True: 'True', False: 'False' } : session.question.options).map(([key, value]) =>
             <label className={styles.choice} key={key}><input type="radio" name="answer" value={key} required checked={answer === key} onChange={() => setAnswer(key)} />{key}: {value}</label>)}
         </fieldset> : <label>Your reasoning<textarea required rows={7} maxLength={20000} value={answer} onChange={e => setAnswer(e.target.value)} placeholder="Show assumptions, steps, units, and conclusions." /></label>}
+        <DrawingWorkspace question={session.question.question}
+          required={session.question.drawing_required} brief={session.question.drawing_prompt} sessionId={session.id} learner={learner} index={session.index} model={selected} />
         <Select label="Confidence" value={String(confidence)} onChange={value => setConfidence(Number(value))} disabled={busy}
           options={[1, 2, 3, 4, 5].map(value => ({ value: String(value), label: `${value} / 5${value === 1 ? ' — guessing' : value === 5 ? ' — confident' : ''}` }))} />
         <button className={styles.primary} disabled={busy || !answer.trim() || expired}>{busy ? 'Evaluating your answer…' : 'Submit answer'}</button>

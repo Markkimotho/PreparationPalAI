@@ -7,6 +7,7 @@ export type SectionId =
   | "code"
   | "chat"
   | "cards"
+  | "drawings"
   | "guide";
 
 export interface SectionDef {
@@ -87,6 +88,7 @@ const GuideIcon = (
 
 export const SECTIONS: SectionDef[] = [
   { id: "prepare", path: "/prepare", label: "Preparation Coach", blurb: "Learn, practise, interview, and review weak areas.", icon: QuizIcon },
+  { id: 'drawings', path: '/drawings', label: 'Drawing reviews', blurb: 'Submit and review visual answers.', icon: CardsIcon },
   {
     id: "quiz",
     path: "/quiz",

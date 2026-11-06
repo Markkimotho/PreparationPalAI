@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { QuizQuestion } from "../../api/types";
 import styles from "./QuizPrep.module.css";
 import { Markdown } from '../../components/Markdown';
+import { DrawingWorkspace } from '../../components/DrawingWorkspace';
 
 interface Props {
   question: QuizQuestion;
@@ -107,6 +108,7 @@ export function QuestionCard({
       {question.source && (
         <div className={styles.source}>Source: {question.source}</div>
       )}
+      {type === 'short_answer' && <DrawingWorkspace question={question.question} required={question.drawing_required} brief={question.drawing_prompt} />}
 
       <button
         type="button"
@@ -116,6 +118,7 @@ export function QuestionCard({
       >
         {submitting ? "Checking…" : "Submit answer"}
       </button>
+      {type !== 'short_answer' && <DrawingWorkspace question={question.question} />}
     </div>
   );
 }

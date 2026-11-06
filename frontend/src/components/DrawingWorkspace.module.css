@@ -1,0 +1,13 @@
+.workspace { margin-block: 18px; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-width: 0; }
+.workspace p { color: var(--text-dim); line-height: 1.6; margin-block: 10px; font-size: var(--fs-sm); }
+.workspace button.toggle, .workspace button.submit { min-height: 44px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 10px 14px; background: var(--bg); color: var(--text); }
+.workspace button.submit { margin-top: 12px; background: var(--accent-soft); border-color: var(--accent-border); }
+.canvas { height: min(65vh, 580px); min-height: 380px; position: relative; margin-block: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; isolation: isolate; }
+.workspace label { display: grid; gap: 8px; }
+.workspace textarea { width: 100%; padding: 12px; font: inherit; border: 1px solid var(--border-strong); background: var(--bg); border-radius: var(--radius-sm); color: var(--text); }
+.workspace a { color: var(--accent); text-decoration: underline; }
+.workspace [role="alert"] { color: var(--error); }
+.downloads { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.downloads button { min-height: 44px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); }
+.canvas :global(.excalidraw) { --color-primary: #2d4e70; --color-primary-darker: #233e59; --color-primary-darkest: #1c3147; --color-primary-light: #cfdae5; --color-primary-lightest: #e9eef3; }
+@media (max-width: 600px) { .workspace { padding: 8px; } .canvas { height: 520px; } }

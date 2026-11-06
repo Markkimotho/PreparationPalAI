@@ -3,6 +3,7 @@ import { Markdown } from "./Markdown";
 import { Spinner } from "./Spinner";
 import styles from "./MessageBubble.module.css";
 import { StudyExport } from './StudyExport';
+import { DrawingWorkspace, needsDrawing } from './DrawingWorkspace';
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
@@ -49,6 +50,10 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           </details>
         )}
         {!isUser && !message.streaming && message.questions?.length ? <StudyExport questions={message.questions} /> : null}
+        {!isUser && !message.streaming && message.questions?.filter(q => q.drawing_required || needsDrawing(q.question)).map((q, i) =>
+          <DrawingWorkspace key={i} question={q.question} required={q.drawing_required} brief={q.drawing_prompt} model={message.model} />)}
+        {!isUser && !message.streaming && !message.questions?.length && needsDrawing(message.content) &&
+          <DrawingWorkspace question={message.content} model={message.model} />}
       </div>
     </div>
   );
