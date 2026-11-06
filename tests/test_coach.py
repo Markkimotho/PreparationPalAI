@@ -179,5 +179,18 @@ def test_requested_format_is_enforced_by_schema_and_prompt(local_runtime):
     assert schema['answer']['enum'] == list('ABCD')
     assert schema['options']['required'] == list('ABCD')
     prompt = llm.return_value.invoke.call_args.args[0][0].content
-    assert 'Use only mcq questions.' in prompt
+    assert '"question_type": "mcq"' in prompt
     assert 'For mixed use' not in prompt
+
+
+def test_saved_profile_and_evidence_follow_the_learner_into_grading(local_runtime):
+    _, retrieval = local_runtime
+    retrieval.return_value.invoke.return_value = [SimpleNamespace(
+        metadata=dict(source='physics.pdf', page=1), page_content='F=ma; force is measured in newtons.')]
+    session = start(profile={'discipline': 'physics', 'level': 'advanced', 'notation': 'SI units'})
+    with patch('app.coach.validate_answer', return_value=dict(
+            score=80, feedback='Correct method.', key_missed=[], hint='Check the units.')) as grade:
+        assert submit(session).status_code == 200
+    assert grade.call_args.kwargs['profile'].discipline == 'physics'
+    assert grade.call_args.kwargs['profile'].notation == 'SI units'
+    assert 'F=ma' in grade.call_args.kwargs['evidence_context']

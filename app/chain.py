@@ -9,12 +9,13 @@ from app.llm import ChatOllama
 
 from app.config import get_settings
 from app.memory import add_messages, get_chat_history
-from app.prompts import CONTEXTUALIZE_PROMPT, QA_PROMPT
+from app.prompts import CONTEXTUALIZE_PROMPT, QA_PROMPT, make_qa_prompt
+from app.prompt_library import PromptProfile
 from app.retriever import get_retriever
 from langchain_core.prompts import PromptTemplate
 
 
-def _build_chain(model: str | None = None, top_k: int | None = None):
+def _build_chain(model: str | None = None, top_k: int | None = None, profile: PromptProfile | None = None):
     settings = get_settings()
     llm = ChatOllama(
         model=model or settings.ollama_model,
@@ -27,7 +28,7 @@ def _build_chain(model: str | None = None, top_k: int | None = None):
     history_aware_retriever = create_history_aware_retriever(
         llm, retriever, CONTEXTUALIZE_PROMPT
     )
-    question_answer_chain = create_stuff_documents_chain(llm, QA_PROMPT,
+    question_answer_chain = create_stuff_documents_chain(llm, make_qa_prompt(profile) if profile else QA_PROMPT,
         document_prompt=PromptTemplate.from_template('[Source: {source}, page {page}]\n{page_content}'))
     return create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
@@ -37,9 +38,10 @@ def invoke(
     session_id: str = "default",
     model: str | None = None,
     top_k: int | None = None,
+    profile: PromptProfile | None = None,
 ) -> dict:
     """Ask a question using the LCEL RAG chain. Returns {"answer": str, "sources": list}."""
-    chain = _build_chain(model=model, top_k=top_k)
+    chain = _build_chain(model=model, top_k=top_k, profile=profile)
     chat_history = get_chat_history(session_id)
 
     result = chain.invoke({"input": question, "chat_history": chat_history})
@@ -75,6 +77,7 @@ def stream(
     session_id: str = "default",
     model: str | None = None,
     top_k: int | None = None,
+    profile: PromptProfile | None = None,
 ) -> Iterator[tuple[str, object]]:
     """Stream a RAG answer token-by-token.
 
@@ -82,7 +85,7 @@ def stream(
     ("sources", list[dict]) event once retrieval context is known.
     Conversation memory is updated after the stream completes.
     """
-    chain = _build_chain(model=model, top_k=top_k)
+    chain = _build_chain(model=model, top_k=top_k, profile=profile)
     chat_history = get_chat_history(session_id)
 
     answer_parts: list[str] = []

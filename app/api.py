@@ -341,6 +341,7 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
             thread_id=req.session_id,
             model=req.model,
             top_k=req.top_k,
+            profile=req.profile,
         )
     else:
         events = lcel_chain.stream(
@@ -348,6 +349,7 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
             session_id=req.session_id,
             model=req.model,
             top_k=req.top_k,
+            profile=req.profile,
         )
     return _sse(events, surface="chat")
 
@@ -369,6 +371,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
         thread_id=req.thread_id,
         model=req.model,
         use_kb=req.use_kb,
+        profile=req.profile,
     )
     return _sse(events, surface="code")
 
@@ -380,7 +383,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
 def agent_stream(req: AgentRequest) -> StreamingResponse:
     req.model = require_model(req.model)
     events = quiz_agent.stream_agent(
-        message=req.message, thread_id=req.thread_id, model=req.model
+        message=req.message, thread_id=req.thread_id, model=req.model, profile=req.profile
     )
     return _sse(events, surface="agent")
 
@@ -402,6 +405,7 @@ def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
             exam_type=req.exam_type,
             model=req.model,
             top_k=get_settings().quiz_top_k,
+            profile=req.profile,
         )
     except Exception:
         status = "error"
@@ -415,19 +419,23 @@ def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
 def quiz_validate(req: QuizValidateRequest) -> dict:
     if req.question_type == 'short_answer':
         req.model = require_model(req.model)
-    return validate_answer(
+    result = validate_answer(
         question=req.question,
         correct_answer=req.correct_answer,
         student_answer=req.student_answer,
+        profile=req.profile,
         question_type=req.question_type,
         model=req.model,
     )
+    if result.get('feedback', '').startswith('Could not grade answer:'):
+        raise HTTPException(502, 'The model could not grade this answer. Retry or choose another model; no score has been awarded.')
+    return result
 
 
 @app.post("/api/quiz/explain", response_model=ExplainResponse)
 def quiz_explain(req: ExplainRequest) -> ExplainResponse:
     req.model = require_model(req.model)
-    return ExplainResponse(explanation=explain_concept(req.concept, model=req.model))
+    return ExplainResponse(explanation=explain_concept(req.concept, model=req.model, profile=req.profile))
 
 
 # ── Flashcards ─────────────────────────────────────────────────────────────
@@ -449,7 +457,7 @@ def flashcards_generate(req: GenerateDeckRequest) -> Deck:
     start = time.perf_counter()
     status = "success"
     try:
-        return Deck(**fc.generate_deck(req.topic, n=req.n, model=req.model, deck_name=req.deck_name))
+        return Deck(**fc.generate_deck(req.topic, n=req.n, model=req.model, deck_name=req.deck_name, profile=req.profile))
     except Exception:
         status = "error"
         raise
