@@ -16,11 +16,18 @@ from app.retriever import get_retriever
 logger = logging.getLogger(__name__)
 
 
+class Rubric(BaseModel):
+    reasoning: int = Field(ge=0, le=40)
+    accuracy: int = Field(ge=0, le=40)
+    clarity: int = Field(ge=0, le=20)
+
+
 class WrittenEvaluation(BaseModel):
     score: int = Field(ge=0, le=100)
     feedback: str = Field(min_length=1)
     key_missed: list[str] = []
     hint: str = ''
+    rubric: Rubric | None = None
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
@@ -118,7 +125,7 @@ appropriate rounding. Explain reasoning errors and give one concrete next step.
 If the reference is uncertain, acknowledge this rather than confidently inventing facts.
 
 Respond with ONLY valid JSON — no markdown:
-{{"score":85,"is_correct":true,"feedback":"...","key_missed":["..."],"hint":"Review the section about..."}}"""
+{{"score":85,"is_correct":true,"feedback":"...","key_missed":["..."],"hint":"Review the section about...","rubric":{{"reasoning":34,"accuracy":32,"clarity":19}}}}"""
 
 _EXPLAIN_PROMPT = """\
 Based ONLY on the following content, give a clear and thorough explanation of: {concept}
@@ -261,6 +268,8 @@ def validate_answer(
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
         result = WrittenEvaluation.model_validate(_extract_json(response.content)).model_dump()
+        if result['rubric'] is not None:
+            result['score'] = sum(result['rubric'].values())
         result['is_correct'] = result['score'] >= 70
         return result
     except Exception as exc:

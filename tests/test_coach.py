@@ -121,3 +121,14 @@ def test_grounding_has_actual_sources(local_runtime):
     s = start()
     assert s['grounding'] == 'documents'
     assert s['sources'] == [dict(source='physics.pdf', page=2)]
+
+
+def test_recap_adapts_next_question_after_misconception(local_runtime):
+    s = start()
+    llm, _ = local_runtime
+    llm.return_value.invoke.return_value.content = json.dumps(dict(
+        QUESTIONS[1], topic='Units', question='Recall the unit of force.'))
+    result = submit(s, answer='B').json()
+    assert result['question']['adaptive']
+    assert result['question']['topic'] == 'Units'
+    assert result['total'] == 2

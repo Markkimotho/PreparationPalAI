@@ -9,7 +9,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.config import get_settings
 from app.model_catalog import require_model
@@ -37,6 +37,14 @@ class Question(BaseModel):
     answer: str = Field(min_length=1)
     options: dict[str, str] = {}
     explanation: str = ''
+
+    @model_validator(mode='after')
+    def validate_answer_shape(self):
+        if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.answer not in self.options):
+            raise ValueError('MCQ requires four options and a matching answer')
+        if self.type == 'true_false' and self.answer.lower() not in ('true', 'false'):
+            raise ValueError('True/false reference must be True or False')
+        return self
 
 
 class Answer(BaseModel):
@@ -172,7 +180,7 @@ Context: {context or 'No relevant documents: general knowledge.'}'''
     session = dict(id=uuid.uuid4().hex, learner=req.learner, topic=focus, mode=req.mode,
                    model=model, questions=questions, answers=[], started=now, last_answer=now,
                    deadline=now + req.minutes * 60 if req.mode == 'exam' and req.minutes else 0,
-                   grounding=grounding, sources=[dict(source=d.metadata.get('source', 'unknown'),
+                   context=context, grounding=grounding, sources=[dict(source=d.metadata.get('source', 'unknown'),
                    page=d.metadata.get('page', '?')) for d in docs], followed_up=False)
     with connect() as db:
         save(db, session)
@@ -187,39 +195,59 @@ def get_session(session_id: str, learner: str):
 
 @router.post('/sessions/{session_id}/answers')
 def answer(session_id: str, req: Answer):
-    # A write transaction prevents concurrent submissions advancing the same question twice.
+    # Read before inference; acquire the write lock only when committing the answer.
+    with connect() as db:
+        session = load(db, session_id, req.learner)
+    if public(session)['done']:
+        raise HTTPException(409, 'Session has finished. Open the results.')
+    index = len(session['answers'])
+    if req.index != index:
+        raise HTTPException(409, 'Question already submitted; refresh the session.')
+    q = session['questions'][index]
+    submitted_at = time.time()
+    require_model(session['model'])
+    result = validate_answer(q['question'], q['answer'], req.answer, q['type'], session['model'])
+    if result['feedback'].startswith('Could not grade answer:'):
+        raise HTTPException(502, 'Grading failed; your answer has not been recorded. Retry.')
+    result['score'] = max(0, min(100, int(result['score'])))
+    result['hint'] = result.get('hint') or f"Compare your reasoning with: {q['explanation'] or q['answer']}"
+    session['answers'].append(dict(question=q['question'], topic=q['topic'],
+        answer=req.answer, confidence=req.confidence, seconds=round(submitted_at - session['last_answer']),
+        question_type=q['type'], grounding=session['grounding'],
+        result=result, reference=q['answer'], explanation=q['explanation']))
+    if session['mode'] == 'interview' and not session['followed_up']:
+        prompt = f'''Ask one technical follow-up probing a gap or extending the learner's reasoning.
+Question: {q['question']}\nAnswer: {req.answer}\nFeedback: {result['feedback']}
+Use only this source material when supplied: {session.get('context', '')}
+Return JSON with type="free_response", question, topic, answer (reference), explanation, options={{}}.'''
+        try:
+            follow = Question.model_validate(_extract_json(
+                _get_llm(session['model']).invoke([HumanMessage(content=prompt)]).content))
+            if follow.type != 'free_response':
+                raise ValueError('Interview follow-up must be written')
+            session['questions'].insert(index + 1, follow.model_dump())
+            session['followed_up'] = True
+        except Exception:
+            pass
+    if session['mode'] in ('recap', 'review') and result['score'] < 70 and index + 1 < len(session['questions']):
+        expected_type = session['questions'][index + 1]['type']
+        prompt = f'''Create one easier scaffolded question to address this misconception: {result.get('key_missed', [])}.
+Topic: {q['topic']}. Feedback: {result['feedback']}. Learner confidence: {req.confidence}/5.
+Use only this source material when present: {session.get('context', '')}
+Return JSON with type="{expected_type}", question, topic, answer (worked reference), explanation,
+options (A/B/C/D for mcq, empty object otherwise). MCQ answer is a letter; true_false answer is True or False.'''
+        try:
+            adapted = Question.model_validate(_extract_json(
+                _get_llm(session['model']).invoke([HumanMessage(content=prompt)]).content))
+            if adapted.type == expected_type:
+                session['questions'][index + 1] = {**adapted.model_dump(), 'adaptive': True}
+        except Exception:
+            pass
+    session['last_answer'] = time.time()
     with connect() as db:
         db.execute('BEGIN IMMEDIATE')
-        session = load(db, session_id, req.learner)
-        if public(session)['done']:
-            raise HTTPException(409, 'Session has finished. Open the results.')
-        index = len(session['answers'])
-        if req.index != index:
-            raise HTTPException(409, 'Question already submitted; refresh the session.')
-        q = session['questions'][index]
-        submitted_at = time.time()
-        require_model(session['model'])
-        result = validate_answer(q['question'], q['answer'], req.answer,
-                                 q['type'], session['model'])
-        if result['feedback'].startswith('Could not grade answer:'):
-            raise HTTPException(502, 'Grading failed; your answer has not been recorded. Retry.')
-        result['score'] = max(0, min(100, int(result['score'])))
-        result['hint'] = result.get('hint') or f"Compare your reasoning with: {q['explanation'] or q['answer']}"
-        session['answers'].append(dict(question=q['question'], topic=q['topic'],
-            answer=req.answer, confidence=req.confidence, seconds=round(submitted_at - session['last_answer']),
-            result=result, reference=q['answer'], explanation=q['explanation']))
-        if session['mode'] == 'interview' and not session['followed_up']:
-            prompt = f'''Ask one technical follow-up probing a gap or extending the learner's reasoning.
-Question: {q['question']}\nAnswer: {req.answer}\nFeedback: {result['feedback']}
-Return JSON with type="free_response", question, topic, answer (reference), explanation, options={{}}.'''
-            try:
-                follow = Question.model_validate(_extract_json(
-                    _get_llm(session['model']).invoke([HumanMessage(content=prompt)]).content))
-                session['questions'].insert(index + 1, follow.model_dump())
-                session['followed_up'] = True
-            except Exception:
-                # Save the evaluated answer even if optional follow-up generation fails.
-                pass
-        session['last_answer'] = time.time()
+        latest = load(db, session_id, req.learner)
+        if len(latest['answers']) != index:
+            raise HTTPException(409, 'Answer already recorded; refresh this session.')
         save(db, session)
-        return public(session)
+    return public(session)
