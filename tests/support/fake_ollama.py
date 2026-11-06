@@ -26,7 +26,11 @@ class Handler(BaseHTTPRequestHandler):
             inputs = inputs if isinstance(inputs, list) else [inputs]
             self.respond(json.dumps({'embeddings': [[.1] * 8 for _ in inputs], 'embedding': [.1] * 8}))
             return
-        message = dict(model='qwen2.5:7b', message=dict(role='assistant', content='Force equals mass times acceleration. (source: smoke.pdf, page 0)'), done=False)
+        # Exercise the moderation protocol as well as generation plumbing. This
+        # is a stub response, never evidence that a real model judged correctly.
+        checking = 'safe' in body.get('format', {}).get('properties', {}) if isinstance(body.get('format'), dict) else False
+        content = '{"safe": true}' if checking else 'Force equals mass times acceleration. (source: smoke.pdf, page 0)'
+        message = dict(model='qwen2.5:7b', message=dict(role='assistant', content=content), done=False)
         done = dict(model='qwen2.5:7b', message=dict(role='assistant', content=''), done=True, eval_count=10, prompt_eval_count=20)
         self.respond(json.dumps(message) + '\n' + json.dumps(done) + '\n', ndjson=True)
 

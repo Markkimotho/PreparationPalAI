@@ -24,7 +24,7 @@ from langgraph.prebuilt import create_react_agent
 
 from app.config import get_settings
 from app.prompt_library import PromptProfile, render_prompt
-from app.workspace import scoped_thread
+from app.workspace import scoped_thread, role
 from app.quiz import explain_concept, generate_questions, validate_answer
 from app.retriever import get_retriever
 from app.scraper import search_and_scrape
@@ -51,7 +51,7 @@ def _study_parameters(config: RunnableConfig | None) -> dict:
 
 
 @tool
-def search_and_add_to_kb(topic: str, num_results: int = 3) -> str:
+def search_and_add_to_kb(topic: str, num_results: int = 3, config: RunnableConfig = None) -> str:
     """Search the web for a topic and add the found content to the knowledge base.
 
     Use when the user wants to study something not yet in the knowledge base,
@@ -61,6 +61,8 @@ def search_and_add_to_kb(topic: str, num_results: int = 3) -> str:
         topic: The topic to search for (e.g. "Python async/await", "System Design basics")
         num_results: Number of web pages to scrape (1-5, default 3)
     """
+    if not (config or {}).get('configurable', {}).get('allow_web') or role.get() == 'reader':
+        return 'Web search is disabled. Enable web access for this message with an editor or admin key.'
     try:
         chunks = search_and_scrape(topic, num_results=max(1, min(num_results, 5)))
         if not chunks:
@@ -110,7 +112,7 @@ def make_quiz(
         return (
             f"Could not generate questions for '{topic}'. "
             "The knowledge base may lack content on this topic. "
-            "Try calling search_and_add_to_kb first."
+            "Ask the learner to upload relevant material. Do not invent replacement questions."
         )
     return json.dumps(questions, indent=2)
 
@@ -171,7 +173,7 @@ def list_topics() -> str:
             "1. Upload PDF/TXT documents using the sidebar\n"
             "2. Ask me to search the web for a topic (e.g., 'search for Python basics')"
         )
-    retriever = get_retriever(top_k=20)
+    retriever = get_retriever(top_k=20, inventory=True)
     try:
         docs = retriever.invoke("main topics")
         sources = sorted({doc.metadata.get("source", "unknown") for doc in docs})
@@ -197,6 +199,8 @@ def invoke_agent(
     thread_id: str = "default",
     model: str | None = None,
     profile: PromptProfile | None = None,
+    allow_web: bool = False,
+    include_questions: bool = False,
 ) -> str:
     """Send a message to the quiz agent and return its text response.
 
@@ -212,7 +216,7 @@ def invoke_agent(
     )
     agent = create_react_agent(
         llm,
-        _TOOLS,
+        [t for t in _TOOLS if t.name != 'search_and_add_to_kb' or (allow_web and role.get() != 'reader')],
         prompt=render_prompt('study_agent', profile=profile),
         checkpointer=_checkpointer,
     )
@@ -220,13 +224,18 @@ def invoke_agent(
         result = agent.invoke(
             {"messages": [HumanMessage(content=message)]},
             config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model,
-                                     "profile": profile.model_dump() if profile else {}}},
+                                     "profile": profile.model_dump() if profile else {}, "allow_web": allow_web}},
         )
         messages = result.get("messages", [])
-        return messages[-1].content if messages else "No response from agent."
+        answer = _final_answer(messages)
+        if include_questions:
+            return answer, _quiz_items(messages)
+        return answer
     except Exception as exc:
         logger.exception("Agent invocation failed")
-        return f"Agent error: {exc}"
+        from app.safety import SafetyError
+        answer = str(exc) if isinstance(exc, SafetyError) else 'The study request failed. Please retry or upload relevant material.'
+        return (answer, []) if include_questions else answer
 
 
 def stream_agent(
@@ -234,41 +243,51 @@ def stream_agent(
     thread_id: str = "default",
     model: str | None = None,
     profile: PromptProfile | None = None,
+    allow_web: bool = False,
 ) -> Iterator[tuple[str, object]]:
     """Stream the agent's response token-by-token.
 
     Yields ("token", str) for assistant text deltas and ("tool", str) once per
     tool the agent decides to call. Errors are surfaced as ("error", str).
     """
-    settings = get_settings()
-    llm = ChatOllama(
-        model=model or settings.ollama_model,
-        base_url=settings.ollama_base_url,
-        temperature=0.2,
-        keep_alive=settings.ollama_keep_alive,
-    )
-    agent = create_react_agent(
-        llm,
-        _TOOLS,
-        prompt=render_prompt('study_agent', profile=profile),
-        checkpointer=_checkpointer,
-    )
-    seen_tools: set[str] = set()
-    try:
-        for msg_chunk, _metadata in agent.stream(
-            {"messages": [HumanMessage(content=message)]},
-            config={"configurable": {"thread_id": scoped_thread(thread_id), "model": model,
-                                     "profile": profile.model_dump() if profile else {}}},
-            stream_mode="messages",
-        ):
-            for tc in getattr(msg_chunk, "tool_call_chunks", None) or []:
-                name = tc.get("name")
-                if name and name not in seen_tools:
-                    seen_tools.add(name)
-                    yield ("tool", name)
-            content = getattr(msg_chunk, "content", "")
-            if content:
-                yield ("token", content)
-    except Exception as exc:
-        logger.exception("Agent stream failed")
-        yield ("error", f"Agent error: {exc}")
+    # LangGraph's messages stream includes nested generation inside tools.
+    # Release only the completed result, never reasoning or raw tool JSON.
+    answer, questions = invoke_agent(message, thread_id, model, profile, allow_web, include_questions=True)
+    yield ('token', answer)
+    if questions:
+        yield ('questions', questions)
+
+
+def _quiz_items(messages):
+    from app.quiz import QuizItem
+    start = max((i for i, m in enumerate(messages) if m.type == 'human'), default=-1)
+    items = []
+    for msg in messages[start + 1:]:
+        if msg.type == 'tool' and msg.name == 'make_quiz':
+            try:
+                items.extend(QuizItem.model_validate(q).model_dump() for q in json.loads(msg.content))
+            except (ValueError, TypeError):
+                return []
+    return items
+
+
+def _final_answer(messages) -> str:
+    # Only inspect this turn. Historical tool successes must not override the
+    # current request or mask a failed generation.
+    start = max((i for i, m in enumerate(messages) if m.type == 'human'), default=-1)
+    quiz_results = [m for m in messages[start + 1:] if m.type == 'tool' and m.name == 'make_quiz']
+    if quiz_results:
+        from app.quiz import QuizItem
+        sections = []
+        for result in quiz_results:
+            try:
+                questions = [QuizItem.model_validate(q) for q in json.loads(result.content)]
+                if not questions:
+                    raise ValueError('Empty quiz')
+            except (ValueError, TypeError):
+                return 'I could not create a grounded quiz on that topic. Upload relevant material or enable web access and ask me to search. No replacement questions have been invented.'
+            for q in questions:
+                sections.append(f'### {len(sections) + 1}. {q.question}\n\n' +
+                    '\n'.join(f'- **{k}.** {v}' for k, v in q.options.items()))
+        return '\n\n'.join(sections) + '\n\nReply with your answers when you are ready.'
+    return messages[-1].content if messages else 'No response from agent.'

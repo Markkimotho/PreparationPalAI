@@ -3,6 +3,7 @@ from contextvars import ContextVar
 
 workspace_id: ContextVar[str] = ContextVar('workspace_id', default='local')
 identity_id: ContextVar[str] = ContextVar('identity_id', default='local')
+role: ContextVar[str] = ContextVar('role', default='admin')
 request_id: ContextVar[str] = ContextVar('request_id', default='-')
 
 
