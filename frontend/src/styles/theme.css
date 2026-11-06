@@ -1,38 +1,39 @@
-/* Design tokens — bright/light palette with vibrant per-section accents.
-   Components consume these via var(--token); never hard-code values. */
+/* Hallmark principles: academic workbench; paper surfaces, ink blue, locally hosted type.
+   Critique: remove route colour changes and promotional chrome; keep study controls clear. */
 
 :root {
   /* Surfaces (light) */
   --bg: #ffffff;
-  --surface: #f6f7f9;
-  --surface-2: #eef0f3;
-  --surface-3: #e7e9ee;
+  --surface: #f5f4f0;
+  --surface-2: #eeede8;
+  --surface-3: #e3e2dc;
 
   /* Text */
-  --text: #18181b;
-  --text-dim: #6b7280;
-  --text-faint: #9aa1ac;
+  --text: #252b30;
+  --text-dim: #626a70;
+  --text-faint: #71787d;
 
   /* Lines */
-  --border: #e5e7eb;
-  --border-strong: #d4d7dd;
+  --border: #e3e2dc;
+  --border-strong: #c6c9c8;
+  --overlay: #17233166;
 
   /* Status */
-  --success: #16a34a;
-  --error: #e11d48;
-  --warning: #d97706;
-  --info: #0ea5e9;
+  --success: #35715b;
+  --error: #b63e36;
+  --warning: #9a6325;
+  --info: #2d4e70;
 
   /* Per-section accents (overridden per route on the layout root) */
-  --accent-quiz: #0ea5e9; /* sky */
-  --accent-agent: #8b5cf6; /* violet */
-  --accent-code: #10b981; /* emerald */
-  --accent-chat: #f43f5e; /* rose */
-  --accent-cards: #f59e0b; /* amber */
-  --accent-guide: #6366f1; /* indigo */
+  --accent-quiz: var(--info);
+  --accent-agent: var(--info);
+  --accent-code: var(--info);
+  --accent-chat: var(--info);
+  --accent-cards: var(--info);
+  --accent-guide: var(--info);
 
   /* Active accent — set by AppLayout from the current route. */
-  --accent: #0ea5e9;
+  --accent: var(--info);
   --accent-soft: color-mix(in srgb, var(--accent) 12%, white);
   --accent-border: color-mix(in srgb, var(--accent) 35%, white);
   --focus: color-mix(in srgb, var(--accent) 45%, transparent);
@@ -51,17 +52,18 @@
   /* Radius */
   --radius-sm: 6px;
   --radius: 10px;
-  --radius-lg: 16px;
+  --radius-lg: 12px;
   --radius-pill: 999px;
 
   /* Typography */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  --font-heading: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
-  --fs-xs: 0.72rem;
-  --fs-sm: 0.82rem;
-  --fs-md: 0.92rem;
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
   --fs-lg: 1.1rem;
   --fs-xl: 1.4rem;
   --fs-2xl: 2rem;

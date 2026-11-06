@@ -26,7 +26,8 @@ describe('Preparation coach', () => {
     setup();
     await userEvent.type(screen.getByLabelText('Topic, subject, or syllabus focus'), 'Physics');
     await userEvent.click(screen.getByRole('button', { name: 'Exam practice Mixed questions, with an optional timer.' }));
-    await userEvent.selectOptions(screen.getByLabelText('Time limit'), '10');
+    await userEvent.click(screen.getByRole('button', { name: 'Time limit' }));
+    await userEvent.click(screen.getByRole('option', { name: '10 minutes' }));
     await userEvent.click(screen.getByRole('button', { name: 'Start preparation' }));
     expect(await screen.findByText('Which unit measures energy?')).toBeInTheDocument();
     const call = fetchMock.mock.calls.find(([_url, init]) => Boolean(init));

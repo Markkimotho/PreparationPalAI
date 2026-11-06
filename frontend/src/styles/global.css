@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("/fonts.css");
 @import "highlight.js/styles/github.css";
 
 *,
@@ -30,6 +30,8 @@ h4,
 p {
   margin: 0;
 }
+h1, h2, h3, h4 { font-family: var(--font-heading); overflow-wrap: break-word; min-width: 0; }
+html, body { overflow-x: clip; }
 
 a {
   color: inherit;
