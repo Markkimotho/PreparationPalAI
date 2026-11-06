@@ -156,7 +156,7 @@ def _extract_json(text: str) -> Any:
                 return json.loads(match.group())
             except json.JSONDecodeError:
                 continue
-    raise ValueError(f"No valid JSON in response (first 300 chars): {text[:300]}")
+    raise ValueError('The model returned incomplete or invalid JSON.')
 
 
 def _build_context(docs: list[Document]) -> str:
@@ -167,13 +167,14 @@ def _build_context(docs: list[Document]) -> str:
     )
 
 
-def _get_llm(model: str | None = None, temperature: float = 0.3) -> ChatOllama:
+def _get_llm(model: str | None = None, temperature: float = 0.3, response_format=None) -> ChatOllama:
     settings = get_settings()
     return ChatOllama(
         model=model or settings.ollama_model,
         base_url=settings.ollama_base_url,
         temperature=temperature,
         keep_alive=settings.ollama_keep_alive,
+        **({'format': response_format} if response_format else {}),
     )
 
 
