@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import Response
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response, JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,6 +41,7 @@ class Submission(BaseModel):
 
 
 class HumanReview(BaseModel):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     feedback: str = Field(min_length=1, max_length=5000)
     score: int | None = Field(default=None, ge=0, le=100)
     model: str | None = None
@@ -150,11 +151,18 @@ def submit(req: Submission):
 
 
 @router.get('')
-def list_submissions():
+def list_submissions(limit: int = Query(50, ge=1, le=100), before: int | None = Query(None, ge=1)):
+    reviewer = role.get() in ('editor', 'admin')
+    clauses, parameters = [], []
+    if not reviewer:
+        clauses.append('owner=?'); parameters.append(identity_id.get())
+    if before is not None:
+        clauses.append('rowid<?'); parameters.append(before)
+    where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
     with connect() as db:
-        rows = db.execute('SELECT body FROM drawings ORDER BY rowid DESC LIMIT 100') if role.get() in ('editor', 'admin') else db.execute(
-            'SELECT body FROM drawings WHERE owner=? ORDER BY rowid DESC LIMIT 100', (identity_id.get(),))
-        return {'drawings': [public(json.loads(r['body'])) for r in rows], 'can_review': role.get() in ('editor', 'admin')}
+        rows = db.execute('SELECT rowid AS cursor, body FROM drawings' + where + ' ORDER BY rowid DESC LIMIT ?', [*parameters, limit + 1]).fetchall()
+        return JSONResponse({'drawings': [public(json.loads(r['body'])) for r in rows[:limit]],
+            'can_review': reviewer, 'next_cursor': rows[limit - 1]['cursor'] if len(rows) > limit else None}, headers={'Cache-Control': 'no-store'})
 
 
 @router.get('/vision-models')

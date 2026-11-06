@@ -19,6 +19,7 @@ from app.retriever import get_retriever
 from app.prompt_library import PROMPT_VERSION, PromptProfile, render_prompt
 from app.generation import validation_feedback
 from app.safety import SafetyError
+from app.drawing_requirements import normalize_requirement
 
 router = APIRouter(prefix='/api/coach', tags=['Preparation coach'])
 
@@ -47,6 +48,7 @@ class Question(BaseModel):
 
     @model_validator(mode='after')
     def validate_answer_shape(self):
+        normalize_requirement(self)
         if self.drawing_required and self.type in ('mcq', 'true_false'):
             raise ValueError('Drawing tasks require a written-answer question')
         if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.answer not in self.options):
@@ -71,6 +73,7 @@ def generate_questions(req: Start, model: str, context: str, focus: str) -> list
     """Keep each response within the configured output budget, never accept partial JSON."""
     questions = []
     schema = QuestionBatch.model_json_schema()
+    schema['$defs']['Question']['required'] += ['drawing_required', 'drawing_prompt']
     required_type = 'free_response' if req.mode == 'interview' else req.question_type
     if required_type != 'mixed':
         properties = schema['$defs']['Question']['properties']

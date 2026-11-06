@@ -118,3 +118,28 @@ def test_png_transparency_is_composited_on_white():
     buffer = io.BytesIO(); Image.new('RGBA', (32, 32), (0, 0, 0, 0)).save(buffer, 'PNG')
     result = normalized_png('data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode())
     assert Image.open(io.BytesIO(result)).getpixel((0, 0)) == (255, 255, 255)
+
+
+def test_explicit_drawing_instruction_cannot_be_mislabelled_by_a_model():
+    from app.quiz import QuizItem
+    from app.coach import Question
+    from app.drawing_requirements import requires_drawing
+    assert not requires_drawing('Which command lets you draw a graph?')
+    assert not requires_drawing('Draw conclusions from this graph.')
+    question = 'Draw a labelled free-body diagram for a stationary block.'
+    quiz = QuizItem(type='short_answer', question=question, drawing_required=False, drawing_prompt='The solution is normal up, weight down.', source='mechanics.txt', sample_answer='Normal up, weight down.')
+    coach = Question(type='free_response', question=question, drawing_required=False, topic='Physics', answer='Normal up, weight down.')
+    assert quiz.drawing_required and coach.drawing_required
+    assert quiz.drawing_prompt and coach.drawing_prompt
+    assert 'solution' not in quiz.drawing_prompt and 'weight' not in quiz.drawing_prompt
+
+
+def test_review_pagination_does_not_hide_older_submissions(client):
+    created = [client.post('/api/drawings', json=submission()).json()['id'] for _ in range(3)]
+    first = client.get('/api/drawings?limit=2')
+    assert first.headers['cache-control'] == 'no-store'
+    body = first.json()
+    assert [d['id'] for d in body['drawings']] == created[::-1][:2]
+    second = client.get(f"/api/drawings?limit=2&before={body['next_cursor']}").json()
+    assert second['drawings'][0]['id'] == created[0]
+    assert second['next_cursor'] is None
