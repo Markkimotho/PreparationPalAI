@@ -38,6 +38,8 @@ class Start(BaseModel):
 class Question(BaseModel):
     type: Literal['mcq', 'true_false', 'short_answer', 'free_response']
     question: str = Field(min_length=1)
+    drawing_required: bool = False
+    drawing_prompt: str = Field(default='', max_length=1000)
     topic: str = Field(min_length=1)
     answer: str = Field(min_length=1)
     options: dict[str, str] = {}
@@ -45,6 +47,8 @@ class Question(BaseModel):
 
     @model_validator(mode='after')
     def validate_answer_shape(self):
+        if self.drawing_required and self.type in ('mcq', 'true_false'):
+            raise ValueError('Drawing tasks require a written-answer question')
         if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.answer not in self.options):
             raise ValueError('MCQ requires four options and a matching answer')
         if self.type == 'true_false' and self.answer.lower() not in ('true', 'false'):

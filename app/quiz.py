@@ -38,6 +38,8 @@ class QuizItem(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     type: Literal['mcq', 'true_false', 'short_answer']
     question: str = Field(min_length=1)
+    drawing_required: bool = False
+    drawing_prompt: str = Field(default='', max_length=1000)
     source: str = Field(min_length=1)
     difficulty: str = 'medium'
     correct: str | bool | None = None
@@ -48,6 +50,8 @@ class QuizItem(BaseModel):
 
     @model_validator(mode='after')
     def valid_answer(self):
+        if self.drawing_required and self.type != 'short_answer':
+            raise ValueError('Drawing tasks require a written-answer question')
         if self.type == 'mcq' and (set(self.options) != set('ABCD') or self.correct not in self.options):
             raise ValueError('MCQ needs four options and one matching answer')
         if self.type == 'mcq' and any(not text for text in self.options.values()):
