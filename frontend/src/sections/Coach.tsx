@@ -79,16 +79,16 @@ export function Coach() {
         setSession(await request<Session>('/sessions', { learner, topic, mode, difficulty, n, minutes, question_type: questionType, model: selected || undefined }));
         setFeedback(false); await refresh();
       }); }}>
-        <h3>What are you working towards?</h3>
+        <h3>Study session</h3>
         <div className={styles.modes}>{[
           ['recap', 'Learn & recap', 'Build understanding, then test recall.'],
           ['exam', 'Exam practice', 'Mixed questions, with an optional timer.'],
           ['interview', 'Technical interview', 'Explain your reasoning and tackle follow-ups.'],
           ['review', 'Weak-area review', 'Return to the concepts you missed.'],
-        ].map(([id, title, description]) => <button key={id} type="button" aria-pressed={mode === id}
+        ].map(([id, title, description]) => <button key={id} type="button" disabled={busy} aria-pressed={mode === id}
           className={mode === id ? styles.active : ''} onClick={() => setMode(id)}>
           <strong>{title}</strong><span>{description}</span></button>)}</div>
-        <label>Topic, subject, or syllabus focus<input required maxLength={500} value={topic}
+        <label>Topic, subject, or syllabus focus<input required disabled={busy} maxLength={500} value={topic}
           placeholder="Thermodynamics, molecular biology, quantum mechanics…" onChange={e => setTopic(e.target.value)} /></label>
         <div className={styles.row}>
           {mode !== 'interview' && <Select label="Question format" value={questionType} onChange={setQuestionType}

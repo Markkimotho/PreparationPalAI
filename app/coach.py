@@ -61,7 +61,16 @@ class QuestionBatch(BaseModel):
 def generate_questions(req: Start, model: str, prompt: str) -> list[dict]:
     """Keep each response within the configured output budget, never accept partial JSON."""
     questions = []
-    llm = _get_llm(model, response_format=QuestionBatch.model_json_schema())
+    schema = QuestionBatch.model_json_schema()
+    required_type = 'free_response' if req.mode == 'interview' else req.question_type
+    if required_type != 'mixed':
+        properties = schema['$defs']['Question']['properties']
+        properties['type']['enum'] = [required_type]
+        if required_type == 'mcq':
+            properties['answer']['enum'] = list('ABCD')
+            properties['options'] = dict(type='object', properties={key: {'type': 'string'} for key in 'ABCD'},
+                                         required=list('ABCD'), additionalProperties=False)
+    llm = _get_llm(model, response_format=schema)
     while len(questions) < req.n:
         count = min(2, req.n - len(questions))
         instruction = (f'Generate exactly {count} questions for this batch. '
@@ -185,15 +194,16 @@ def start(req: Start):
         docs = get_retriever(top_k=8).invoke(focus)
     except Exception:
         docs = []
-    context = _build_context(docs)[:24000]
+    context = _build_context(docs)[:12000]
     grounding = 'documents' if docs else 'model-general knowledge'
+    format_rule = ('Use only free_response questions.' if req.mode == 'interview' else
+                   f'Use only {req.question_type} questions.' if req.question_type != 'mixed' else
+                   'Use a mix of mcq, true_false, short_answer and free_response questions.')
     prompt = f'''Create {req.difficulty} questions about {focus} for {req.mode}.
 Cover sciences, mathematics, engineering or other fields as requested.
 For recap: progress from definitions to application. For interview: probe reasoning,
 tradeoffs, assumptions and derivations. Include calculation, units, multi-step problems
-and interpretation when appropriate. Exam MUST mix at least two formats.
-Interview uses free_response. For other modes the requested format is {req.question_type}.
-For mixed use at least two of mcq, true_false, short_answer or free_response.
+and interpretation when appropriate. {format_rule}
 Use only the context when present. Otherwise use general knowledge, acknowledge uncertainty,
 and never invent sources. Include a precise reference answer and solution in explanation.
 Return ONLY a JSON object with a questions array. Each question has: type, question, topic (specific subtopic),

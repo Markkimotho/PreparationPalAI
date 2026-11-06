@@ -165,3 +165,19 @@ def test_failed_generation_is_actionable_and_does_not_save_partial_session(local
     assert 'fewer questions' in response.json()['detail']
     assert client.get('/api/coach/history?learner=alice').json()['sessions'] == []
     assert llm.return_value.invoke.call_count == 2
+
+
+def test_requested_format_is_enforced_by_schema_and_prompt(local_runtime):
+    llm, _ = local_runtime
+    llm.return_value.invoke.return_value.content = json.dumps([
+        QUESTIONS[0], dict(QUESTIONS[0], question='Which unit measures work?')])
+    response = client.post('/api/coach/sessions', json=dict(learner='alice', topic='Physics',
+        model='test:7b', n=2, question_type='mcq'))
+    assert response.status_code == 200
+    schema = llm.call_args.kwargs['response_format']['$defs']['Question']['properties']
+    assert schema['type']['enum'] == ['mcq']
+    assert schema['answer']['enum'] == list('ABCD')
+    assert schema['options']['required'] == list('ABCD')
+    prompt = llm.return_value.invoke.call_args.args[0][0].content
+    assert 'Use only mcq questions.' in prompt
+    assert 'For mixed use' not in prompt
