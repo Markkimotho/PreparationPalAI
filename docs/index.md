@@ -1,14 +1,10 @@
 ---
 title: User guide
 description: How to use PreparationPalAI for exam practice, technical interviews, and revision with local models.
+template: home.html
+hide:
+  - toc
 ---
-# User guide
-
-PreparationPalAI generates practice questions, explains topics, and answers questions
-from your notes using local models. This guide covers the app’s controls and study workflows.
-
-New to the app? [Run your first study session](start/first-session.md).
-If you haven’t installed it or joined a workspace, [start with access and installation](start/access.md).
 
 ## Study workflows
 
