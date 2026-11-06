@@ -21,4 +21,4 @@ implemented behavior and the remaining verification needed before closing issues
 
 No issues are automatically closed while the remaining live/deployment checks are
 unverified. See security, inference, ingestion, quality, operations and deployment
-documents in this directory for setup and reproduction commands.
+documents in [runbooks](runbooks/security.md) for setup and reproduction commands.
