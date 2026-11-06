@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkMath from "remark-math";
+import remarkGfm from 'remark-gfm';
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import styles from "./Markdown.module.css";
@@ -46,7 +47,7 @@ export function Markdown({ children }: { children: string }) {
   return (
     <div className={`md ${styles.md}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkMath]}
+        remarkPlugins={[remarkMath, remarkGfm]}
         rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }], [rehypeKatex, { strict: false, trust: false }]]}
         components={{
           // Model/document text must not trigger automatic requests to arbitrary
