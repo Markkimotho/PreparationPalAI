@@ -1,0 +1,35 @@
+INHERIT: mkdocs.base.yml
+site_name: PreparationPalAI · User guide
+site_description: Learn how to prepare for exams, technical interviews, and deeper understanding with PreparationPalAI.
+site_url: https://markkimotho.github.io/PreparationPalAI/
+docs_dir: docs
+site_dir: site
+edit_uri: edit/main/docs/
+extra:
+  audience: learner
+  portal_label: User guide
+  other_portal_label: Contributor handbook
+  other_portal_url: /PreparationPalAI/contribute/
+nav:
+  - Welcome: index.md
+  - Get started:
+      - Your first study session: start/first-session.md
+      - Open or install PreparationPalAI: start/access.md
+      - Find your way around: start/workspace.md
+  - Use PreparationPalAI:
+      - Preparation Coach: features/coach.md
+      - Your study material: features/material.md
+      - Quiz Prep: features/quizzes.md
+      - Study Agent: features/tutor.md
+      - Document chat: features/chat.md
+      - Flashcards: features/flashcards.md
+      - Programming Assistant: features/code.md
+      - Choose a model: features/models.md
+  - Study playbooks:
+      - Prepare for an exam: playbooks/exams.md
+      - Practise a technical interview: playbooks/interviews.md
+      - Recap a topic: playbooks/recap.md
+  - Help:
+      - Troubleshooting: help/troubleshooting.md
+      - Privacy and workspaces: help/privacy.md
+      - Questions and limitations: help/faq.md

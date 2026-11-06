@@ -1,5 +1,8 @@
 # Operational triage
 
+For maintainers investigating service health. Learners can use
+[troubleshooting](https://markkimotho.github.io/PreparationPalAI/help/troubleshooting/).
+
 `/health/live` checks the API process without calling providers. `/health/ready`
 returns 503 until Ollama, the configured chat and embedding models, and vector
 storage are available. Its response contains dependency booleans, never model

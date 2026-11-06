@@ -1,5 +1,8 @@
 # Workspace access
 
+This reference is for workspace administrators and maintainers. For learner-facing
+sign-in help, use the [product guide](https://markkimotho.github.io/PreparationPalAI/help/privacy/).
+
 Local development defaults to a single `local` workspace. Enable authentication
 before exposing the API outside a trusted machine. `PRODUCTION=true` refuses to
 start unless `AUTH_ENABLED=true` and `AUTH_TOKENS` is configured.

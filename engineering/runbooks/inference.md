@@ -1,5 +1,8 @@
 # Bounded local inference
 
+Server configuration reference for maintainers. Model selection in the app is
+covered in the [product guide](https://markkimotho.github.io/PreparationPalAI/features/models/).
+
 Runtime inference and embeddings use Ollama only. Optional cloud dependencies in
 the package metadata do not activate a cloud fallback. Configure `OLLAMA_BASE_URL`,
 `OLLAMA_MODEL`, and `OLLAMA_EMBEDDING_MODEL` on the server. URLs with embedded
