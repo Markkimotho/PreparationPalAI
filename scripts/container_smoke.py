@@ -21,7 +21,7 @@ def main():
             if attempt == 44:
                 raise
             time.sleep(2)
-    assert 'Study deeply.' in call('/')
+    assert 'Practise the questions' in call('/')
     assert 'id="root"' in call('/prepare')
     # Construct a real, minimal PDF using the runtime's actual parser dependency.
     import fitz

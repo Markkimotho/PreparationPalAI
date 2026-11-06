@@ -51,7 +51,7 @@ def main():
                 page.keyboard.press('Escape')
                 assert trigger.evaluate('(el) => el === document.activeElement')
         page.goto(base)
-        page.get_by_role('heading', name='Study deeply. Prepare confidently.').wait_for()
+        page.get_by_role('heading', name='Practise the questions you need to answer.').wait_for()
         page.screenshot(path=str(output / 'landing.png'), full_page=True)
         assert not errors, errors
         browser.close()
