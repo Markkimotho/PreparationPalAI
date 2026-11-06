@@ -235,7 +235,7 @@ The legacy Streamlit UI is still runnable with `streamlit run app/ui.py` (port 8
 
 - Ollama for LLM inference and embeddings — any supported open-source model
 - ChromaDB for persistent vector storage — no account needed
-- Zero data leaves your machine
+- Inference runs through your configured Ollama server; web search contacts external sources when requested
 
 ---
 
