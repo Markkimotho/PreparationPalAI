@@ -7,6 +7,11 @@ sync with frontend/src/api/types.ts.
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+from app.prompt_library import PromptProfile
+
+
+class StudyRequest(BaseModel):
+    profile: PromptProfile = Field(default_factory=PromptProfile)
 
 # ── Health / models ─────────────────────────────────────────────────────────
 
@@ -65,7 +70,7 @@ class SourcesResponse(BaseModel):
 # ── Chat (Regular Chat, RAG) ────────────────────────────────────────────────
 
 
-class ChatRequest(BaseModel):
+class ChatRequest(StudyRequest):
     question: str = Field(min_length=1)
     session_id: str = "default"
     mode: Literal["langchain", "langgraph"] = "langchain"
@@ -76,7 +81,7 @@ class ChatRequest(BaseModel):
 # ── Programming assistant ──────────────────────────────────────────────────
 
 
-class CodeChatRequest(BaseModel):
+class CodeChatRequest(StudyRequest):
     message: str = Field(min_length=1)
     thread_id: str = "default"
     model: str | None = None
@@ -86,7 +91,7 @@ class CodeChatRequest(BaseModel):
 # ── Study agent ────────────────────────────────────────────────────────────
 
 
-class AgentRequest(BaseModel):
+class AgentRequest(StudyRequest):
     message: str = Field(min_length=1)
     thread_id: str = "default"
     model: str | None = None
@@ -95,7 +100,7 @@ class AgentRequest(BaseModel):
 # ── Quiz ───────────────────────────────────────────────────────────────────
 
 
-class QuizGenerateRequest(BaseModel):
+class QuizGenerateRequest(StudyRequest):
     topic: str = Field(min_length=1)
     question_type: Literal["mcq", "true_false", "short_answer", "mixed"] = "mcq"
     n: int = Field(default=10, ge=1, le=20)
@@ -104,7 +109,7 @@ class QuizGenerateRequest(BaseModel):
     model: str | None = None
 
 
-class QuizValidateRequest(BaseModel):
+class QuizValidateRequest(StudyRequest):
     question: str = Field(min_length=1)
     correct_answer: Any
     student_answer: str = ""
@@ -112,7 +117,7 @@ class QuizValidateRequest(BaseModel):
     model: str | None = None
 
 
-class ExplainRequest(BaseModel):
+class ExplainRequest(StudyRequest):
     concept: str = Field(min_length=1)
     model: str | None = None
 
@@ -158,7 +163,7 @@ class CardInput(BaseModel):
     back: str = Field(min_length=1)
 
 
-class GenerateDeckRequest(BaseModel):
+class GenerateDeckRequest(StudyRequest):
     topic: str = Field(min_length=1)
     n: int = Field(default=10, ge=1, le=50)
     model: str | None = None
