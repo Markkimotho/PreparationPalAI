@@ -44,6 +44,9 @@ export function Markdown({ children }: { children: string }) {
         remarkPlugins={[remarkMath]}
         rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }], [rehypeKatex, { strict: false, trust: false }]]}
         components={{
+          // Model/document text must not trigger automatic requests to arbitrary
+          // image hosts (which could encode private content in a URL).
+          img: ({ alt }) => <span>[Image omitted{alt ? `: ${alt}` : ''}]</span>,
           pre: ({ children }) => {
             const text = extractText(children);
             return (

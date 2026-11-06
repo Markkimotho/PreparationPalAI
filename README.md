@@ -25,18 +25,22 @@ Quiz Prep screen remains document-based. Equations in Markdown use `$inline$` or
 answers: generation errors offer a retry/model change, and rubric scores are
 practice feedback rather than official marks.
 
-The browser stores a random learner identifier; this is a local learning profile,
-not authentication. Clearing browser storage creates a new profile. This release
-does not implement the separate multi-user authentication/isolation issue #1.
+The browser stores a random learner identifier for study history. Optional bearer-key
+authentication scopes that history, documents, vectors, decks and conversations to
+a server-authorized workspace. Keys are held only in tab memory. Production startup
+requires authentication; see [workspace access](docs/security.md) for roles, token
+configuration, isolation, rotation and revocation.
 
 ### GLM and DeepSeek
 
 The model picker merges the backend catalogue with all installed Ollama chat
 models. Select a model and choose **Pull** to download it. Pulling shows a pending
-state and a final success/error message (not byte-level download progress). Model
+state, byte progress where available, and a final success/error message. Model
 info explains the recommended use, memory/speed guidance, and known or unverified
 capabilities. Requests fail with an actionable message before inference if the
-selected model is missing. Existing selections are retained across catalogue refreshes.
+selected model is missing. Each study mode retains its own model choice across
+navigation and catalogue refreshes. Server-wide model pulls require an admin key
+when authentication is enabled.
 
 Default additional choices are [`glm4:9b`](https://ollama.com/library/glm4) and
 [`deepseek-r1:7b`](https://ollama.com/library/deepseek-r1). Override their exact
@@ -73,10 +77,22 @@ Additional settings:
 
 Docker mounts a separate `coach_data` volume. Back up this volume along with
 `chroma_data` and `flashcards_data` to preserve learning history and material.
+Ingestion now runs through a durable queue with worker leases, retries and saved
+job status. Docker starts a separate worker; local development starts an embedded
+worker. Queue files and usage budgets have their own volumes.
+
+Operational documentation:
+
+- [Bounded inference and usage budgets](docs/inference.md)
+- [Safe uploads, extraction and URL fetching](docs/ingestion.md)
+- [Quality and release gates](docs/quality.md)
+- [Readiness, privacy-safe logs and alerts](docs/operations.md)
+- [Production topology, backups and recovery](docs/deployment.md)
 
 ### Verification
 
-Run `python -m pytest tests -q` and `cd frontend && npm test && npm run build`.
+Use Node.js 22.12+ for the frontend. Run `python -m pytest tests -q` and
+`cd frontend && npm ci && npm test && npm run build`.
 For browser smoke checks, run the built app with
 `uvicorn app.api:app --port 8018`, install Playwright/Chromium if needed, and run
 `python scripts/check_responsive.py`. To use an installed Chrome, set

@@ -3,6 +3,8 @@ import argparse
 import json
 import re
 import tempfile
+import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -27,6 +29,8 @@ def run(live=False, model=None):
         assert case['source'] in {d.metadata['source'] for d in docs}
         assert case['terms']
     report = dict(dataset_version=data['version'], mode='live' if live else 'offline-contract',
+                  dataset_sha256=hashlib.sha256(DATASET.read_bytes()).hexdigest(),
+                  evaluated_at=datetime.now(timezone.utc).isoformat(),
                   model=model, embedding_model=get_settings().ollama_embedding_model, cases=[])
     if not live:
         report.update(passed=True, checks=len(data['cases']),
@@ -46,6 +50,8 @@ def run(live=False, model=None):
     if not selected:
         raise RuntimeError('Requested evaluation model is not installed')
     report.update(model=model, model_digest=selected.get('digest'),
+                  embedding_digest=next((t.get('digest') for t in tags if t['name'] in (
+                      settings.ollama_embedding_model, settings.ollama_embedding_model + ':latest')), None),
                   ollama_version=httpx.get(f'{settings.ollama_base_url}/api/version', timeout=5).json())
     with tempfile.TemporaryDirectory(prefix='preppal-eval-') as temp:
         store = Chroma(collection_name='quality-golden', persist_directory=temp, embedding_function=get_embeddings())

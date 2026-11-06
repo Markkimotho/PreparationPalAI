@@ -72,3 +72,10 @@ copy them into new named volumes with UID 10001 ownership, keep the old volumes 
 rollback, start Ollama/worker/API, then check readiness and the deployment smoke
 script. Restart interrupted jobs only after verifying workspace keys and access.
 Round-trip and unsafe-archive tests run in CI.
+
+Run `python -m scripts.deployment_smoke` for read-only readiness/frontend/API probes,
+with `SMOKE_BASE_URL` and `SMOKE_ACCESS_KEY` in the environment. Pass `--exercise`
+only against a disposable workspace: it deliberately adds public study material,
+waits for ingestion, and checks streamed chat tokens/completion. This requires real
+installed models and external search connectivity; the deterministic browser smoke
+script uses mocked dependencies and is separate from the deployment exercise.
