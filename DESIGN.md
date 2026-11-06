@@ -1,7 +1,9 @@
 # Application UI
 
-Applies to the study workspace and public app landing page. The MkDocs user guide
-and contributor handbook have their own theme and are outside this system.
+Applies to the study workspace, public app landing page, and documentation portals.
+MkDocs has its own theme and token definitions in `docs_theme/`, while sharing the
+app’s typography and restrained palette. Learner and engineering documentation
+remain separate portals with independent navigation and search.
 
 The app is a study workbench: choose a topic, practise, read feedback, and revisit
 missed concepts. Keep that task ahead of promotional copy or decoration.
@@ -21,6 +23,9 @@ missed concepts. Keep that task ahead of promotional copy or decoration.
   raw model responses or exception dumps in an error message.
 - Check 320px phones as well as desktop. Menus must fit; labels and primary actions
   must remain readable. Honour reduced motion and avoid decorative route transitions.
+- Documentation keeps the existing science study card as its visual identity.
+  Preserve the equation, note, and orbit composition; keep labels readable and avoid
+  adding repeated promotional cards or calls to action around it.
 
 These decisions follow the [Hallmark](https://www.usehallmark.com/) principles of
 restrained colour, task-led app screens, real product evidence, and deliberate controls.
