@@ -3,7 +3,8 @@ description: Configure learner profiles, maintain task-specific prompts, and eva
 ---
 # Study prompts
 
-The current registry is `study-v2`. Runtime checks complement these prompts; see
+The current registry is `study-v3`. It adds drawing requirement metadata and a
+visual-review contract. Runtime checks complement these prompts; see
 [study guardrails and exports](runbooks/study-guardrails.md) for the enforced
 boundaries, live regressions, and limitations.
 
@@ -27,6 +28,7 @@ than relying on a model’s claimed expertise or making every prompt longer.
 | `interview_followup` | Coach interviews | One relevant gap or tradeoff, hidden reference answer |
 | `adaptive_question` | Coach recap/review | Scaffold the misconception and preserve question type |
 | `document_analysis` | Analysis and insights | Findings versus interpretation, source-backed numbers |
+| `drawing_review` | AI drawing feedback | Actual image observations, visible labels/relationships, uncertainty, no automatic score |
 
 Every task combines common epistemic rules, discipline checks, a task contract,
 an output contract and a JSON data payload. Learner text, references, code and

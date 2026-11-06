@@ -70,3 +70,6 @@ follow-ups can add a question, so the total may grow during an interview session
     easier to check; it does not certify that every generated statement is correct.
 
 **Next:** [Exam playbook](../playbooks/exams.md) · [Interview playbook](../playbooks/interviews.md)
+
+For visual work, use the [drawing workspace](drawings.md) to sketch and submit a
+diagram for separate AI or human feedback.

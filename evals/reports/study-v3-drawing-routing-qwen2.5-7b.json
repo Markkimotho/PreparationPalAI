@@ -1,0 +1,32 @@
+{
+  "evaluated_at": "2026-11-06T13:11:30.212560+00:00",
+  "model": "qwen2.5:7b",
+  "model_digest": "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e",
+  "prompt_version": "study-v3",
+  "prompt_sha256": "9dd77d54cdb4d5cf024723c556632c151d5296216d6ccc34d65731ca97de4c67",
+  "normalizer_sha256": "629f70becb7d2f2c769e2d941f85da84e57400ad5947626e9adeb82754dc5cd3",
+  "request": "Draw a labelled free-body diagram for a stationary block on a horizontal surface",
+  "source": "A stationary block on a horizontal surface has zero net force. Weight mg acts down; normal force N acts up. N = mg. A free-body diagram shows the isolated block and these two labelled arrows.",
+  "questions": [
+    {
+      "type": "short_answer",
+      "question": "Draw a labelled free-body diagram for a stationary block on a horizontal surface.",
+      "drawing_required": true,
+      "drawing_prompt": "Create the visual answer requested in the question. Include clear labels, directions and units where relevant.",
+      "source": "mechanics.txt",
+      "difficulty": "medium",
+      "options": {},
+      "explanation": "",
+      "sample_answer": "A block with an arrow pointing down labeled 'Weight (mg)' and an arrow pointing up labeled 'Normal Force (N)'.",
+      "key_concepts": [
+        "free-body diagram",
+        "stationary object",
+        "weight",
+        "normal force"
+      ]
+    }
+  ],
+  "passed": true,
+  "seconds": 53.04,
+  "limits": "One synthetic drawing-question routing/neutral-brief regression, including server normalization. No vision model installed; visual review quality has not been evaluated."
+}

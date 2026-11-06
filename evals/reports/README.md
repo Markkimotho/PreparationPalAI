@@ -1,5 +1,20 @@
 # Recorded local-model checks
 
+## Study-v3 drawing routing
+
+`study-v3-drawing-routing-qwen2.5-7b.json` records one live question-generation
+check using a synthetic mechanics passage. The resulting written question has a
+drawing requirement and a neutral pre-attempt brief. The report includes model,
+prompt-registry and metadata-normalizer hashes. It tests routing and answer hiding,
+including server normalization, rather than independent diagram-grading accuracy.
+There was no vision-capable model installed, so visual AI review was tested with
+mock transport and real image payloads, not a live vision-quality evaluation.
+
+During development, a generated drawing task was initially marked text-only, and a
+later model-generated brief exposed its reference solution. Required metadata plus
+server normalization now correct explicit drawing instructions and replace briefs
+with neutral guidance. The model's classification and wording are not trusted alone.
+
 ## Study-v2 guardrails
 
 `study-v2-guardrails-qwen2.5-7b.json` is the unedited output of:
