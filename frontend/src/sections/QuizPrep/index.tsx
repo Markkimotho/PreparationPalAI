@@ -1,4 +1,5 @@
 import { useReducer, useState } from "react";
+import { StudyExport } from '../../components/StudyExport';
 import { api, ApiError } from "../../api/client";
 import { useModelContext } from "../../context/ModelContext";
 import { FeedbackCard } from "./FeedbackCard";
@@ -94,6 +95,7 @@ export function QuizPrep() {
     <div className={sectionStyles.section}>
       <div className={styles.scroll}>
         <div className={styles.container}>
+          {state.questions.length > 0 && <StudyExport title={state.config?.topic || 'Practice exam'} questions={state.questions} />}
           {state.phase === "setup" && (
             <SetupPanel
               generating={generating}

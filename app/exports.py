@@ -146,7 +146,9 @@ def export_study(req: ExportRequest):
         deck = get_deck(req.deck_id)
         if not deck:
             raise HTTPException(404, 'Deck not found')
-        req.questions = [ExportQuestion(question=c['front'], sample_answer=c['back']) for c in deck['cards'][:50]]
+        if len(deck['cards']) > 50:
+            raise HTTPException(422, 'Study packs support up to 50 cards. Split this deck before exporting.')
+        req.questions = [ExportQuestion(question=c['front'], sample_answer=c['back']) for c in deck['cards']]
         req.title = deck['name'][:160]
     if not req.questions:
         raise HTTPException(422, 'There are no questions to export.')

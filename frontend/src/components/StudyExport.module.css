@@ -1,0 +1,6 @@
+.export { border-top: 1px solid var(--border); margin-block: 20px; padding-block: 16px; }
+.controls { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.controls > * { flex: 1 1 150px; min-width: 0; }
+.controls button { min-height: 44px; }
+.export p { font-size: var(--fs-sm); color: var(--text-dim); margin-block: 10px 0; }
+.export [role="alert"] { color: var(--danger, #9e302d); }

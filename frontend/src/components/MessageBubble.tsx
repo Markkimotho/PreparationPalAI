@@ -2,6 +2,7 @@ import type { ChatMessage } from "../api/types";
 import { Markdown } from "./Markdown";
 import { Spinner } from "./Spinner";
 import styles from "./MessageBubble.module.css";
+import { StudyExport } from './StudyExport';
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
@@ -47,6 +48,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
             </ul>
           </details>
         )}
+        {!isUser && !message.streaming && message.questions?.length ? <StudyExport questions={message.questions} /> : null}
       </div>
     </div>
   );

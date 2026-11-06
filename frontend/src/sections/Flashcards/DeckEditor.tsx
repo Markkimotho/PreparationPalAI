@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import type { Deck } from "../../api/types";
 import { Spinner } from "../../components/Spinner";
+import { StudyExport } from '../../components/StudyExport';
 import styles from "./Flashcards.module.css";
 
 interface Props {
@@ -84,6 +85,7 @@ export function DeckEditor({ deckId, onBack, onStudy, onChanged }: Props) {
       </div>
 
       <h2 className={styles.editorTitle}>{deck.name}</h2>
+      {deck.cards.length > 0 && <StudyExport title={deck.name} deckId={deck.id} />}
 
       <div className={styles.addCard}>
         <input
