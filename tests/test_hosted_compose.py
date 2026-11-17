@@ -136,3 +136,25 @@ def test_every_new_service_has_limits_and_a_restart_policy():
         assert 'mem_limit' in service and service.get('restart') == 'unless-stopped', name
     for name in ('logto-db', 'app-db'):
         assert 'healthcheck' in COMPOSE['services'][name] and COMPOSE['services'][name]['volumes']
+
+
+# ---- payments ----------------------------------------------------------------------------
+
+def test_only_the_paddle_webhook_path_of_billing_is_public():
+    caddy = (ROOT / 'deploy' / 'Caddyfile.hosted').read_text()
+    assert caddy.count('billing:8100') == 1
+    block = caddy[caddy.index('handle /webhooks/paddle'):]
+    assert block.split('}')[0].strip().endswith('reverse_proxy billing:8100')
+    assert 'handle {' in caddy                                       # everything else still goes to the app
+
+
+def test_billing_is_configured_for_paddle_without_inline_secrets():
+    values = dict(e.split('=', 1) for e in COMPOSE['services']['billing']['environment'])
+    for name in ('PADDLE_API_KEY', 'PADDLE_WEBHOOK_SECRET', 'PADDLE_CLIENT_TOKEN', 'PADDLE_PRICE_IDS', 'PADDLE_ENVIRONMENT'):
+        assert values[name].startswith('${' + name), name
+
+
+def test_the_app_points_learners_to_the_account_page_and_publishes_the_web_client_id():
+    values = env('web')
+    assert values['TOP_UP_URL'] == 'https://${PUBLIC_HOST:?Set your public hostname}/account'
+    assert values['OIDC_WEB_CLIENT_ID'].startswith('${OIDC_WEB_CLIENT_ID:?')

@@ -204,3 +204,17 @@ def test_a_paddle_failure_during_checkout_is_a_clear_502(monkeypatch):
 
 def test_checkout_needs_the_service_token():
     assert TestClient(app).post('/v1/checkout', json={'account_id': 'a1', 'pack': 'web-5'}).status_code == 401
+
+
+def test_live_mode_talks_to_paddles_live_api(monkeypatch):
+    calls = []
+    monkeypatch.setenv('PADDLE_ENVIRONMENT', 'live')
+    monkeypatch.setattr(paddle, 'http_client', lambda: paddle_api(calls))
+    client.post('/v1/checkout', json={'account_id': 'a1', 'pack': 'web-5'}, headers=AUTH)
+    assert calls[0][0] == 'api.paddle.com'
+
+
+def test_anything_but_live_is_sandbox(monkeypatch):
+    monkeypatch.setenv('PADDLE_ENVIRONMENT', 'production')            # a typo must never mean real money
+    from billing.settings import get_settings
+    assert get_settings().paddle_environment == 'sandbox'

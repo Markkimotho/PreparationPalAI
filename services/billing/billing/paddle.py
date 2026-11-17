@@ -51,7 +51,8 @@ def create_transaction(pack: Pack, account_id: str) -> str:
         raise PaddleError('not_configured')
     with http_client() as http:
         try:
-            response = http.post(f"{BASE[settings.paddle_environment]}/transactions",
+            base = settings.paddle_api_base.rstrip('/') or BASE[settings.paddle_environment]
+            response = http.post(f"{base}/transactions",
                                  headers={'Authorization': f'Bearer {settings.paddle_api_key}'},
                                  json={'items': [{'price_id': price, 'quantity': 1}],
                                        'custom_data': {'account_id': account_id, 'pack': pack.id}})

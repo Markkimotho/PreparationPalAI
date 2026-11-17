@@ -16,6 +16,7 @@ class Settings:
     paddle_environment: str = field(default_factory=lambda: 'live' if os.environ.get('PADDLE_ENVIRONMENT') == 'live' else 'sandbox')
     paddle_webhook_secret: str = field(default_factory=lambda: os.environ.get('PADDLE_WEBHOOK_SECRET', ''), repr=False)
     paddle_client_token: str = field(default_factory=lambda: os.environ.get('PADDLE_CLIENT_TOKEN', ''))
+    paddle_api_base: str = field(default_factory=lambda: os.environ.get('PADDLE_API_BASE', ''))   # tests only; empty = Paddle's own
     paddle_webhook_tolerance: float = field(default_factory=lambda: float(os.environ.get('PADDLE_WEBHOOK_TOLERANCE', '300')))
     pool_max: int = field(default_factory=lambda: int(os.environ.get('BILLING_POOL_MAX', '20')))
 

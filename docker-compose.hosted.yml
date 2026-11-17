@@ -23,7 +23,8 @@ x-app-env: &app-env
   - BILLING_ENABLED=true
   - BILLING_BASE_URL=http://billing:8100
   - BILLING_SERVICE_TOKEN=${BILLING_SERVICE_TOKEN:?Set a long random token shared by the app and billing}
-  - TOP_UP_URL=${TOP_UP_URL:-}
+  - TOP_UP_URL=https://${PUBLIC_HOST:?Set your public hostname}/account
+  - OIDC_WEB_CLIENT_ID=${OIDC_WEB_CLIENT_ID:?Set the Logto web application id}
 
 services:
   web:
@@ -174,6 +175,11 @@ services:
       - BILLING_DATABASE_URL=postgresql://billing:${BILLING_DB_PASSWORD:?Set a long random database password}@billing-db:5432/billing
       - BILLING_SERVICE_TOKEN=${BILLING_SERVICE_TOKEN:?Set a long random token shared by the app and billing}
       - STARTER_GRANTS_PER_DAY=${STARTER_GRANTS_PER_DAY:-200}
+      - PADDLE_ENVIRONMENT=${PADDLE_ENVIRONMENT:-sandbox}
+      - PADDLE_API_KEY=${PADDLE_API_KEY:-}
+      - PADDLE_WEBHOOK_SECRET=${PADDLE_WEBHOOK_SECRET:-}
+      - PADDLE_CLIENT_TOKEN=${PADDLE_CLIENT_TOKEN:-}
+      - PADDLE_PRICE_IDS=${PADDLE_PRICE_IDS:-}
     depends_on:
       billing-db:
         condition: service_healthy
