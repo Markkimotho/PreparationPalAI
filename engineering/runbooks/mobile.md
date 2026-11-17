@@ -49,10 +49,11 @@ account there, and nothing else, in production. Staging may set `REVENUECAT_ACCE
 
 ```bash
 cd mobile
-npx eas login && npx eas init          # links the project (adds extra.eas.projectId)
-npx eas build --profile preview --platform all
-npx eas build --profile production --platform all
-npx eas submit --platform ios          # and android
+npx eas-cli@latest login               # the package is eas-cli; `npx eas` does not exist
+npx eas-cli@latest init                # links the project (adds extra.eas.projectId)
+npx eas-cli@latest build --profile preview --platform all
+npx eas-cli@latest build --profile production --platform all
+npx eas-cli@latest submit --platform ios   # and android
 ```
 
 Set `EXPO_PUBLIC_API_URL` per profile in `eas.json`. Bundle id and package are
