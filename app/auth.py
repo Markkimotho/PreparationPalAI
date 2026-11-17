@@ -24,6 +24,7 @@ def status():
         # Public sign-in configuration for the web client. Nothing here is a secret.
         endpoint = settings.oidc_issuer.rstrip('/').removesuffix('/oidc')
         body['web'] = {'endpoint': endpoint, 'client_id': settings.oidc_web_client_id, 'resource': settings.oidc_audience}
+        body['native'] = {'endpoint': endpoint, 'client_id': settings.oidc_native_client_id, 'resource': settings.oidc_audience}
     return body
 
 

@@ -140,14 +140,6 @@ def test_every_new_service_has_limits_and_a_restart_policy():
 
 # ---- payments ----------------------------------------------------------------------------
 
-def test_only_the_paddle_webhook_path_of_billing_is_public():
-    caddy = (ROOT / 'deploy' / 'Caddyfile.hosted').read_text()
-    assert caddy.count('billing:8100') == 1
-    block = caddy[caddy.index('handle /webhooks/paddle'):]
-    assert block.split('}')[0].strip().endswith('reverse_proxy billing:8100')
-    assert 'handle {' in caddy                                       # everything else still goes to the app
-
-
 def test_billing_is_configured_for_paddle_without_inline_secrets():
     values = dict(e.split('=', 1) for e in COMPOSE['services']['billing']['environment'])
     for name in ('PADDLE_API_KEY', 'PADDLE_WEBHOOK_SECRET', 'PADDLE_CLIENT_TOKEN', 'PADDLE_PRICE_IDS', 'PADDLE_ENVIRONMENT'):
@@ -158,3 +150,18 @@ def test_the_app_points_learners_to_the_account_page_and_publishes_the_web_clien
     values = env('web')
     assert values['TOP_UP_URL'] == 'https://${PUBLIC_HOST:?Set your public hostname}/account'
     assert values['OIDC_WEB_CLIENT_ID'].startswith('${OIDC_WEB_CLIENT_ID:?')
+
+
+def test_only_the_two_payment_notification_paths_of_billing_are_public():
+    caddy = (ROOT / 'deploy' / 'Caddyfile.hosted').read_text()
+    assert caddy.count('billing:8100') == 1
+    assert 'handle /webhooks/paddle /webhooks/revenuecat' not in caddy        # Caddy needs a named matcher for two paths
+    assert '@payments path /webhooks/paddle /webhooks/revenuecat' in caddy and 'handle @payments' in caddy
+
+
+def test_billing_is_configured_for_revenuecat_without_inline_secrets():
+    values = dict(e.split('=', 1) for e in COMPOSE['services']['billing']['environment'])
+    for name in ('REVENUECAT_WEBHOOK_AUTH', 'REVENUECAT_SIGNING_SECRET', 'REVENUECAT_PRODUCTS', 'REVENUECAT_SANDBOX_ACCOUNTS'):
+        assert values[name].startswith('${' + name), name
+    assert values['REVENUECAT_ACCEPT_SANDBOX'] == 'false'                     # production never credits arbitrary sandbox purchases
+    assert env('web')['OIDC_NATIVE_CLIENT_ID'].startswith('${OIDC_NATIVE_CLIENT_ID:-')

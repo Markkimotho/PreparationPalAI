@@ -84,8 +84,8 @@ class BillingClient:
             raise UnpricedModel(alias)
         return r.json()['micros']
 
-    def packs(self) -> list[dict]:
-        r = self._send('GET', '/v1/packs')
+    def packs(self, channel: str = 'web') -> list[dict]:
+        r = self._send('GET', '/v1/packs', params={'channel': channel})
         if r.status_code != 200:
             raise BillingUnavailable(f'HTTP {r.status_code}')
         return r.json()['packs']

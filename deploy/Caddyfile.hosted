@@ -1,8 +1,9 @@
 # Hosted deployment: the app and the sign-in service on two hostnames, TLS from Let's Encrypt.
 {$PUBLIC_HOST} {
     encode zstd gzip
-    # Paddle's signed payment notifications go straight to billing; no other billing route is public.
-    handle /webhooks/paddle {
+    # Signed payment notifications (Paddle, RevenueCat) go straight to billing; no other billing route is public.
+    @payments path /webhooks/paddle /webhooks/revenuecat
+    handle @payments {
         reverse_proxy billing:8100
     }
     handle {

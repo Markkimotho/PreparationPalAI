@@ -25,6 +25,7 @@ x-app-env: &app-env
   - BILLING_SERVICE_TOKEN=${BILLING_SERVICE_TOKEN:?Set a long random token shared by the app and billing}
   - TOP_UP_URL=https://${PUBLIC_HOST:?Set your public hostname}/account
   - OIDC_WEB_CLIENT_ID=${OIDC_WEB_CLIENT_ID:?Set the Logto web application id}
+  - OIDC_NATIVE_CLIENT_ID=${OIDC_NATIVE_CLIENT_ID:-}
 
 services:
   web:
@@ -180,6 +181,11 @@ services:
       - PADDLE_WEBHOOK_SECRET=${PADDLE_WEBHOOK_SECRET:-}
       - PADDLE_CLIENT_TOKEN=${PADDLE_CLIENT_TOKEN:-}
       - PADDLE_PRICE_IDS=${PADDLE_PRICE_IDS:-}
+      - REVENUECAT_WEBHOOK_AUTH=${REVENUECAT_WEBHOOK_AUTH:-}
+      - REVENUECAT_SIGNING_SECRET=${REVENUECAT_SIGNING_SECRET:-}
+      - REVENUECAT_PRODUCTS=${REVENUECAT_PRODUCTS:-}
+      - REVENUECAT_SANDBOX_ACCOUNTS=${REVENUECAT_SANDBOX_ACCOUNTS:-}
+      - REVENUECAT_ACCEPT_SANDBOX=false
     depends_on:
       billing-db:
         condition: service_healthy

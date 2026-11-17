@@ -38,6 +38,9 @@ class FakeBilling:
         self.calls.append((request.method, path, body))
         if any(f in path for f in self.fail_paths):
             return httpx.Response(503, json={'detail': 'down'})
+        if path == '/v1/packs' and request.url.params.get('channel') == 'store':
+            return httpx.Response(200, json={'packs': [dict(id='store-5', usd_cents=499, credits=5000, available=True, product_id='credits_5000'),
+                                                       dict(id='store-10', usd_cents=999, credits=10000, available=False)]})
         if path == '/v1/packs':
             return httpx.Response(200, json={'packs': [dict(id='web-5', usd_cents=500, credits=5000, available=True),
                                                        dict(id='web-10', usd_cents=1000, credits=10500, available=False)]})

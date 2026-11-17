@@ -80,7 +80,8 @@ def test_sign_in_configuration_is_public_but_contains_no_secrets(monkeypatch):
     for name, value in dict(auth_mode='oidc', auth_enabled=True, oidc_issuer='https://auth.example.com/oidc',
                             oidc_audience='https://api.example.com', oidc_web_client_id='web-app-id', auth_tokens={}).items():
         monkeypatch.setattr(s, name, value)
-    assert client.get('/api/auth/status').json() == {
+    body = client.get('/api/auth/status').json()
+    assert {k: body[k] for k in ('enabled', 'mode', 'issuer', 'web')} == {
         'enabled': True, 'mode': 'oidc', 'issuer': 'https://auth.example.com/oidc',
         'web': {'endpoint': 'https://auth.example.com', 'client_id': 'web-app-id', 'resource': 'https://api.example.com'}}
 
@@ -92,3 +93,19 @@ def test_opening_the_balance_offers_the_starter_allowance_first(billing):
     client.get('/api/billing/balance')
     paths = [p for _, p, _ in billing.calls]
     assert paths.index('/v1/accounts/local/grants/starter') < paths.index('/v1/accounts/local/balance')
+
+
+def test_store_packs_carry_the_store_product_id_for_the_phone_app(billing):
+    body = client.get('/api/billing/packs', params={'channel': 'store'}).json()
+    assert body == {'packs': [{'id': 'store-5', 'price': '$4.99', 'credits': 5000, 'available': True, 'product_id': 'credits_5000'},
+                              {'id': 'store-10', 'price': '$9.99', 'credits': 10000, 'available': False, 'product_id': None}]}
+    assert client.get('/api/billing/packs', params={'channel': 'gift-cards'}).status_code == 422
+
+
+def test_the_native_app_learns_its_client_id_from_the_public_status(monkeypatch):
+    s = get_base_settings()
+    for name, value in dict(auth_mode='oidc', auth_enabled=True, oidc_issuer='https://auth.example.com/oidc', oidc_audience='https://api.example.com',
+                            oidc_web_client_id='web-app', oidc_native_client_id='native-app', auth_tokens={}).items():
+        monkeypatch.setattr(s, name, value)
+    assert client.get('/api/auth/status').json()['native'] == {
+        'endpoint': 'https://auth.example.com', 'client_id': 'native-app', 'resource': 'https://api.example.com'}

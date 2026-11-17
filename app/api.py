@@ -257,14 +257,21 @@ def _require_billing():
 
 
 @app.get('/api/billing/packs')
-def billing_packs():
+def billing_packs(channel: str = Query('web', pattern='^(web|store)$')):
+    """Credit packs: `web` (Paddle) or `store` (Apple/Google, with the store product id the phone app buys)."""
     from app.billing_client import BillingUnavailable
     client = _require_billing()
     try:
-        packs = client.packs()
+        packs = client.packs(channel)
     except BillingUnavailable:
         raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
-    return {'packs': [{'id': p['id'], 'price': f"${p['usd_cents'] / 100:g}", 'credits': p['credits'], 'available': p['available']} for p in packs]}
+    shown = []
+    for p in packs:
+        entry = {'id': p['id'], 'price': f"${p['usd_cents'] / 100:g}", 'credits': p['credits'], 'available': p['available']}
+        if channel == 'store':
+            entry['product_id'] = p.get('product_id')
+        shown.append(entry)
+    return {'packs': shown}
 
 
 class CheckoutRequest(BaseModel):
