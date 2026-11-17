@@ -12,6 +12,24 @@ concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm test -- --ci
+      - run: npm run typecheck
+      - run: npx expo-doctor
+      - run: npx expo export --platform ios --platform android --output-dir dist
   billing:
     runs-on: ubuntu-latest
     timeout-minutes: 10
