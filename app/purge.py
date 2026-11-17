@@ -79,10 +79,8 @@ def _coach(workspace: str) -> int:
 
 
 def _jobs(workspace: str) -> int:
-    from app import jobs
-    with jobs.database() as db:
-        rows = db.execute('DELETE FROM jobs WHERE workspace = ?', (workspace,)).rowcount
-    return rows + _remove_tree(Path(get_base_settings().jobs_dir) / 'files' / workspace)
+    from app.jobs import store
+    return store().purge(workspace) + _remove_tree(Path(get_base_settings().jobs_dir) / 'files' / workspace)
 
 
 def _usage(workspace: str) -> int:

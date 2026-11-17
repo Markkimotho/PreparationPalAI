@@ -1,17 +1,16 @@
-"""SQLite ingestion queue with leases, heartbeats and workspace-scoped access."""
+"""Ingestion queue with leases, heartbeats and workspace-scoped access (SQLite files or Postgres)."""
 import json
 import logging
-import sqlite3
 import threading
 import time
 import uuid
-from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from prometheus_client import Gauge, Counter
 
 from app.config import get_base_settings
+from app.jobs_store import SqliteStore, get_store
 from app.workspace import workspace_id, identity_id, request_id
 from app.upload_safety import validate_upload
 
@@ -21,65 +20,46 @@ WORKER_HEARTBEAT = Gauge('preparationpalai_worker_heartbeat_timestamp', 'Worker 
 JOB_RESULTS = Counter('preparationpalai_ingestion_results_total', 'Ingestion outcomes', ['status'])
 
 
-@contextmanager
+def store():
+    """The queue store for the configured storage backend."""
+    return get_store()
+
+
 def database():
-    path = Path(get_base_settings().jobs_dir)
-    path.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(path / 'jobs.sqlite3', timeout=10)
-    db.row_factory = sqlite3.Row
-    try:
-        with db:
-            db.execute('''CREATE TABLE IF NOT EXISTS jobs (
-                id TEXT PRIMARY KEY, workspace TEXT, owner TEXT, kind TEXT, payload TEXT,
-                state TEXT, attempts INTEGER, lease REAL, updated REAL, result TEXT, error TEXT)''')
-            db.execute('CREATE TABLE IF NOT EXISTS workers (id TEXT PRIMARY KEY, heartbeat REAL)')
-            if 'run_token' not in {r['name'] for r in db.execute('PRAGMA table_info(jobs)')}:
-                db.execute("ALTER TABLE jobs ADD COLUMN run_token TEXT DEFAULT ''")
-            yield db
-    finally:
-        db.close()
+    """SQLite connection context (self-hosted files). Kept for tools and tests that touch the file directly."""
+    return SqliteStore().database()
 
 
 def enqueue(kind, payload):
     job_id = uuid.uuid4().hex
-    with database() as db:
-        count = db.execute("SELECT count(*) FROM jobs WHERE workspace=? AND state IN ('pending','running')", (workspace_id.get(),)).fetchone()[0]
-        if count >= 20:
-            raise HTTPException(429, 'Workspace ingestion queue is full; retry later.')
-        db.execute('INSERT INTO jobs (id,workspace,owner,kind,payload,state,attempts,lease,updated,result,error) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                   (job_id, workspace_id.get(), identity_id.get(), kind, json.dumps(payload),
-                    'pending', 0, 0, time.time(), '{}', ''))
+    if store().count_open(workspace_id.get()) >= 20:
+        raise HTTPException(429, 'Workspace ingestion queue is full; retry later.')
+    store().insert(job_id, workspace_id.get(), identity_id.get(), kind, payload)
     return dict(id=job_id, state='pending')
 
 
 def snapshot(row):
     return dict(id=row['id'], state=row['state'], attempts=row['attempts'],
-                result=json.loads(row['result']), error=row['error'])
+                result=row['result'], error=row['error'])
 
 
 @router.get('')
 def list_jobs():
-    with database() as db:
-        return {'jobs': [snapshot(r) for r in db.execute(
-            'SELECT * FROM jobs WHERE workspace=? ORDER BY updated DESC LIMIT 30', (workspace_id.get(),))]}
+    return {'jobs': [snapshot(r) for r in store().list(workspace_id.get())]}
 
 
 @router.get('/{job_id}')
 def get_job(job_id: str):
-    with database() as db:
-        row = db.execute('SELECT * FROM jobs WHERE id=? AND workspace=?', (job_id, workspace_id.get())).fetchone()
-        if not row:
-            raise HTTPException(404, 'Job not found')
-        return snapshot(row)
+    row = store().get(workspace_id.get(), job_id)
+    if not row:
+        raise HTTPException(404, 'Job not found')
+    return snapshot(row)
 
 
 @router.post('/{job_id}/retry')
 def retry_job(job_id: str):
-    with database() as db:
-        changed = db.execute("UPDATE jobs SET state='pending', attempts=0, error='', updated=? WHERE id=? AND workspace=? AND state='failed'",
-                             (time.time(), job_id, workspace_id.get())).rowcount
-        if not changed:
-            raise HTTPException(409, 'No failed job available to retry in this workspace')
+    if not store().retry(workspace_id.get(), job_id):
+        raise HTTPException(409, 'No failed job available to retry in this workspace')
     return get_job(job_id)
 
 
@@ -117,28 +97,12 @@ def scrape_job(body: dict):
 
 
 def claim():
-    with database() as db:
-        db.execute('BEGIN IMMEDIATE')
-        now = time.time()
-        db.execute("UPDATE jobs SET state='failed', error='Worker interrupted repeatedly; retry manually' WHERE state='running' AND lease<? AND attempts>=3", (now,))
-        row = db.execute("SELECT * FROM jobs WHERE (state='pending' OR (state='running' AND lease<?)) AND attempts<3 ORDER BY updated LIMIT 1", (now,)).fetchone()
-        if not row:
-            return None
-        run_token = uuid.uuid4().hex
-        db.execute("UPDATE jobs SET state='running', attempts=attempts+1, lease=?, updated=?, run_token=? WHERE id=?",
-                   (now + get_base_settings().job_lease_seconds, now, run_token, row['id']))
-        return {**dict(row), 'run_token': run_token}
+    return store().claim(get_base_settings().job_lease_seconds)
 
 
 def heartbeat(worker_id, job_id=None, run_token=None):
-    now = time.time()
-    with database() as db:
-        db.execute('INSERT OR REPLACE INTO workers VALUES (?,?)', (worker_id, now))
-        if job_id:
-            db.execute('UPDATE jobs SET lease=? WHERE id=? AND state=\'running\' AND run_token=?',
-                (now + get_base_settings().job_lease_seconds, job_id, run_token))
-        counts = dict(db.execute('SELECT state, count(*) FROM jobs GROUP BY state').fetchall())
-    WORKER_HEARTBEAT.set(now)
+    counts = store().heartbeat(worker_id, job_id, run_token, get_base_settings().job_lease_seconds)
+    WORKER_HEARTBEAT.set(time.time())
     for state in ('pending', 'running', 'failed', 'completed'):
         BACKLOG.labels(state).set(counts.get(state, 0))
 
@@ -168,16 +132,12 @@ def run_once(worker_id='embedded'):
             if not docs:
                 raise ValueError('No readable content')
             added = ingest_documents(docs)
-        with database() as db:
-            db.execute("UPDATE jobs SET state='completed', result=?, updated=?, lease=0 WHERE id=? AND run_token=?",
-                       (json.dumps(dict(chunks_added=added)), time.time(), job['id'], job['run_token']))
+        store().complete(job['id'], job['run_token'], dict(chunks_added=added), time.time())
         JOB_RESULTS.labels('success').inc()
     except Exception as exc:
         # Raw parser/provider exceptions can contain private document fragments.
         message = exc.detail if getattr(exc, 'status_code', None) == 402 else 'Ingestion failed. Check readiness or retry with another file.'
-        with database() as db:
-            db.execute("UPDATE jobs SET state='failed', error=?, updated=?, lease=0 WHERE id=? AND run_token=?",
-                       (message, time.time(), job['id'], job['run_token']))
+        store().fail(job['id'], job['run_token'], message, time.time())
         JOB_RESULTS.labels('error').inc()
         logging.getLogger('app.jobs').exception('ingestion_failed')
     finally:
@@ -189,9 +149,7 @@ def run_once(worker_id='embedded'):
 
 
 def queue_status():
-    with database() as db:
-        counts = dict(db.execute('SELECT state, count(*) FROM jobs GROUP BY state').fetchall())
-        last = db.execute('SELECT COALESCE(MAX(heartbeat),0) FROM workers').fetchone()[0]
+    counts, last = store().status()
     for state in ('pending', 'running', 'failed', 'completed'):
         BACKLOG.labels(state).set(counts.get(state, 0))
     WORKER_HEARTBEAT.set(last)
