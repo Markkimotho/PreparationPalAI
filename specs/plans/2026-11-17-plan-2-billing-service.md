@@ -96,7 +96,7 @@ Decisions made here: migration `002_hold_details.sql` adds `starter_hold_micros`
   - `test_concurrent_reserves_never_overdraw` in `test_ledger_concurrency.py` (Review Focus 1): balance 5,000; 20 threads each reserve 1,000 with distinct request ids → exactly 5 succeed, 15 raise `InsufficientCredits`, available 0.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement** with `SELECT ... FOR UPDATE` on `balances`, ledger insert + balance update in one transaction; idempotency via `UNIQUE(kind, ref)` and `ON CONFLICT DO NOTHING` returning the existing result. **Step 4: Run** → PASS (concurrency test included, under 2 s). **Step 5: Commit.**
 
-### Task 4: Starter grant and tier rules
+### Task 4: Starter grant and tier rules (DONE, 8 tests; premium and starter-first rules live in `ledger.reserve/settle`, expiry skips accounts with open holds)
 
 **Files:**
 - Create: `billing/grants.py`, `tests/test_grants.py`
@@ -109,7 +109,9 @@ Decisions made here: migration `002_hold_details.sql` adds `starter_hold_micros`
 - [ ] **Step 1: Tests**: `test_grant_once_per_account`; `test_daily_cap` (cap 2 → third account `daily_cap`); `test_expiry_removes_only_unspent_starter`; `test_premium_rejected_with_only_starter_credits` (Review Focus 5); `test_open_alias_spends_starter_first`.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS. **Step 5: Commit.**
 
-### Task 5: HTTP API and contract
+### Task 5: HTTP API and contract (DONE, 22 tests; contract at `contracts/billing.yaml`)
+
+Contract changes made here: (1) `POST /v1/reservations` takes `lines: [{alias, max_input_tokens, max_output_tokens, calls}]` and billing prices them, so no other service does money arithmetic; (2) billing's 402 body is `{detail, balance_micros, required_micros, premium_requires_purchase}` and the app translates it into the learner-facing 402 shape; (3) `POST /v1/payments/topup` and `/refund` exist now for Plan 4's webhooks; (4) token auth covers `/v1/*` only, `/healthz` and `/metrics` are internal-network only.
 
 **Files:**
 - Create: `billing/api.py`, `billing/metrics.py`, `contracts/billing.yaml`, `services/billing/tests/test_api.py`, `services/billing/tests/test_contract.py`

@@ -41,6 +41,13 @@ def charge_micros(usage: Usage, price: Price) -> int:
     return int((cost * price.multiplier).to_integral_value(rounding=ROUND_CEILING))
 
 
+def provider_cost_micros(usage: Usage, price: Price) -> int:
+    """What the provider charges us (no multiplier), rounded up. charge - cost is the margin."""
+    cost = (usage.input_tokens * price.input_per_m + usage.output_tokens * price.output_per_m
+            + usage.cache_read_tokens * price.cache_read_per_m)
+    return int(cost.to_integral_value(rounding=ROUND_CEILING))
+
+
 def ceiling_micros(price: Price, input_tokens: int, output_tokens: int) -> int:
     """Worst-case charge for one call, used to size a reservation."""
     return charge_micros(Usage(price.alias, input_tokens, output_tokens), price)
