@@ -403,6 +403,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/packs:
+    get:
+      summary: Packs
+      operationId: packs_v1_packs_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PacksOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/checkout:
+    post:
+      summary: Checkout
+      description: Create a Paddle transaction for one pack, tagged with the account,
+        for the browser to pay.
+      operationId: checkout_v1_checkout_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutOut'
+        '403':
+          description: The account was closed
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     BalanceOut:
@@ -423,6 +483,42 @@ components:
       - reserved_micros
       - starter_micros
       title: BalanceOut
+    CheckoutIn:
+      properties:
+        account_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Account Id
+        pack:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Pack
+      additionalProperties: false
+      type: object
+      required:
+      - account_id
+      - pack
+      title: CheckoutIn
+    CheckoutOut:
+      properties:
+        transaction_id:
+          type: string
+          title: Transaction Id
+        client_token:
+          type: string
+          title: Client Token
+        environment:
+          type: string
+          title: Environment
+      additionalProperties: false
+      type: object
+      required:
+      - transaction_id
+      - client_token
+      - environment
+      title: CheckoutOut
     EstimateIn:
       properties:
         alias:
@@ -587,6 +683,40 @@ components:
       - max_output_tokens
       - calls
       title: Line
+    PackOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        usd_cents:
+          type: integer
+          title: Usd Cents
+        credits:
+          type: integer
+          title: Credits
+        available:
+          type: boolean
+          title: Available
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - usd_cents
+      - credits
+      - available
+      title: PackOut
+    PacksOut:
+      properties:
+        packs:
+          items:
+            $ref: '#/components/schemas/PackOut'
+          type: array
+          title: Packs
+      additionalProperties: false
+      type: object
+      required:
+      - packs
+      title: PacksOut
     PriceOut:
       properties:
         alias:

@@ -7,12 +7,13 @@ from datetime import datetime, timezone
 import yaml
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, ConfigDict, Field
 
-from billing import db, grants, ledger, metrics, pricing
+from billing import db, grants, ledger, metrics, paddle, pricing
+from billing.packs import PACKS
 from billing.pricing import UnknownAlias, Usage
 from billing.settings import get_settings
 
@@ -305,7 +306,79 @@ def refund(body: RefundIn):
     return RefundOut(clawed_back_micros=result.charged_micros, shortfall_micros=result.written_off_micros, available_micros=result.balance_micros)
 
 
+class CheckoutIn(Strict):
+    account_id: str = Name
+    pack: str = Name
+
+
+class CheckoutOut(Strict):
+    transaction_id: str
+    client_token: str
+    environment: str
+
+
+class PackOut(Strict):
+    id: str
+    usd_cents: int
+    credits: int
+    available: bool
+
+
+class PacksOut(Strict):
+    packs: list[PackOut]
+
+
+@router.get('/v1/packs', response_model=PacksOut)
+def packs():
+    return PacksOut(packs=[PackOut(**p) for p in paddle.packs_on_sale()])
+
+
+@router.post('/v1/checkout', response_model=CheckoutOut, responses={403: {'description': 'The account was closed'}})
+def checkout(body: CheckoutIn):
+    """Create a Paddle transaction for one pack, tagged with the account, for the browser to pay."""
+    pack = PACKS.get(body.pack)
+    if pack is None:
+        raise HTTPException(422, 'Unknown pack')
+    with db.transaction() as conn:
+        if ledger.is_closed(conn, body.account_id):
+            raise ledger.AccountClosed(body.account_id)
+    try:
+        transaction = paddle.create_transaction(pack, body.account_id)
+    except paddle.PaddleError as exc:
+        if exc.args[0] == 'not_configured':
+            raise HTTPException(503, 'Buying credits is not available yet.') from None
+        raise HTTPException(502, 'The payment provider could not start a checkout. Please retry.') from None
+    settings = get_settings()
+    return CheckoutOut(transaction_id=transaction, client_token=settings.paddle_client_token, environment=settings.paddle_environment)
+
+
 app.include_router(router)
+
+
+@app.post('/webhooks/paddle', include_in_schema=False)
+async def paddle_webhook(request: Request):
+    """Public (behind the proxy) and signature-verified; never needs the service token."""
+    import time
+    settings = get_settings()
+    if not settings.paddle_webhook_secret:
+        raise HTTPException(503, 'Payments are not configured')
+    raw = await request.body()
+    if not paddle.verify(request.headers.get('paddle-signature', ''), raw, settings.paddle_webhook_secret,
+                         now=time.time(), tolerance=settings.paddle_webhook_tolerance):
+        metrics.PAYMENT_EVENTS.labels('paddle', 'bad_signature').inc()
+        raise HTTPException(401, 'Invalid signature')
+    try:
+        event = json.loads(raw)
+    except ValueError:
+        raise HTTPException(400, 'Invalid JSON') from None
+    import anyio
+
+    def apply():
+        with db.transaction() as conn:
+            return paddle.handle(conn, event)
+    outcome = await anyio.to_thread.run_sync(apply)
+    metrics.PAYMENT_EVENTS.labels('paddle', outcome.split(':')[0]).inc()
+    return {'outcome': outcome}
 
 
 # Health and metrics carry no secrets and are only reachable on the private network.

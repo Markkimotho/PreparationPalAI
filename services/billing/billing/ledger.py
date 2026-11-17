@@ -207,13 +207,17 @@ def close_account(conn, account_id: str) -> None:
     conn.execute('UPDATE billing.accounts SET closed_at = COALESCE(closed_at, now()) WHERE id = %s', (account_id,))
 
 
-def refund(conn, provider: str, provider_ref: str, micros: int) -> SettleResult:
-    """Claw back purchased credits for a refunded payment, never below zero and never starter credits."""
+def refund(conn, provider: str, provider_ref: str, micros: int, refund_ref: str | None = None) -> SettleResult:
+    """Claw back purchased credits for a refunded payment, never below zero and never starter credits.
+
+    `refund_ref` identifies one refund (for example one Paddle adjustment) so a payment can be refunded
+    partially more than once; each ref is applied exactly once.
+    """
     payment = conn.execute('SELECT account_id FROM billing.payments WHERE provider = %s AND provider_ref = %s',
                            (provider, provider_ref)).fetchone()
     if payment is None:
         raise KeyError(f'{provider}:{provider_ref}')
-    account_id, ref = payment['account_id'], f'{provider}:{provider_ref}'
+    account_id, ref = payment['account_id'], refund_ref or f'{provider}:{provider_ref}'
     available, reserved, starter = _lock(conn, account_id)
     prior = conn.execute("SELECT amount_micros FROM billing.ledger WHERE kind = 'refund' AND ref = %s", (ref,)).fetchone()
     if prior is not None:

@@ -31,7 +31,7 @@
 
 ---
 
-### Task 1: Billing — packs, Paddle checkout, signed webhooks (billing service)
+### Task 1: Billing — packs, Paddle checkout, signed webhooks (billing service) (DONE, 26 tests)
 Files: `billing/packs.py`, `billing/paddle.py`, `billing/api.py`, `billing/settings.py`, `billing/ledger.py` (refund per adjustment), tests `tests/test_paddle.py`, contract regenerated.
 
 ### Task 2: App — packs, checkout and history for the signed-in learner
