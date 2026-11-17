@@ -37,14 +37,14 @@
 
 ---
 
-### Task 1: Billing — store packs and RevenueCat notifications
+### Task 1: Billing — store packs and RevenueCat notifications (DONE, 20 tests)
 
-### Task 2: App API — store packs and the native sign-in client id
+### Task 2: App API — store packs and the native sign-in client id (DONE, 3 tests; Caddy routes `/webhooks/revenuecat` to billing via a named matcher, validated)
 
-### Task 3: Mobile foundation — project, sign-in, API client and streaming
+### Task 3: Mobile foundation — project, sign-in, API client and streaming (DONE, 14 tests)
 
-### Task 4: Study screens — chat, tutor, coding help, quizzes, flashcards (offline), coach, Markdown and maths
+### Task 4: Study screens — chat, tutor, coding help, quizzes, flashcards (offline), coach, Markdown and maths (DONE, 11 tests)
 
-### Task 5: Account screen — balance, history, buy credits with RevenueCat, delete account, sign out
+### Task 5: Account screen — balance, history, buy credits with RevenueCat, delete account, sign out (DONE, 8 tests)
 
 ### Task 6: Build configuration, CI, docs and a native build check
