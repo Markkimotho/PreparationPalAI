@@ -1,4 +1,4 @@
-"""A fake OIDC issuer for tests: generates RSA keys, serves a JWKS, signs tokens."""
+"""A fake OIDC issuer for tests: generates keys (RSA by default, EC like Logto's ES384 on request), serves a JWKS, signs tokens."""
 import json
 import threading
 import time
@@ -7,7 +7,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import jwt
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
+
+CURVES = {'ES256': ec.SECP256R1, 'ES384': ec.SECP384R1}
 
 
 _POOL: list[rsa.RSAPrivateKey] = []     # RSA generation is slow; reuse a few keys across tests
@@ -22,11 +24,12 @@ def _next_key() -> rsa.RSAPrivateKey:
 
 
 class FakeIssuer:
-    def __init__(self, audience='https://api.preparationpal.test'):
+    def __init__(self, audience='https://api.preparationpal.test', alg='RS256'):
         self.audience = audience
+        self.alg = alg                  # Logto's default is ES384 (EC P-384)
         self.fetches = 0
         self.down = False
-        self.keys: dict[str, rsa.RSAPrivateKey] = {}
+        self.keys: dict = {}
         self.add_key()
         outer = self
 
@@ -60,7 +63,7 @@ class FakeIssuer:
 
     def add_key(self) -> str:
         kid = uuid.uuid4().hex[:8]
-        self.keys[kid] = _next_key()
+        self.keys[kid] = ec.generate_private_key(CURVES[self.alg]()) if self.alg in CURVES else _next_key()
         return kid
 
     def rotate(self) -> str:
@@ -71,8 +74,9 @@ class FakeIssuer:
     def jwks(self) -> list[dict]:
         keys = []
         for kid, key in self.keys.items():
-            jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(key.public_key()))
-            keys.append(dict(jwk, kid=kid, use='sig', alg='RS256'))
+            algorithm = jwt.algorithms.ECAlgorithm if self.alg in CURVES else jwt.algorithms.RSAAlgorithm
+            jwk = json.loads(algorithm.to_jwk(key.public_key()))
+            keys.append(dict(jwk, kid=kid, use='sig', alg=self.alg))
         return keys
 
     def public_pem(self, kid: str | None = None) -> bytes:
@@ -87,7 +91,7 @@ class FakeIssuer:
     def sign(self, claims: dict | None = None, kid: str | None = None, **claim_overrides) -> str:
         kid = kid or next(iter(self.keys))
         payload = (claims if claims is not None else self.claims()) | claim_overrides
-        return jwt.encode(payload, self.keys[kid], algorithm='RS256', headers={'kid': kid})
+        return jwt.encode(payload, self.keys[kid], algorithm=self.alg, headers={'kid': kid})
 
     def close(self):
         self.server.shutdown()

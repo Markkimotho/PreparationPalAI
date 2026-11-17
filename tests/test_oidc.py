@@ -145,3 +145,38 @@ def test_rejection_reasons_never_contain_the_token(issuer):
     with pytest.raises(TokenRejected) as caught:
         verify_token(token)
     assert token not in caught.value.reason and token.split('.')[1] not in caught.value.reason
+
+
+@pytest.fixture
+def issuer_with(monkeypatch):
+    made = []
+
+    def make(alg):
+        fake = FakeIssuer(alg=alg)
+        settings = get_base_settings()
+        monkeypatch.setattr(settings, 'auth_mode', 'oidc')
+        monkeypatch.setattr(settings, 'oidc_issuer', fake.issuer)
+        monkeypatch.setattr(settings, 'oidc_audience', fake.audience)
+        monkeypatch.setattr(settings, 'oidc_jwks_url', fake.jwks_url)
+        oidc.reset_cache()
+        made.append(fake)
+        return fake
+    yield make
+    for fake in made:
+        fake.close()
+    oidc.reset_cache()
+
+
+@pytest.mark.parametrize('alg', ['ES384', 'ES256', 'RS256'])
+def test_tokens_signed_with_each_supported_algorithm_verify(issuer_with, alg):
+    """Logto signs with ES384 (EC P-384) out of the box; rejecting it locked every learner out."""
+    fake = issuer_with(alg)
+    assert verify_token(fake.sign(sub='user-1')).workspace == workspace_for(fake.issuer, 'user-1')
+
+
+def test_a_token_whose_algorithm_differs_from_its_keys_published_algorithm_is_rejected(issuer_with):
+    fake = issuer_with('RS256')
+    kid = next(iter(fake.keys))
+    with pytest.raises(TokenRejected) as rejected:
+        verify_token(forged({'alg': 'ES384', 'typ': 'JWT', 'kid': kid}, fake.claims(), b'not-a-real-signature'))
+    assert rejected.value.reason == 'algorithm'

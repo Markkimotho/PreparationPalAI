@@ -1,7 +1,8 @@
 """Verify OIDC access tokens and map each signed-in learner to a private workspace.
 
 Rules (each is tested in tests/test_oidc.py):
-  * Only RS256 and ES256 are accepted, never `none` or any HMAC algorithm.
+  * Only RS256, ES256 and ES384 (Logto's default) are accepted, never `none` or any HMAC algorithm,
+    and a token must use the algorithm its signing key is published for.
   * Issuer, audience, subject, issued-at and expiry must all be present and correct (60s leeway).
   * Signing keys come from the issuer's JWKS. An unknown key id triggers one refetch, at most
     every 30 seconds. Keys refresh every 10 minutes, and if the issuer is unreachable cached keys
@@ -17,7 +18,7 @@ import jwt
 
 from app.config import get_base_settings
 
-ALGORITHMS = ('RS256', 'ES256')
+ALGORITHMS = ('RS256', 'ES256', 'ES384')
 LEEWAY = 60
 REFRESH = 600
 REFETCH_MIN = 30
@@ -68,7 +69,7 @@ def _fetch() -> None:
         keys = {}
         for jwk in response.json()['keys']:
             if jwk.get('kid') and jwk.get('kty') in ('RSA', 'EC'):
-                keys[jwk['kid']] = jwt.PyJWK.from_dict(jwk).key
+                keys[jwk['kid']] = jwt.PyJWK.from_dict(jwk)      # carries the key and its algorithm
     except (httpx.HTTPError, ValueError, KeyError, jwt.PyJWTError):
         return                                   # keep whatever is cached; MAX_STALE bounds how long
     _state.update(keys=keys, fetched_at=clock())
@@ -103,11 +104,13 @@ def verify_token(token: str) -> Principal:
     kid = header.get('kid')
     if not isinstance(kid, str):
         raise TokenRejected('no key id')
-    key = _key_for(kid)
-    if key is None:
+    jwk = _key_for(kid)
+    if jwk is None:
         raise TokenRejected('unknown key')
+    if jwk.algorithm_name != header['alg']:
+        raise TokenRejected('algorithm')             # never let a token choose a different algorithm for a key
     try:
-        claims = jwt.decode(token, key, algorithms=[header['alg']], audience=settings.oidc_audience,
+        claims = jwt.decode(token, jwk.key, algorithms=[header['alg']], audience=settings.oidc_audience,
                             issuer=settings.oidc_issuer, leeway=LEEWAY, options={'require': ['exp', 'iat', 'sub']})
     except jwt.PyJWTError as exc:
         raise TokenRejected(type(exc).__name__) from None

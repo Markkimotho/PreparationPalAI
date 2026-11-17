@@ -11,8 +11,9 @@ Self-hosted installations keep static workspace keys (`AUTH_MODE=tokens`) and lo
 
 1. The learner signs in at `AUTH_HOST` and the client receives an access token for your API
    (`OIDC_AUDIENCE`).
-2. Each `/api` request carries `Authorization: Bearer <token>`. `app/oidc.py` accepts only RS256 or ES256
-   tokens with the right issuer and audience, an expiry and a subject (60 seconds of clock leeway).
+2. Each `/api` request carries `Authorization: Bearer <token>`. `app/oidc.py` accepts only RS256, ES256 or ES384
+   tokens (Logto signs with ES384 by default), signed with the algorithm their key is published for, with the
+   right issuer and audience, an expiry and a subject (60 seconds of clock leeway).
 3. The token's subject becomes a private workspace id, `u-` plus 20 hex characters of a one-way hash.
    Email addresses are never used as ids or paths. Every store filters by that workspace.
 4. Signing keys are fetched privately from `OIDC_JWKS_URL`. An unknown key id triggers at most one

@@ -16,7 +16,7 @@
 
 - `AUTH_MODE` is `tokens` (default, today's static keys) or `oidc`. `STORAGE_BACKEND` is `files` (default) or `postgres`. Defaults keep every existing test passing.
 - The workspace id for an account is `u-` + the first 20 hex characters of `sha256(issuer + "|" + sub)`. It always matches `^[a-zA-Z0-9_-]{1,64}$` and is never derived from an email.
-- Accept only RS256 or ES256 access tokens whose `iss` equals `OIDC_ISSUER`, `aud` contains `OIDC_AUDIENCE`, with `exp`, `iat` and `sub` present and 60 seconds of clock leeway. Never accept `alg: none` or any HMAC algorithm.
+- Accept only RS256 or ES256 access tokens whose `iss` equals `OIDC_ISSUER`, `aud` contains `OIDC_AUDIENCE`, with `exp`, `iat` and `sub` present and 60 seconds of clock leeway. Never accept `alg: none` or any HMAC algorithm. (2026-11-18: ES384 added after a live Logto run showed Logto signs with ES384 by default; a token must also use its key's published algorithm.)
 - Roles come from a token `roles` claim (`admin`, `editor`, `reader`); a missing claim means `editor`. Static-token roles are unchanged.
 - The starter grant requires `email_verified: true`, one grant per normalized email, and a non-disposable domain.
 - No secret in the repo: issuer client secrets and management credentials only via environment variables; Logto image pinned to an exact tag.
