@@ -14,6 +14,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
+from psycopg.types.json import Jsonb
 
 from billing import db, grants, ledger
 from billing.pricing import Usage, charge_micros, current_prices
@@ -122,15 +123,8 @@ def fetch_model_info(client: httpx.Client, admin_key: str) -> list[dict]:
     return response.json()['data']
 
 
-def _write_metrics(**values: float) -> None:
-    directory = get_settings().textfile_dir
-    if not directory:
-        return
-    from prometheus_client import CollectorRegistry, Gauge, write_to_textfile
-    registry = CollectorRegistry()
-    for name, value in values.items():
-        Gauge(name, name, registry=registry).set(value)
-    write_to_textfile(f'{directory}/billing_jobs_{"_".join(sorted(values))[:40]}.prom', registry)
+def record_run(conn, name: str, result: dict, problem: bool) -> None:
+    conn.execute('INSERT INTO billing.job_runs (name, problem, result) VALUES (%s, %s, %s)', (name, problem, Jsonb(result)))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -160,14 +154,14 @@ def main(argv: list[str] | None = None) -> int:
                     with db.transaction() as conn:
                         report = reconcile(conn, rows, settings.gateway_key_alias)
                     result = dict(asdict(report), day=str(day), gateway_rows=len(rows))
-                    _write_metrics(billing_reconcile_drift_micros=report.drift_micros, billing_reconcile_missing=report.missing_in_ledger)
                 else:
                     with db.transaction() as conn:
                         diffs = check_prices(conn, fetch_model_info(gateway, settings.gateway_admin_key))
                     result = {'price_diffs': [asdict(d) for d in diffs]}
-                    _write_metrics(billing_price_drift=len(diffs))
         print(json.dumps(result))
-        problem = result.get('drift_micros') or result.get('missing_in_ledger') or result.get('price_diffs')
+        problem = bool(result.get('drift_micros') or result.get('missing_in_ledger') or result.get('price_diffs'))
+        with db.transaction() as conn:
+            record_run(conn, args.command, result, problem)
         return 3 if problem else 0
     finally:
         db.close()

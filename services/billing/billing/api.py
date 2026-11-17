@@ -301,6 +301,14 @@ def healthz():
 def prometheus():
     with db.transaction() as conn:
         metrics.OPEN_RESERVATIONS.set(conn.execute("SELECT count(*) AS n FROM billing.reservations WHERE status = 'open'").fetchone()['n'])
+        for run in conn.execute('SELECT DISTINCT ON (name) name, finished_at, problem, result FROM billing.job_runs '
+                                'ORDER BY name, id DESC').fetchall():
+            metrics.JOB_LAST_RUN.labels(run['name']).set(run['finished_at'].timestamp())
+            metrics.JOB_PROBLEM.labels(run['name']).set(1 if run['problem'] else 0)
+            if run['name'] == 'reconcile':
+                metrics.RECONCILE_DRIFT.set(run['result'].get('drift_micros', 0))
+            if run['name'] == 'check-prices':
+                metrics.PRICE_DRIFT.set(len(run['result'].get('price_diffs', [])))
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 

@@ -8,6 +8,10 @@ x-app-env: &app-env
   - GATEWAY_BASE_URL=http://litellm:4000
   - GATEWAY_API_KEY=${GATEWAY_API_KEY:?Create a key with ai-gateway scripts/new_app_key.sh}
   - EMBEDDED_WORKER=false
+  - BILLING_ENABLED=true
+  - BILLING_BASE_URL=http://billing:8100
+  - BILLING_SERVICE_TOKEN=${BILLING_SERVICE_TOKEN:?Set a long random token shared by the app and billing}
+  - TOP_UP_URL=${TOP_UP_URL:-}
 
 services:
   web:
@@ -45,6 +49,7 @@ services:
     volumes:
       - chroma_data:/app/data/chroma
       - jobs_data:/app/data/jobs
+      - usage_data:/app/data/usage
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -61,11 +66,73 @@ services:
       timeout: 5s
       start_period: 30s
 
+  billing-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=billing
+      - POSTGRES_DB=billing
+      - POSTGRES_PASSWORD=${BILLING_DB_PASSWORD:?Set a long random database password}
+    volumes:
+      - billing_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U billing -d billing"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 512m
+
+  billing:
+    build: ./services/billing
+    environment: &billing-env
+      - BILLING_DATABASE_URL=postgresql://billing:${BILLING_DB_PASSWORD:?Set a long random database password}@billing-db:5432/billing
+      - BILLING_SERVICE_TOKEN=${BILLING_SERVICE_TOKEN:?Set a long random token shared by the app and billing}
+      - STARTER_GRANTS_PER_DAY=${STARTER_GRANTS_PER_DAY:-200}
+    depends_on:
+      billing-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8100/healthz', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+
+  billing-jobs:
+    build: ./services/billing
+    command: [python, -m, billing.scheduler]
+    environment:
+      - BILLING_DATABASE_URL=postgresql://billing:${BILLING_DB_PASSWORD:?Set a long random database password}@billing-db:5432/billing
+      - GATEWAY_BASE_URL=http://litellm:4000
+      - GATEWAY_ADMIN_KEY=${GATEWAY_ADMIN_KEY:?The gateway admin key, used only to read spend logs}
+      - GATEWAY_KEY_ALIAS=${GATEWAY_KEY_ALIAS:-preparationpal-prod}
+    networks: [default, ai-gateway]
+    depends_on:
+      billing:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+
 networks:
   ai-gateway:
     external: true
 
 volumes:
+  billing_pg:
   chroma_data:
   flashcards_data:
   coach_data:

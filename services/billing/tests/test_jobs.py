@@ -121,3 +121,16 @@ def test_spend_rows_are_fetched_page_by_page():
     client = httpx.Client(transport=httpx.MockTransport(handler), base_url='http://gateway')
     rows = jobs.fetch_spend_rows(client, 'admin-key', datetime(2026, 11, 16).date(), page_size=2)
     assert [r['request_id'] for r in rows] == ['a', 'b', 'c']
+
+
+def test_job_results_are_reported_through_the_metrics_endpoint(conn, monkeypatch):
+    from fastapi.testclient import TestClient
+    from billing.api import app
+    jobs.record_run(conn, 'reconcile', {'drift_micros': 13_552, 'matched': 4, 'missing_in_ledger': 1}, True)
+    jobs.record_run(conn, 'check-prices', {'price_diffs': []}, False)
+    jobs.record_run(conn, 'reconcile', {'drift_micros': 500, 'matched': 5, 'missing_in_ledger': 0}, True)   # the latest run wins
+    conn.commit()
+    text = TestClient(app).get('/metrics').text
+    assert 'billing_job_problem{job="reconcile"} 1.0' in text and 'billing_job_problem{job="check-prices"} 0.0' in text
+    assert 'billing_reconcile_drift_micros 500.0' in text and 'billing_price_drift 0.0' in text
+    assert 'billing_job_last_run_timestamp{job="reconcile"}' in text

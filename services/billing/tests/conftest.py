@@ -6,7 +6,7 @@ from billing import db as database
 from billing.migrate import apply_migrations
 
 TEST_URL = os.environ.get('BILLING_TEST_DATABASE_URL', 'postgresql://billing:test@127.0.0.1:15432/billing')
-TABLES = 'ledger, reservations, payments, balances, accounts, prices, grant_days'
+TABLES = 'ledger, reservations, payments, balances, accounts, prices, grant_days, job_runs'
 
 
 @pytest.fixture(scope='session', autouse=True)

@@ -50,3 +50,23 @@ def test_services_stay_bounded_and_unprivileged():
 
 def test_data_volumes_match_the_self_hosted_layout():
     assert {'chroma_data', 'jobs_data', 'coach_data', 'flashcards_data', 'usage_data'} <= set(COMPOSE['volumes'])
+
+
+def test_billing_stack_is_private_and_requires_its_secrets():
+    for name in ('billing', 'billing-db', 'billing-jobs'):
+        service = COMPOSE['services'][name]
+        assert 'ports' not in service and 'mem_limit' in service
+    for name in ('billing', 'billing-jobs'):
+        assert any('BILLING_DATABASE_URL' in e and '${BILLING_DB_PASSWORD:?' in e for e in COMPOSE['services'][name]['environment'])
+    assert any(e.startswith('BILLING_SERVICE_TOKEN=${BILLING_SERVICE_TOKEN:?') for e in COMPOSE['services']['billing']['environment'])
+    assert COMPOSE['services']['billing-jobs']['command'] == ['python', '-m', 'billing.scheduler']
+    assert any(e.startswith('GATEWAY_ADMIN_KEY=${GATEWAY_ADMIN_KEY:?') for e in COMPOSE['services']['billing-jobs']['environment'])
+
+
+def test_app_and_worker_bill_through_the_internal_service():
+    for service in ('web', 'worker'):
+        values = env(service)
+        assert values['BILLING_ENABLED'] == 'true' and values['BILLING_BASE_URL'] == 'http://billing:8100'
+        assert values['BILLING_SERVICE_TOKEN'].startswith('${BILLING_SERVICE_TOKEN:?')
+    assert 'usage_data:/app/data/usage' in COMPOSE['services']['worker']['volumes']      # the settle outbox must survive restarts
+    assert 'billing_pg' in COMPOSE['volumes']
