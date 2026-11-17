@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 jest.mock('expo-router', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
 jest.mock('@/utils/api', () => ({ getJson: jest.fn(), postJson: jest.fn() }));
@@ -36,7 +37,7 @@ test('a real error from the server is shown, not hidden behind the cache', async
 
 test('studying a deck flips and moves between cards, and works offline from the saved copy', async () => {
   (getJson as jest.Mock).mockResolvedValueOnce(deck);
-  const first = await render(<DeckStudy id="d1" />);
+  const first = await render(<GestureHandlerRootView><DeckStudy id="d1" /></GestureHandlerRootView>);
   expect(await screen.findByText('What makes ATP?')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Show answer' }));
   expect(screen.getByText('Mitochondria')).toBeTruthy();
@@ -44,7 +45,7 @@ test('studying a deck flips and moves between cards, and works offline from the 
   expect(screen.getByText('Plant energy?')).toBeTruthy();
   await first.unmount();
   (getJson as jest.Mock).mockRejectedValueOnce(new TypeError('Network request failed'));
-  await render(<DeckStudy id="d1" />);
+  await render(<GestureHandlerRootView><DeckStudy id="d1" /></GestureHandlerRootView>);
   expect(await screen.findByText(/Offline: studying the copy saved/)).toBeTruthy();
   expect(screen.getByText('What makes ATP?')).toBeTruthy();
 });

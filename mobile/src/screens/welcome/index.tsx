@@ -14,7 +14,7 @@
  *  - One selection haptic per page change, fired when the page settles.
  */
 import { useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Animated, {
   Extrapolation, FadeIn, FadeInDown, interpolate, interpolateColor, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle,
@@ -37,7 +37,7 @@ export const SLIDES: { title: string; body: string; accent: Accent; Illustration
   { title: 'Start free', body: 'Confirm your email and get 500 free credits. After that, top up only when you need to.', accent: 'coral', Illustration: CreditOrbit },
 ];
 const LAST = SLIDES.length - 1;
-const DOT_STEP = 22;
+const DOT_STEP = 24;
 
 // The entrance wave (one entrance per element, shrinking gaps so it reads as one motion).
 const ENTER_LEAD = () => {
@@ -75,6 +75,9 @@ export function Welcome() {
     scroller.current?.scrollTo({ x: next * width, animated: !reduced });
     settle(next);
   };
+  // A dev deep link to another slide while this screen is open moves to it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initial !== lastPage.current) goTo(initial); }, [initial]);
   const onSettled = (e: NativeSyntheticEvent<NativeScrollEvent>) => settle(Math.round(e.nativeEvent.contentOffset.x / width));
   const start = async () => { setBusy(true); await signIn(); setBusy(false); };
 
@@ -95,7 +98,7 @@ export function Welcome() {
       </PressableScale>}
     </Animated.View>
 
-    <Animated.ScrollView ref={scroller} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll}
+    <Animated.ScrollView testID="welcome-slides" ref={scroller} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll}
       scrollEventThrottle={16} onMomentumScrollEnd={onSettled} style={styles.flex} decelerationRate="fast" contentOffset={{ x: initial * width, y: 0 }}>
       {SLIDES.map((s, i) => <Slide key={s.title} index={i} slide={s} scrollX={scrollX} width={width} stage={stage}
         active={page === i} reduced={reduced} colors={colors} />)}
@@ -130,14 +133,15 @@ function Slide({ index, slide, scrollX, width, stage, active, reduced, colors }:
         { scale: interpolate(x, range, [0.78, 1, 0.78], Extrapolation.CLAMP) }],
     };
   });
-  const text = (lag: number) => {
+  // Reanimated tracks only shared values read directly inside useAnimatedStyle, so each style
+  // reads scrollX itself and passes the number in (reading it inside a helper never updates).
+  const text = (x: number, lag: number) => {
     'worklet';
-    const x = scrollX.get();
     const opacity = interpolate(x, [(index - 0.6) * width, index * width, (index + 0.6) * width], [0, 1, 0], Extrapolation.CLAMP);
     return reduced ? { opacity } : { opacity, transform: [{ translateX: interpolate(x, range, [-width * lag, 0, width * lag], Extrapolation.CLAMP) }] };
   };
-  const title = useAnimatedStyle(() => text(0.15));
-  const body = useAnimatedStyle(() => text(0.3));
+  const title = useAnimatedStyle(() => text(scrollX.get(), 0.15));
+  const body = useAnimatedStyle(() => text(scrollX.get(), 0.3));
   const { main } = accentColors(colors, slide.accent);
   const first = index === 0;
   return <View style={[styles.slide, { width }]} accessible accessibilityLabel={`${slide.title}. ${slide.body}`}>
@@ -201,8 +205,8 @@ const styles = StyleSheet.create({
   underline: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, marginTop: 8 },
   slideBody: { fontFamily: Fonts.body, fontSize: 18, lineHeight: 26, textAlign: 'center', maxWidth: 360 },
   controls: { paddingHorizontal: 20, gap: 12 },
-  dots: { height: 10, width: (SLIDES.length - 1) * DOT_STEP + 22, alignSelf: 'center', marginBottom: 6 },
+  dots: { height: 10, width: (SLIDES.length - 1) * DOT_STEP + 8, alignSelf: 'center', marginBottom: 6 },
   dot: { position: 'absolute', top: 1, width: 8, height: 8, borderRadius: 4 },
-  pill: { position: 'absolute', top: 0, left: -1, width: 22, height: 10, borderRadius: 5 },
+  pill: { position: 'absolute', top: 0, left: -7, width: 22, height: 10, borderRadius: 5 },   // centred on its 8px dot
   blob: { position: 'absolute', borderRadius: 9999, opacity: 0.12 },
 });

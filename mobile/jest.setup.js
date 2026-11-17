@@ -6,3 +6,5 @@ jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(async () => undefined), impactAsync: jest.fn(async () => undefined), notificationAsync: jest.fn(async () => undefined),
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' }, NotificationFeedbackType: { Success: 'success', Error: 'error' },
 }));
+// Gesture Handler asks worklets for the UI runtime at import; Node has none (the web build throws).
+jest.mock('react-native-worklets', () => ({ ...jest.requireActual('react-native-worklets'), getUIRuntimeHolder: () => undefined }));
