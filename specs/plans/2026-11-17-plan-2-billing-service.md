@@ -123,7 +123,9 @@ Contract changes made here: (1) `POST /v1/reservations` takes `lines: [{alias, m
 - [ ] **Step 1: Tests**: `test_requires_service_token` (401); `test_reserve_402_shape` (exact keys and `required_credits` rounded up); `test_settle_prices_usage_server_side`; `test_contract_matches_openapi` (`app.openapi()` equals `contracts/billing.yaml` loaded; regenerate with `python -m billing.api --dump-openapi`).
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS. **Step 5: Commit.**
 
-### Task 6: App wiring: `metered(action)` on every model route
+### Task 6: App wiring: `metered(action)` on every model route (DONE, 16 backend + 5 frontend tests)
+
+Built differently from the plan, for stronger guarantees: one ASGI middleware (`app/metered.py` `BillingMiddleware`) plus a route table, instead of a decorator per route. It binds the meter for the whole request (so streams and disconnects need no special handling), and `test_every_post_route_is_metered_or_explicitly_exempt` fails the build for any unclassified POST route (it reads routes from the OpenAPI schema because included routers are wrapped). Call caps replace app-side price math: reservations are priced by billing from token ceilings and the runaway breaker counts model calls. Unsettled usage goes to a durable SQLite outbox (`app/billing_outbox.py`) flushed at the start of each metered request. The ingestion worker is metered via `job_scope`, wrapping extraction too.
 
 **Files:**
 - Create: `app/billing_client.py`, `app/metered.py`, `tests/test_metered.py`, `tests/test_metered_routes.py`, `tests/support/fake_billing.py`

@@ -1,3 +1,4 @@
+import { creditsMessage } from "./billing";
 // POST-based SSE client. EventSource only supports GET, but our streaming
 // endpoints take JSON bodies, so we read response.body as a ReadableStream and
 // parse "data: {json}\n\n" frames ourselves.
@@ -45,7 +46,8 @@ export async function streamPost(
   if (!res.ok || !res.body) {
     let detail = res.statusText;
     try {
-      detail = (await res.json()).detail ?? detail;
+      const body = await res.json();
+      detail = res.status === 402 ? creditsMessage(body) : body.detail ?? detail;
     } catch {
       /* non-JSON */
     }

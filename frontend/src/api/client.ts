@@ -1,3 +1,4 @@
+import { creditsMessage } from "./billing";
 // Typed fetch wrapper for the JSON routes. Streaming routes live in stream.ts.
 import { apiFetch } from './access';
 
@@ -37,7 +38,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let detail = res.statusText;
     try {
       const body = await res.json();
-      detail = body.detail ?? detail;
+      detail = res.status === 402 ? creditsMessage(body) : body.detail ?? detail;
     } catch {
       /* non-JSON error body */
     }
