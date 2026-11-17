@@ -215,6 +215,11 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
 def health() -> HealthResponse:
     settings = get_settings()
     _set_kb_gauge()
+    if settings.inference_backend == 'gateway':
+        from app.gateway_models import healthy, selectable
+        up = healthy()
+        metrics.OLLAMA_UP.set(1 if up else 0)
+        return HealthResponse(online=up, model_count=len(selectable()) if up else 0)
     try:
         r = httpx.get(f"{settings.ollama_base_url}/api/tags", timeout=3)
         r.raise_for_status()
@@ -237,14 +242,21 @@ def models() -> ModelsResponse:
     )
 
 
+def _require_self_hosted_pulls() -> None:
+    if get_settings().inference_backend == 'gateway':
+        raise HTTPException(404, 'Model downloads are managed by the hosting provider.')
+
+
 @app.post("/api/models/pull", response_model=PullResponse)
 def models_pull(req: PullRequest) -> PullResponse:
+    _require_self_hosted_pulls()
     ok, message = pull_model(req.model)
     return PullResponse(ok=ok, message=message)
 
 
 @app.post('/api/models/pull/stream')
 def models_pull_stream(req: PullRequest):
+    _require_self_hosted_pulls()
     def frames():
         try:
             with httpx.stream('POST', f'{get_settings().ollama_base_url}/api/pull',

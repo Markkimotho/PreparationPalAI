@@ -6,8 +6,29 @@ from app.analysis import get_installed_models
 from app.config import SUPPORTED_MODELS, get_settings
 
 
+GATEWAY_NOTES = {
+    'open-default': ('Everyday study, quizzes and recap', 'Balanced speed and cost'),
+    'open-fast': ('Quick answers and light tasks', 'Fastest and lowest cost'),
+    'open-reasoning': ('Multi-step reasoning and technical practice', 'Slower; costs more per answer'),
+}
+
+
+def _gateway_catalogue(installed: set[str]) -> list[dict]:
+    from app.gateway_models import ordered, tier_of
+    result = []
+    for alias in ordered(installed):
+        tier = tier_of(alias)
+        use, resources = GATEWAY_NOTES.get(alias, ('Highest-quality answers; needs purchased credits', 'Highest cost per answer')
+                                           if tier == 'premium' else ('General study; capabilities unverified', 'Cost depends on the model'))
+        result.append(dict(id=alias, installed=True, availability='installed', recommended_use=use, tools=None,
+                           structured_output=None, resources=resources, tier=tier, pullable=False))
+    return result
+
+
 def catalogue(installed: set[str], supported: list[str] | None = None) -> list[dict]:
     settings = get_settings()
+    if settings.inference_backend == 'gateway':
+        return _gateway_catalogue(installed)
     recommendations = list(dict.fromkeys([
         *(supported if supported is not None else SUPPORTED_MODELS),
         settings.glm_model, settings.deepseek_model, *settings.extra_models,
@@ -26,13 +47,20 @@ def catalogue(installed: set[str], supported: list[str] | None = None) -> list[d
         result.append(dict(id=name, installed=present,
                            availability="installed" if present else ('unknown' if name in settings.extra_models else 'downloadable'),
                            recommended_use=use, tools=tools, structured_output=None,
-                           resources=resources))
+                           resources=resources, tier=None, pullable=True))
     return result
 
 
 def require_model(model: str | None) -> str:
-    name = model or get_settings().ollama_model
+    settings = get_settings()
+    name = model or settings.ollama_model
     installed = get_installed_models()
+    if settings.inference_backend == 'gateway':
+        if name not in installed:
+            from app.gateway_models import ordered
+            raise HTTPException(409, detail=f"Model '{name}' is not available. "
+                                f"Choose one of: {', '.join(ordered(installed)) or 'none right now'}.")
+        return name
     if name not in installed and not (":" not in name and f"{name}:latest" in installed):
         raise HTTPException(409, detail=f"Model '{name}' is not installed or Ollama is offline. "
                             "Select it in the model picker and choose Pull, then retry.")

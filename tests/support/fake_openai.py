@@ -10,6 +10,7 @@ class FakeOpenAI:
 
     def __init__(self):
         self.requests: list[dict] = []
+        self.gets: list[str] = []               # GET paths, for cache assertions
         self.replies: list[str] = []          # consumed first-in-first-out, then default_reply
         self.default_reply = 'hello'
         self.usage: dict | None = {'prompt_tokens': 11, 'completion_tokens': 7, 'total_tokens': 18}
@@ -30,6 +31,7 @@ class FakeOpenAI:
                 self.wfile.write(data)
 
             def do_GET(self):
+                outer.gets.append(self.path)
                 if self.path.endswith('/models'):
                     self.send(200, {'object': 'list', 'data': [{'id': m, 'object': 'model'} for m in outer.models]})
                 else:

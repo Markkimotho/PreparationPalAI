@@ -96,8 +96,18 @@ def live():
 @router.get('/health/ready', include_in_schema=False)
 def ready():
     settings = get_settings()
-    dependencies = {'ollama': False, 'chat_model': False, 'embedding_model': False, 'vectorstore': False}
+    gateway = settings.inference_backend == 'gateway'
+    dependencies = ({'gateway': False, 'chat_model': False, 'embedding_model': False, 'vectorstore': False} if gateway
+                    else {'ollama': False, 'chat_model': False, 'embedding_model': False, 'vectorstore': False})
+    if gateway:
+        from app.gateway_models import all_ids, healthy
+        ids = all_ids()
+        dependencies['gateway'] = healthy() and bool(ids)
+        dependencies['chat_model'] = settings.ollama_model in ids
+        dependencies['embedding_model'] = settings.embedding_alias in ids
     try:
+        if gateway:
+            raise ConnectionError  # skip the Ollama probe
         result = httpx.get(f'{settings.ollama_base_url}/api/tags', timeout=3)
         result.raise_for_status()
         names = {m['name'] for m in result.json()['models']}
@@ -124,7 +134,7 @@ def ready():
         dependencies['worker'] = False
     success = all(dependencies.values())
     from app.metrics import OLLAMA_UP
-    OLLAMA_UP.set(dependencies['ollama'])
+    OLLAMA_UP.set(dependencies.get('ollama', dependencies.get('gateway')))
     return JSONResponse({'ready': success, 'dependencies': dependencies}, 200 if success else 503)
 
 

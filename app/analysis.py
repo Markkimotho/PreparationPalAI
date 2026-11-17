@@ -46,8 +46,11 @@ def get_chat_models() -> list[str]:
 
 
 def get_installed_models() -> set[str]:
-    """Return the subset of SUPPORTED_MODELS currently pulled in Ollama."""
+    """Models ready to use: pulled Ollama models, or the aliases the gateway serves."""
     settings = get_settings()
+    if settings.inference_backend == 'gateway':
+        from app.gateway_models import selectable
+        return selectable()
     try:
         resp = httpx.get(f"{settings.ollama_base_url}/api/tags", timeout=5)
         resp.raise_for_status()
