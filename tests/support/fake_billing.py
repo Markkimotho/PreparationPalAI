@@ -18,6 +18,7 @@ class FakeBilling:
         self.reserved_amount = 4_000
         self.settled: dict[str, int] = {}
         self.grant_reason = 'already_granted'
+        self.closed: set[str] = set()
 
     # -- helpers ---------------------------------------------------------
     def paths(self, suffix=''):
@@ -35,7 +36,12 @@ class FakeBilling:
         self.calls.append((request.method, path, body))
         if any(f in path for f in self.fail_paths):
             return httpx.Response(503, json={'detail': 'down'})
+        if path.endswith('/close'):
+            self.closed.add(path.split('/')[3])
+            return httpx.Response(204)
         if path == '/v1/reservations' and request.method == 'POST':
+            if body['account_id'] in self.closed:
+                return httpx.Response(403, json={'detail': 'This account has been closed.'})
             if body['alias'] in self.unknown_aliases:
                 return httpx.Response(422, json={'detail': f"No price is published for alias {body['alias']!r}"})
             premium = body['alias'].startswith('premium-')

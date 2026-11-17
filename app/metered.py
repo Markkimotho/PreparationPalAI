@@ -25,7 +25,7 @@ from fastapi import HTTPException
 from starlette.responses import JSONResponse
 
 from app import billing_outbox
-from app.billing_client import (BillingUnavailable, CreditsRequired, ReservationMissing, UnpricedModel, get_client)
+from app.billing_client import (AccountClosed, BillingUnavailable, CreditsRequired, ReservationMissing, UnpricedModel, get_client)
 from app.config import get_settings
 from app.metering import ActionLimitExceeded, Meter, UsageRecord, bind
 from app.workspace import account_email, email_verified, workspace_id
@@ -239,6 +239,8 @@ class BillingMiddleware:
             hold = await anyio.to_thread.run_sync(begin, workspace_id.get(), spec, body)
         except CreditsRequired as exc:
             return await credits_response(exc)(scope, downstream_receive, send)
+        except AccountClosed:
+            return await JSONResponse({'detail': 'This account has been closed.'}, 403)(scope, downstream_receive, send)
         except UnpricedModel as exc:
             return await JSONResponse({'detail': f"Model '{exc.alias}' is not available."}, 409)(scope, downstream_receive, send)
         except BillingUnavailable:

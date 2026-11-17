@@ -10,7 +10,7 @@ from starlette.exceptions import HTTPException
 
 from app.config import get_base_settings
 from app.oidc import TokenRejected, verify_token
-from app.workspace import account_email, email_verified, workspace_id, identity_id, role
+from app.workspace import account_email, account_subject, email_verified, workspace_id, identity_id, role
 
 router = APIRouter(prefix='/api/auth', tags=['Access'])
 
@@ -63,7 +63,7 @@ class WorkspaceAuth:
             return message
         protected = (path.startswith('/api/') and path != '/api/auth/status') or path == '/metrics'
         workspace, identity = 'local', 'local'
-        email, verified = None, False
+        email, verified, subject = None, False, None
         if settings.auth_enabled and protected and scope['method'] != 'OPTIONS':
             header = headers.get(b'authorization', b'').decode('latin-1')
             raw = header[7:] if header.startswith('Bearer ') else ''
@@ -74,7 +74,7 @@ class WorkspaceAuth:
                         # Key fetches can block, so verification runs off the event loop.
                         who = await anyio.to_thread.run_sync(verify_token, raw)
                         principal, digest = {'workspace': who.workspace, 'role': who.role}, who.identity
-                        email, verified = who.email, who.email_verified
+                        email, verified, subject = who.email, who.email_verified, who.subject
                 except TokenRejected:
                     response = JSONResponse({'detail': 'Sign in to continue.'}, 401,
                                             headers={'WWW-Authenticate': 'Bearer error="invalid_token"'})
@@ -98,7 +98,7 @@ class WorkspaceAuth:
                 identity = digest
         wtoken = workspace_id.set(workspace)
         itoken = identity_id.set(identity)
-        etoken, vtoken = account_email.set(email), email_verified.set(verified)
+        etoken, vtoken, stoken = account_email.set(email), email_verified.set(verified), account_subject.set(subject)
         rtoken = role.set(principal['role'] if settings.auth_enabled and protected and scope['method'] != 'OPTIONS' else 'admin')
         try:
             await self.app(scope, bounded_receive, send)
@@ -107,4 +107,5 @@ class WorkspaceAuth:
             identity_id.reset(itoken)
             account_email.reset(etoken)
             email_verified.reset(vtoken)
+            account_subject.reset(stoken)
             role.reset(rtoken)

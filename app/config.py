@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     oidc_audience: str = ""
     oidc_jwks_url: str = ""
 
+    # Logto management API: lets account deletion also remove the sign-in. Optional.
+    logto_endpoint: str = ""
+    logto_management_app_id: str = ""
+    logto_management_app_secret: SecretStr = Field(default=SecretStr(""), repr=False)
+
     # Billing (hosted mode): reserve before each model action, settle the real usage after.
     billing_enabled: bool = False
     billing_base_url: str = ""

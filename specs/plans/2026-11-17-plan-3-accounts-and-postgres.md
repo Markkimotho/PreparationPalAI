@@ -67,7 +67,9 @@ A refused attempt changes nothing (savepoint): it neither uses the daily cap nor
 
 - [ ] **Step 1: Tests** for each reason and for Review Focus 3 (`a.b+x@gmail.com` and `ab@googlemail.com` map to one key; a second account with that key gets `email_in_use` and nothing credited; a failed attempt does not consume the daily cap). **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** billing and app suites → PASS. **Step 5: Commit and push.**
 
-### Task 4: Delete an account
+### Task 4: Delete an account (DONE for the file-based stores, 19 app + 5 billing tests)
+
+`DELETE /api/account` closes billing first (if billing is down nothing is deleted and the learner retries), purges every store through the registry in `app/purge.py`, then removes the Logto user last. Billing keeps the anonymous ledger and a tombstone so a closed account cannot be resurrected; the one-way mailbox key stays so deleting and re-registering cannot farm another free allowance. Remaining purchased credits are forfeited on deletion, so the sign-out screen in Plan 4 must show the balance and warn. The Postgres stores in Tasks 6 and 7 register their own deleters.
 
 **Files:** Create `app/account.py`, `app/purge.py`, `tests/test_account_deletion.py`; Billing: add `ledger.close_account(conn, account_id)` and `POST /v1/accounts/{id}/close`, migration `005_account_closed.sql`.
 

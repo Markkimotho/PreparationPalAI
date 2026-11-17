@@ -20,6 +20,10 @@ class CreditsRequired(Exception):
         self.premium_requires_purchase = premium_requires_purchase
 
 
+class AccountClosed(Exception):
+    """The learner deleted their account."""
+
+
 class UnpricedModel(Exception):
     def __init__(self, alias: str):
         super().__init__(alias)
@@ -39,7 +43,7 @@ class BillingClient:
             response = self.http.request(method, path, **kwargs)
         except httpx.HTTPError as exc:
             raise BillingUnavailable(type(exc).__name__) from exc
-        if response.status_code >= 500 or response.status_code in (401, 403):
+        if response.status_code >= 500 or response.status_code == 401:     # 403 is meaningful: the account was closed
             raise BillingUnavailable(f'HTTP {response.status_code}')
         return response
 
@@ -49,6 +53,8 @@ class BillingClient:
         if r.status_code == 402:
             b = r.json()
             raise CreditsRequired(b['balance_micros'], b['required_micros'], b['premium_requires_purchase'])
+        if r.status_code == 403:
+            raise AccountClosed(account_id)
         if r.status_code == 422:
             raise UnpricedModel(alias)
         if r.status_code != 201:
@@ -77,6 +83,11 @@ class BillingClient:
         if r.status_code == 422:
             raise UnpricedModel(alias)
         return r.json()['micros']
+
+    def close_account(self, account_id: str) -> None:
+        r = self._send('POST', f'/v1/accounts/{account_id}/close')
+        if r.status_code != 204:
+            raise BillingUnavailable(f'HTTP {r.status_code}')
 
     def grant_starter(self, account_id: str, email: str | None = None, email_verified: bool = False) -> dict:
         r = self._send('POST', f'/v1/accounts/{account_id}/grants/starter', json=dict(email=email, email_verified=email_verified))

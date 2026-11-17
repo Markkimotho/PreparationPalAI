@@ -112,6 +112,8 @@ app = FastAPI(title="PreparationPalAI", version="1.1.0", lifespan=lifespan)
 app.include_router(coach_router)
 app.include_router(public_router)
 app.include_router(auth_router)
+from app.account import router as account_router  # noqa: E402
+app.include_router(account_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
 app.include_router(exports_router)
