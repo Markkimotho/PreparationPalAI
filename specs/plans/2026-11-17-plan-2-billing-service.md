@@ -50,7 +50,7 @@ Design decision made here: ledger `amount_micros` changes TOTAL funds (grants an
 - [ ] **Step 3: Implement** migration SQL and runner (applies `migrations/*.sql` in order inside a transaction, records version).
 - [ ] **Step 4: Run** → PASS. **Step 5: Commit.**
 
-### Task 2: Prices and charge arithmetic
+### Task 2: Prices and charge arithmetic (DONE, 12 tests)
 
 **Files:**
 - Create: `billing/pricing.py`, `billing/prices.seed.yaml`, `tests/test_pricing.py`
@@ -66,7 +66,9 @@ Design decision made here: ledger `amount_micros` changes TOTAL funds (grants an
   - `test_unknown_alias_raises` (`KeyError` subclass `UnknownAlias`).
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement** with `Decimal` and `ROUND_CEILING`. **Step 4: Run** → PASS. **Step 5: Commit.**
 
-### Task 3: Ledger operations
+### Task 3: Ledger operations (DONE, 19 tests incl. concurrency and a 300-step random invariant run)
+
+Decisions made here: migration `002_hold_details.sql` adds `starter_hold_micros` and `tier` to reservations (done now instead of Task 4 because reserve, settle and release all need them); a settle that arrives after the sweeper released its hold still charges (late settle); `record_topup`, `adjust` and `balance` added; refunds never touch starter credits.
 
 **Files:**
 - Create: `billing/ledger.py`, `tests/test_ledger.py`, `tests/test_ledger_concurrency.py`
