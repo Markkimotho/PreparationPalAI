@@ -10,6 +10,13 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Literal
 
+class ActionLimitExceeded(RuntimeError):
+    """One action tried to make more model calls than it reserved. The crossing call is still charged."""
+
+    def __init__(self):
+        super().__init__('This request needed more model steps than allowed. Try a smaller request.')
+
+
 Purpose = Literal['main', 'guard', 'vision', 'embed']
 
 
@@ -44,6 +51,16 @@ def metering_scope(action: str, request_id: str, on_add: Callable[[UsageRecord],
     if _meter.get() is not None:
         raise RuntimeError('A metering scope is already open for this request')
     meter = Meter(action, request_id, on_add)
+    token = _meter.set(meter)
+    try:
+        yield meter
+    finally:
+        _meter.reset(token)
+
+
+@contextmanager
+def bind(meter: Meter):
+    """Make an existing meter current. Used by the billing middleware, which owns the meter's lifetime."""
     token = _meter.set(meter)
     try:
         yield meter

@@ -76,7 +76,8 @@ def judge(text: str, policy: str, *, model: str, base_url: str, timeout: float =
         raise
     except Exception as exc:
         from app.llm import ModelServiceUnavailable
-        if isinstance(exc, ModelServiceUnavailable):
+        from app.metering import ActionLimitExceeded
+        if isinstance(exc, (ModelServiceUnavailable, ActionLimitExceeded)):
             raise  # fail closed, with the clearer message
         raise SafetyError('Safety checking is unavailable. Please retry; no unchecked response was released.') from exc
 

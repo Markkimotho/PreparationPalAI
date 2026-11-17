@@ -39,3 +39,23 @@ def test_explicit_model_is_kept_in_gateway_mode():
 def test_gateway_key_never_in_repr():
     s = make(inference_backend='gateway', gateway_base_url='http://litellm:4000', gateway_api_key='sk-secret')
     assert 'sk-secret' not in repr(s) and 'sk-secret' not in str(s)
+
+
+GATEWAY = dict(inference_backend='gateway', gateway_base_url='http://litellm:4000', gateway_api_key='k')
+
+
+def test_billing_requires_the_gateway_backend():
+    with pytest.raises(ValidationError, match='INFERENCE_BACKEND=gateway'):
+        make(billing_enabled=True, billing_base_url='http://billing:8100', billing_service_token='t')
+
+
+def test_billing_requires_url_and_token():
+    with pytest.raises(ValidationError, match='BILLING_BASE_URL'):
+        make(**GATEWAY, billing_enabled=True, billing_service_token='t')
+    with pytest.raises(ValidationError, match='BILLING_SERVICE_TOKEN'):
+        make(**GATEWAY, billing_enabled=True, billing_base_url='http://billing:8100')
+
+
+def test_billing_token_never_in_repr():
+    s = make(**GATEWAY, billing_enabled=True, billing_base_url='http://billing:8100', billing_service_token='tok-secret')
+    assert 'tok-secret' not in repr(s) and s.billing_enabled

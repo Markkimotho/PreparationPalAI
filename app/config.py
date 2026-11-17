@@ -41,6 +41,16 @@ class Settings(BaseSettings):
     embedding_alias: str = "embed-default"
     embedding_dimensions: int | None = Field(default=None, ge=32, le=8192)  # Matryoshka size; None = provider default
 
+    # Billing (hosted mode): reserve before each model action, settle the real usage after.
+    billing_enabled: bool = False
+    billing_base_url: str = ""
+    billing_service_token: SecretStr = Field(default=SecretStr(""), repr=False)
+    billing_outbox_db: str = "data/usage/billing_outbox.sqlite3"
+    top_up_url: str = ""
+    billing_reserve_input_tokens: int = Field(default=3000, ge=256, le=65536)   # per reserved model call
+    billing_reserve_output_tokens: int = Field(default=800, ge=64, le=8192)
+    ingest_reserve_tokens: int = Field(default=500_000, ge=1000)
+
     # ChromaDB (local, free)
     chroma_persist_dir: str = "data/chroma"
     chroma_collection_name: str = "rag-chatbot"
@@ -105,6 +115,14 @@ class Settings(BaseSettings):
                 raise ValueError('GATEWAY_API_KEY is required when INFERENCE_BACKEND=gateway')
             if 'ollama_model' not in self.model_fields_set:
                 self.ollama_model = 'open-default'
+        if self.billing_enabled:
+            if self.inference_backend != 'gateway':
+                raise ValueError('BILLING_ENABLED requires INFERENCE_BACKEND=gateway (usage is priced by gateway alias)')
+            billing = urlsplit(self.billing_base_url)
+            if billing.scheme not in ('http', 'https') or not billing.hostname or billing.username or billing.password:
+                raise ValueError('BILLING_BASE_URL must be an HTTP(S) origin without credentials')
+            if not self.billing_service_token.get_secret_value():
+                raise ValueError('BILLING_SERVICE_TOKEN is required when BILLING_ENABLED=true')
         if not self.ollama_model.strip() or not self.ollama_embedding_model.strip():
             raise ValueError('Set OLLAMA_MODEL and OLLAMA_EMBEDDING_MODEL to non-empty installed tags')
         if self.production and '*' in self.cors_origins:

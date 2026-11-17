@@ -161,19 +161,23 @@ def run_once(worker_id='embedded'):
         from app.scraper import search_and_scrape
         from app.vectorstore import ingest_documents
         payload = json.loads(job['payload'])
-        docs = extract(payload['path'], source_name=payload['source']) if job['kind'] == 'file' else search_and_scrape(**payload)
-        if not docs:
-            raise ValueError('No readable content')
-        added = ingest_documents(docs)
+        from app.metered import job_scope
+        # The meter wraps the whole job so a learner without credits costs us no extraction work.
+        with job_scope(job['workspace'], 'kb_upload' if job['kind'] == 'file' else 'kb_scrape'):
+            docs = extract(payload['path'], source_name=payload['source']) if job['kind'] == 'file' else search_and_scrape(**payload)
+            if not docs:
+                raise ValueError('No readable content')
+            added = ingest_documents(docs)
         with database() as db:
             db.execute("UPDATE jobs SET state='completed', result=?, updated=?, lease=0 WHERE id=? AND run_token=?",
                        (json.dumps(dict(chunks_added=added)), time.time(), job['id'], job['run_token']))
         JOB_RESULTS.labels('success').inc()
-    except Exception:
+    except Exception as exc:
         # Raw parser/provider exceptions can contain private document fragments.
+        message = exc.detail if getattr(exc, 'status_code', None) == 402 else 'Ingestion failed. Check readiness or retry with another file.'
         with database() as db:
-            db.execute("UPDATE jobs SET state='failed', error='Ingestion failed. Check readiness or retry with another file.', updated=?, lease=0 WHERE id=? AND run_token=?",
-                       (time.time(), job['id'], job['run_token']))
+            db.execute("UPDATE jobs SET state='failed', error=?, updated=?, lease=0 WHERE id=? AND run_token=?",
+                       (message, time.time(), job['id'], job['run_token']))
         JOB_RESULTS.labels('error').inc()
         logging.getLogger('app.jobs').exception('ingestion_failed')
     finally:

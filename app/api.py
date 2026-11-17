@@ -71,6 +71,9 @@ from app.ingestion import IMAGE_EXTENSIONS
 from app.exports import router as exports_router
 from app.drawings import router as drawings_router
 from app.llm import ModelServiceUnavailable
+from app.metering import ActionLimitExceeded
+from app.metered import BillingMiddleware
+from app.workspace import workspace_id
 from app.safety import SafetyError
 from fastapi.responses import JSONResponse
 from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
@@ -120,9 +123,18 @@ async def safety_error_handler(request, exc):
     return JSONResponse(status_code=422, content={'detail': str(exc)})
 
 
+@app.exception_handler(ActionLimitExceeded)
+async def action_limit_handler(request, exc):
+    return JSONResponse(status_code=422, content={'detail': str(exc)})
+
+
 @app.exception_handler(ModelServiceUnavailable)
 async def model_unavailable_handler(request, exc):
     return JSONResponse(status_code=503, content={'detail': str(exc)}, headers={'Retry-After': '10'})
+
+
+# Innermost: rate-limited requests (429) never reserve credits. Runs inside workspace auth.
+app.add_middleware(BillingMiddleware)
 
 
 @app.middleware('http')
@@ -189,7 +201,7 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
                 else:
                     continue
                 yield f"data: {json.dumps(frame)}\n\n"
-        except (SafetyError, ModelServiceUnavailable) as exc:
+        except (SafetyError, ModelServiceUnavailable, ActionLimitExceeded) as exc:
             status = 'error'
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
         except Exception as exc:  # noqa: BLE001 — surface any engine failure to client
@@ -206,6 +218,51 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ── Billing (hosted mode) ───────────────────────────────────────────────────
+
+TYPICAL_TOKENS = (2500, 600)   # a typical model call, for "about N credits" estimates
+
+
+@app.get('/api/billing/balance')
+def billing_balance():
+    from app import metered
+    from app.billing_client import BillingUnavailable
+    settings = get_settings()
+    if not settings.billing_enabled:
+        raise HTTPException(404, 'Billing is not enabled.')
+    try:
+        b = metered.get_client().balance(workspace_id.get())
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    return {'available_credits': b['available_micros'] // 1000, 'reserved_credits': b['reserved_micros'] // 1000,
+            'starter_credits': b['starter_micros'] // 1000, 'top_up_url': settings.top_up_url}
+
+
+@app.get('/api/billing/estimate')
+def billing_estimate(action: str, model: str):
+    from app import metered
+    from app.billing_client import BillingUnavailable, UnpricedModel
+    settings = get_settings()
+    if not settings.billing_enabled:
+        raise HTTPException(404, 'Billing is not enabled.')
+    spec = next((s for _, _, s in metered.ROUTES if s.action == action), None)
+    if spec is None:
+        raise HTTPException(404, 'Unknown action.')
+    alias, lines, _ = metered.reservation(spec, {}, model)
+    client = metered.get_client()
+    try:
+        micros = 0
+        for line in lines:       # one typical call per reserved line, not the worst case
+            tokens_in = min(line['max_input_tokens'], TYPICAL_TOKENS[0])
+            tokens_out = min(line['max_output_tokens'], TYPICAL_TOKENS[1])
+            micros += client.estimate(line['alias'], tokens_in, tokens_out) * (1 if line['alias'] != alias else max(1, line['calls'] // 2))
+    except UnpricedModel:
+        raise HTTPException(409, f"Model '{model}' is not available.") from None
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    return {'credits': max(1, -(-micros // 1000))}
 
 
 # ── Health / models ─────────────────────────────────────────────────────────
