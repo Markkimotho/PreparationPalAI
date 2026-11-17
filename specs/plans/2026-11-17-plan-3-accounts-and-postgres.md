@@ -115,6 +115,8 @@ Jobs (`app/jobs_store.py`), rate limits (`app/limits.py`), flashcards, coach ses
 
 - [ ] Compose tests: Logto and its database publish no host ports (only the proxy fronts them), memory limits set, image pinned. Runbook covers one-time console setup (API resource audience, a web application, a native application with `expo-auth-session` redirect, email OTP connector, Google and Apple connectors), roles, and account deletion. Strict docs build passes. Commit and push.
 
-### Task 9: Live end-to-end check
+### Task 9: Live end-to-end check (DONE)
+
+Ran `scripts/e2e_hosted/` against the real app (OIDC + Postgres/pgvector), billing, LiteLLM with a fake provider, and the ingestion worker. Verified: nobody signed in gets 401; a verified learner gets the 500-credit allowance; an **unverified** email gets none (402); learners cannot see each other's decks, documents or balances; a PDF upload is processed by the worker, metered (7,500 held, 1 micro charged), stored in pgvector and cited in the owner's next chat; deleting an account removes its chunks and decks, closes billing (later requests get 403) and leaves the neighbour untouched; the reconciler matched every reservation of the run. **Bugs this run found and fixed:** LiteLLM silently dropped the embeddings `dimensions` parameter (gateway fix plus e2e test), and the reconcile report crashed serializing a Postgres `Decimal` (test plus fix). Note: reset the gateway as well as the billing database between runs, or the reconciler reports old usage as drift.
 
 - [ ] With a fake issuer (generated keys) plus the real app, real billing, real LiteLLM and Postgres/pgvector: sign in as two users, chat, upload and search a document, buy credits through the billing API, delete one account, and confirm the other's data and balance are untouched and reconcile reports zero drift. Record results in this plan and commit.
