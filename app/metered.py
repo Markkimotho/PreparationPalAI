@@ -75,6 +75,7 @@ EXEMPT = [(m, re.compile(p + r'/?$')) for m, p in [
     ('POST', r'/api/kb/jobs/(upload|scrape)'),          # queued; the worker meters the embedding work
     ('POST', r'/api/kb/jobs/[^/]+/retry'),
     ('POST', r'/api/models/pull(/stream)?'),
+    ('POST', r'/api/billing/checkout'),                 # starts a payment; no model work
 ]]
 
 

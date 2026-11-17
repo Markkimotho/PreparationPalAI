@@ -18,8 +18,13 @@ router = APIRouter(prefix='/api/auth', tags=['Access'])
 @router.get('/status')
 def status():
     settings = get_base_settings()
-    return {'enabled': settings.auth_enabled, 'mode': settings.auth_mode,
+    body = {'enabled': settings.auth_enabled, 'mode': settings.auth_mode,
             'issuer': settings.oidc_issuer if settings.auth_mode == 'oidc' else None}
+    if settings.auth_mode == 'oidc':
+        # Public sign-in configuration for the web client. Nothing here is a secret.
+        endpoint = settings.oidc_issuer.rstrip('/').removesuffix('/oidc')
+        body['web'] = {'endpoint': endpoint, 'client_id': settings.oidc_web_client_id, 'resource': settings.oidc_audience}
+    return body
 
 
 @router.get('/me')

@@ -19,6 +19,8 @@ class FakeBilling:
         self.settled: dict[str, int] = {}
         self.grant_reason = 'already_granted'
         self.closed: set[str] = set()
+        self.checkout_status = 200
+        self.history_rows = []
 
     # -- helpers ---------------------------------------------------------
     def paths(self, suffix=''):
@@ -36,6 +38,18 @@ class FakeBilling:
         self.calls.append((request.method, path, body))
         if any(f in path for f in self.fail_paths):
             return httpx.Response(503, json={'detail': 'down'})
+        if path == '/v1/packs':
+            return httpx.Response(200, json={'packs': [dict(id='web-5', usd_cents=500, credits=5000, available=True),
+                                                       dict(id='web-10', usd_cents=1000, credits=10500, available=False)]})
+        if path == '/v1/checkout':
+            if self.checkout_status != 200:
+                return httpx.Response(self.checkout_status, json={'detail': 'nope'})
+            return httpx.Response(200, json=dict(transaction_id='txn_fake', client_token='live_client_token', environment='sandbox'))
+        if path.endswith('/history'):
+            before = request.url.params.get('before_id')
+            rows = [r for r in self.history_rows if before is None or r['id'] < int(before)]
+            limit = int(request.url.params.get('limit', 50))
+            return httpx.Response(200, json={'entries': rows[:limit], 'next_before_id': rows[limit - 1]['id'] if len(rows) > limit else None})
         if path.endswith('/close'):
             self.closed.add(path.split('/')[3])
             return httpx.Response(204)

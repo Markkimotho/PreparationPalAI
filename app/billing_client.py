@@ -84,6 +84,30 @@ class BillingClient:
             raise UnpricedModel(alias)
         return r.json()['micros']
 
+    def packs(self) -> list[dict]:
+        r = self._send('GET', '/v1/packs')
+        if r.status_code != 200:
+            raise BillingUnavailable(f'HTTP {r.status_code}')
+        return r.json()['packs']
+
+    def checkout(self, account_id: str, pack: str) -> tuple[int, dict]:
+        """Returns (status, body) so the caller can explain refusals precisely."""
+        try:
+            r = self.http.request('POST', '/v1/checkout', json=dict(account_id=account_id, pack=pack))
+        except httpx.HTTPError as exc:
+            raise BillingUnavailable(type(exc).__name__) from exc
+        # 502/503 here are billing's own answers about the payment provider, not a billing outage.
+        if r.status_code not in (200, 403, 422, 502, 503):
+            raise BillingUnavailable(f'HTTP {r.status_code}')
+        return r.status_code, r.json()
+
+    def history(self, account_id: str, before_id: int | None = None, limit: int = 50) -> dict:
+        params = {'limit': limit} | ({'before_id': before_id} if before_id else {})
+        r = self._send('GET', f'/v1/accounts/{account_id}/history', params=params)
+        if r.status_code != 200:
+            raise BillingUnavailable(f'HTTP {r.status_code}')
+        return r.json()
+
     def close_account(self, account_id: str) -> None:
         r = self._send('POST', f'/v1/accounts/{account_id}/close')
         if r.status_code != 204:

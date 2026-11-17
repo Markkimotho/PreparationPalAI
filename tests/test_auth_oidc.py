@@ -73,7 +73,8 @@ def test_metrics_and_model_pulls_are_admin_only(issuer):
 
 def test_status_tells_clients_where_to_sign_in_without_a_token(issuer):
     body = client.get('/api/auth/status').json()
-    assert body == {'enabled': True, 'mode': 'oidc', 'issuer': issuer.issuer}
+    assert body == {'enabled': True, 'mode': 'oidc', 'issuer': issuer.issuer,
+                    'web': {'endpoint': issuer.issuer.removesuffix('/oidc'), 'client_id': '', 'resource': issuer.audience}}
 
 
 def test_token_mode_is_unchanged(monkeypatch):

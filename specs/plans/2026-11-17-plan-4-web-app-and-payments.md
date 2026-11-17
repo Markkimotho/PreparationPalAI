@@ -32,19 +32,25 @@
 ---
 
 ### Task 1: Billing — packs, Paddle checkout, signed webhooks (billing service) (DONE, 26 tests)
+
 Files: `billing/packs.py`, `billing/paddle.py`, `billing/api.py`, `billing/settings.py`, `billing/ledger.py` (refund per adjustment), tests `tests/test_paddle.py`, contract regenerated.
 
 ### Task 2: App — packs, checkout and history for the signed-in learner
+
 Files: `app/api.py`, `app/billing_client.py`, `app/metered.py` (exempt routes), tests `tests/test_billing_web.py`.
 
 ### Task 3: Web sign-in
+
 Files: `frontend/src/auth/session.ts`, `frontend/src/api/access.ts`, `frontend/src/components/AccessGate.tsx`, tests.
 
 ### Task 4: Account page — balance, history, buy credits, delete account
+
 Files: `frontend/src/sections/Account.tsx`, `frontend/src/api/billing.ts`, `frontend/src/payments/paddle.ts`, route and navigation, tests.
 
 ### Task 5: Installable app (PWA)
+
 Files: `frontend/public/manifest.webmanifest`, icons, `frontend/public/sw.js`, `frontend/public/sw-strategy.js`, `frontend/index.html`, `frontend/src/pwa/register.ts`, `app/api.py` (MIME types, no-cache for the worker), tests.
 
 ### Task 6: Deploy, docs and end-to-end
+
 Files: `deploy/Caddyfile.hosted` (public webhook path), `docker-compose.hosted.yml` (Paddle settings), `engineering/runbooks/payments.md`, tests; a signed-webhook end-to-end run against the live stack.

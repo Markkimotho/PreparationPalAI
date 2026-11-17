@@ -21,7 +21,8 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -240,6 +241,72 @@ def billing_balance():
         raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
     return {'available_credits': b['available_micros'] // 1000, 'reserved_credits': b['reserved_micros'] // 1000,
             'starter_credits': b['starter_micros'] // 1000, 'top_up_url': settings.top_up_url}
+
+
+LEDGER_LABELS = {'grant': 'Free starter credits', 'topup': 'Credits purchased', 'settle': 'Study activity',
+                 'refund': 'Refund', 'adjust': 'Adjustment'}
+
+
+def _require_billing():
+    if not get_settings().billing_enabled:
+        raise HTTPException(404, 'Billing is not enabled.')
+    from app import metered
+    return metered.get_client()
+
+
+@app.get('/api/billing/packs')
+def billing_packs():
+    from app.billing_client import BillingUnavailable
+    client = _require_billing()
+    try:
+        packs = client.packs()
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    return {'packs': [{'id': p['id'], 'price': f"${p['usd_cents'] / 100:g}", 'credits': p['credits'], 'available': p['available']} for p in packs]}
+
+
+class CheckoutRequest(BaseModel):
+    pack: str = Field(min_length=1, max_length=40)
+
+
+CHECKOUT_ERRORS = {403: 'This account has been closed.', 422: 'That credit pack is not available.',
+                   503: 'Buying credits is not available yet.', 502: 'The payment provider could not start a checkout. Please retry.'}
+
+
+@app.post('/api/billing/checkout')
+def billing_checkout(req: CheckoutRequest):
+    """Start a payment for the signed-in learner. The account is never taken from the request."""
+    from app.billing_client import BillingUnavailable
+    client = _require_billing()
+    try:
+        status, body = client.checkout(workspace_id.get(), req.pack)
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    if status != 200:
+        raise HTTPException(status if status in CHECKOUT_ERRORS else 503, CHECKOUT_ERRORS.get(status, CHECKOUT_ERRORS[503]))
+    return {k: body[k] for k in ('transaction_id', 'client_token', 'environment')}
+
+
+@app.get('/api/billing/history')
+def billing_history(before_id: int | None = Query(None, ge=1), limit: int = Query(50, ge=1, le=200)):
+    """Purchases, refunds and study charges in plain words. Credit holds are internal and hidden."""
+    from app.billing_client import BillingUnavailable
+    client = _require_billing()
+    try:
+        page = client.history(workspace_id.get(), before_id, limit)
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    entries = []
+    for row in page['entries']:
+        if row['kind'] in ('reserve', 'release'):
+            continue
+        label = LEDGER_LABELS.get(row['kind'], 'Adjustment')
+        if row['kind'] == 'adjust' and row['ref'].startswith('starter-expiry:'):
+            label = 'Free starter credits expired'
+        elif row['kind'] == 'adjust' and row['ref'].startswith('reconcile:'):
+            label = 'Usage correction'
+        entries.append({'id': row['id'], 'when': row['created_at'], 'label': label, 'credits': row['amount_micros'] / 1000})
+    return {'entries': entries, 'next_before_id': page['next_before_id']}
 
 
 @app.get('/api/billing/estimate')

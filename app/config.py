@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     oidc_issuer: str = ""
     oidc_audience: str = ""
     oidc_jwks_url: str = ""
+    oidc_web_client_id: str = ""          # public: the Logto application id the web app signs in with
 
     # Logto management API: lets account deletion also remove the sign-in. Optional.
     logto_endpoint: str = ""
