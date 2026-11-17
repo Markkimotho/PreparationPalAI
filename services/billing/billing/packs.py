@@ -30,3 +30,26 @@ def paddle_price_ids() -> dict[str, str]:
 
 def pack_for_price(price_id: str) -> Pack | None:
     return next((PACKS[k] for k, v in paddle_price_ids().items() if v == price_id), None)
+
+
+# Store prices end in .99 and give round numbers of credits (spec 8.3); the store's cut is absorbed here.
+STORE_PACKS: dict[str, Pack] = {p.id: p for p in (
+    Pack('store-5', 499, 5_000_000),
+    Pack('store-10', 999, 10_000_000),
+    Pack('store-20', 1999, 20_000_000),
+    Pack('store-50', 4999, 50_000_000),
+)}
+
+
+def store_products() -> dict[str, str]:
+    """Store product id -> store pack id, from REVENUECAT_PRODUCTS (JSON)."""
+    try:
+        mapping = json.loads(os.environ.get('REVENUECAT_PRODUCTS', '') or '{}')
+    except ValueError:
+        return {}
+    return {k: v for k, v in mapping.items() if isinstance(k, str) and v in STORE_PACKS}
+
+
+def pack_for_product(product_id: str) -> Pack | None:
+    pack_id = store_products().get(product_id)
+    return STORE_PACKS.get(pack_id) if pack_id else None

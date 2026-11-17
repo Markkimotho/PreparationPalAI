@@ -113,6 +113,11 @@ def _adjustment(conn, data: dict) -> str:
     return 'refunded'
 
 
-def packs_on_sale() -> list[dict]:
+def packs_on_sale(channel: str = 'web') -> list[dict]:
+    if channel == 'store':
+        from billing.packs import STORE_PACKS, store_products
+        by_pack = {pack: product for product, pack in store_products().items()}
+        return [dict(id=p.id, usd_cents=p.usd_cents, credits=p.credits_micros // 1000, available=p.id in by_pack,
+                     product_id=by_pack.get(p.id)) for p in STORE_PACKS.values()]
     prices = paddle_price_ids()
     return [dict(id=p.id, usd_cents=p.usd_cents, credits=p.credits_micros // 1000, available=p.id in prices) for p in PACKS.values()]

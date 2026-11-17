@@ -408,6 +408,14 @@ paths:
       summary: Packs
       operationId: packs_v1_packs_get
       parameters:
+      - name: channel
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(web|store)$
+          default: web
+          title: Channel
       - name: authorization
         in: header
         required: false
@@ -697,6 +705,11 @@ components:
         available:
           type: boolean
           title: Available
+        product_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product Id
       additionalProperties: false
       type: object
       required:

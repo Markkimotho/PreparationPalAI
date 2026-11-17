@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, ConfigDict, Field
 
-from billing import db, grants, ledger, metrics, paddle, pricing
+from billing import db, grants, ledger, metrics, paddle, pricing, revenuecat
 from billing.packs import PACKS
 from billing.pricing import UnknownAlias, Usage
 from billing.settings import get_settings
@@ -322,15 +322,16 @@ class PackOut(Strict):
     usd_cents: int
     credits: int
     available: bool
+    product_id: str | None = None
 
 
 class PacksOut(Strict):
     packs: list[PackOut]
 
 
-@router.get('/v1/packs', response_model=PacksOut)
-def packs():
-    return PacksOut(packs=[PackOut(**p) for p in paddle.packs_on_sale()])
+@router.get('/v1/packs', response_model=PacksOut, response_model_exclude_none=True)
+def packs(channel: str = Query('web', pattern='^(web|store)$')):
+    return PacksOut(packs=[PackOut(**p) for p in paddle.packs_on_sale(channel)])
 
 
 @router.post('/v1/checkout', response_model=CheckoutOut, responses={403: {'description': 'The account was closed'}})
@@ -408,3 +409,32 @@ def prometheus():
 if __name__ == '__main__':
     if '--dump-openapi' in sys.argv:
         print(yaml.safe_dump(json.loads(json.dumps(app.openapi())), sort_keys=False), end='')
+
+
+@app.post('/webhooks/revenuecat', include_in_schema=False)
+async def revenuecat_webhook(request: Request):
+    """Public (behind the proxy). Needs the dashboard Authorization value, and a valid signature when signing is on."""
+    import os
+    import time
+    import anyio
+    expected = os.environ.get('REVENUECAT_WEBHOOK_AUTH', '')
+    if not expected:
+        raise HTTPException(503, 'Store purchases are not configured')
+    raw = await request.body()
+    signing = os.environ.get('REVENUECAT_SIGNING_SECRET', '')
+    if not revenuecat.authorised(request.headers.get('authorization', ''), expected) or (
+            signing and not revenuecat.signature_ok(request.headers.get('x-revenuecat-webhook-signature', ''), raw, signing,
+                                                    now=time.time(), tolerance=300)):
+        metrics.PAYMENT_EVENTS.labels('revenuecat', 'bad_signature').inc()
+        raise HTTPException(401, 'Invalid credentials')
+    try:
+        payload = json.loads(raw)
+    except ValueError:
+        raise HTTPException(400, 'Invalid JSON') from None
+
+    def apply():
+        with db.transaction() as conn:
+            return revenuecat.handle(conn, payload)
+    outcome = await anyio.to_thread.run_sync(apply)
+    metrics.PAYMENT_EVENTS.labels('revenuecat', outcome.split(':')[0]).inc()
+    return {'outcome': outcome}
