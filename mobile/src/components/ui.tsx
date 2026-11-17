@@ -205,7 +205,11 @@ export function ProgressBar({ value, accent = 'blue', label }: { value: number; 
 }
 
 /** Reanimated CSS transition: not a StyleSheet property, so it lives outside StyleSheet.create. */
-const PRESS_TRANSITION = { transform: [{ scale: 1 }], transitionProperty: 'transform', transitionDuration: PRESS_MS, transitionTimingFunction: EASE_OUT_CSS } as const;
+// Colour changes (an answer turning right or wrong) ride the same 120ms transition: state, not a snap.
+const PRESS_TRANSITION = {
+  transform: [{ scale: 1 }], transitionProperty: ['transform', 'backgroundColor', 'borderColor'] as ('transform' | 'backgroundColor' | 'borderColor')[],
+  transitionDuration: PRESS_MS, transitionTimingFunction: EASE_OUT_CSS,
+};
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },

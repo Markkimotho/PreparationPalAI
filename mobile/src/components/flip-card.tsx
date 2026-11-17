@@ -1,7 +1,8 @@
 /**
  * A flashcard you flip with a tap and throw with a swipe.
  *
- *  - Flip: rotateY 0° → 180° with perspective, 420ms strong ease-in-out (on-screen movement).
+ *  - Flip: rotateY 0° → 180° with perspective, 300ms strong ease-in-out (on-screen movement; used
+ *    dozens of times a session, so it stays inside the 300ms UI budget).
  *    Both faces are drawn; the one facing away is hidden from screen readers.
  *  - Swipe (gestures skill): while the finger is down the card IS the finger (1:1, a slight tilt,
  *    no easing). On release, Apple's momentum projection decides: a flick commits even over a
@@ -13,7 +14,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
-import Animated, { interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { EASE_IN_OUT, FLIP_MS, SPRING_RELEASE } from '@/constants/motion';
@@ -27,6 +28,7 @@ export function FlipCard({ front, back, flipped, onFlip, onSwipe, height = 300 }
   const reduced = useReducedMotion();
   const turn = useSharedValue(flipped ? 1 : 0);
   const x = useSharedValue(0);
+  const grabbedAt = useSharedValue(0);
 
   useEffect(() => {
     turn.set(reduced ? (flipped ? 1 : 0) : withTiming(flipped ? 1 : 0, { duration: FLIP_MS, easing: EASE_IN_OUT }));
@@ -37,9 +39,11 @@ export function FlipCard({ front, back, flipped, onFlip, onSwipe, height = 300 }
   const pan = usePanGesture({
     activeOffsetX: [-12, 12],
     failOffsetY: [-14, 14],                        // vertical movement belongs to the page scroll
-    onUpdate: e => { x.set(e.translationX); },
+    // Catching a card mid-throw keeps it where it is: track from the grab point, not from centre.
+    onActivate: () => { cancelAnimation(x); grabbedAt.set(x.get()); },
+    onUpdate: e => { x.set(grabbedAt.get() + e.translationX); },
     onDeactivate: e => {
-      const outcome = swipeOutcome(e.translationX, e.velocityX, width);
+      const outcome = swipeOutcome(grabbedAt.get() + e.translationX, e.velocityX, width);
       if (outcome === 0) { x.set(withSpring(0, { ...SPRING_RELEASE, velocity: e.velocityX })); return; }
       const leave = outcome * width * 1.3;
       x.set(withSpring(leave, { ...SPRING_RELEASE, velocity: e.velocityX, overshootClamping: true }, done => {

@@ -13,8 +13,9 @@ import { recordStudy } from '@/utils/streak';
 
 interface Question { question: string; options?: Record<string, string>; correct?: string; explanation?: string; source?: string }
 
-// Questions arrive together, in reading order: a short non-uniform stagger (50, 90, 120, …ms), capped.
-const enterQuestion = (i: number) => FadeInDown.duration(260).delay(Math.min(240, [0, 50, 90, 120][i] ?? 120 + i * 20)).easing(EASE_OUT)
+// Questions arrive together in reading order: a short, shrinking stagger for the first few
+// (0, 40, 70, 90ms); the rest arrive with the fourth, so the group settles in about 350ms.
+const enterQuestion = (i: number) => FadeInDown.duration(260).delay([0, 40, 70, 90][i] ?? 90).easing(EASE_OUT)
   .withInitialValues({ opacity: 0, transform: [{ translateY: 10 }] });
 
 export function Quiz() {
@@ -83,7 +84,8 @@ export function Quiz() {
     </Animated.View>)}
 
     {finished && <Card tone="soft" accent={ratio >= 0.6 ? 'green' : 'amber'} style={styles.result}>
-      <Celebration play={ratio >= 0.6} />
+      {/* Silent: the last answer already gave its haptic in this same moment. */}
+      <Celebration play={ratio >= 0.6} haptic={false} />
       <View style={[styles.trophy, { backgroundColor: ratio >= 0.6 ? colors.green : colors.amber }]}>
         <Icon name={ratio >= 0.6 ? { ios: 'trophy.fill', android: 'emoji_events' } : { ios: 'arrow.triangle.2.circlepath', android: 'replay' }} size={28} color="#ffffff" />
       </View>

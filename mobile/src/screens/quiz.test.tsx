@@ -22,6 +22,7 @@ test('make a quiz, answer it, see the score', async () => {
 
 test('right and wrong answers each get their own haptic, and a good score celebrates', async () => {
   const Haptics = require('expo-haptics');
+  jest.clearAllMocks();
   (postJson as jest.Mock).mockResolvedValue([
     { question: 'Unit of force?', options: { A: 'Newton', B: 'Joule' }, correct: 'A' },
     { question: 'Unit of power?', options: { A: 'Watt', B: 'Volt' }, correct: 'A' },
@@ -38,5 +39,6 @@ test('right and wrong answers each get their own haptic, and a good score celebr
   await fireEvent.press(screen.getByRole('button', { name: 'A. Coulomb' }));
   expect(screen.getByText('67%')).toBeTruthy();
   expect(screen.getByText('You scored 2 of 3.')).toBeTruthy();
-  expect(Haptics.notificationAsync).toHaveBeenLastCalledWith('success');      // the celebration's
+  expect(Haptics.notificationAsync).toHaveBeenLastCalledWith('success');
+  expect(Haptics.notificationAsync).toHaveBeenCalledTimes(3);      // one per answer; the celebration stays silent
 });

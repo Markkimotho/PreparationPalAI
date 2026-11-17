@@ -2,6 +2,8 @@
 
 One Expo (SDK 58) app for both stores. It uses the same account, API and credit balance as the web app.
 
+Signed out, learners see a four-slide welcome carousel (3D illustrations, swipe or Next), which ends in sign-in.
+
 | Tab | What it does | API |
 | --- | --- | --- |
 | Study | Ask about your notes, a tutor, or coding help; streamed answers with Markdown and maths; add a PDF or photo to your notes | `/api/chat/stream`, `/api/agent/stream`, `/api/code-chat/stream`, `/api/kb/jobs/upload` |
@@ -26,6 +28,27 @@ Drawing answers are web-only for now.
   react-markdown + KaTeX renderer as the web app.
 - **Offline**: flashcard decks are cached with AsyncStorage and cleared on sign-out.
 
+## Design and motion
+
+- **Palette** (`src/constants/theme.ts`): the web app and docs family brightened. Each area has its own
+  accent: Study blue (the web's navy), Quiz amber (the docs' gold), Cards green (the logo), Coach coral.
+  Fonts are the web's pair: Manrope for headings, Source Sans 3 for text.
+- **Motion rules** follow the animate-expo, choreograph, gestures and apple-design skills in
+  `.claude/skills/` (Emil Kowalski). Values live in `src/constants/motion.ts`; nothing is eyeballed.
+  - Press feedback: scale 0.97 over 120ms (a Reanimated CSS transition). Tabs never animate.
+  - Everything that moves runs on the UI thread with Reanimated; only transform and opacity animate,
+    except childless absolute fills (progress bars).
+  - The welcome carousel is a native paging scroll; one shared scroll value drives the 3D page turns,
+    parallax, background colour and dots. Illustration loops run only on the visible slide.
+  - Flashcards follow the finger 1:1 and commit on Apple's momentum projection or 40% of the width
+    (`src/utils/swipe.ts`), springing with the release velocity.
+  - Haptics: one per meaningful event (`src/utils/haptics.ts`), always with a visual change.
+  - Reduced motion: no loops, 3D, parallax or confetti; crossfades only.
+- **Gate:** `src/animated-style-rule.test.ts` fails if a `useAnimatedStyle` does not read its shared values
+  directly (a style that reads them through a helper never updates; this shipped once).
+- **Streak:** `src/utils/streak.ts` counts consecutive local study days, shown on the Study tab, cleared on
+  sign-out.
+
 ## Develop
 
 ```bash
@@ -35,6 +58,18 @@ npm run typecheck
 npx expo-doctor
 npx expo run:ios         # a development build (RevenueCat needs native code, so Expo Go is not enough)
 ```
+
+Without a local Xcode build, use a cloud development build and Metro:
+
+```bash
+npx eas-cli@latest build --profile development-simulator --platform ios   # install the .app on a simulator
+EXPO_PUBLIC_API_URL=http://localhost:18000 npx expo start --dev-client
+scripts/sim-shot.sh "sign-in?slide=2" /tmp/shots/slide3.png               # deep link + screenshot, no tapping
+```
+
+`?slide=N` on the sign-in route opens the carousel on a slide in development builds only. Every tab is
+reachable by link (`preparationpal://quiz`, `/cards`, `/coach`, `/account`). The local server stack is in
+`scripts/local_stack/` at the repository root.
 
 Environment (per build profile in `eas.json`; all are public by design):
 

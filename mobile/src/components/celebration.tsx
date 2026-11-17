@@ -1,7 +1,8 @@
 /**
  * A one-shot confetti burst for good results (rare tier: the delight budget lives here).
  * Pieces fly outward with their own spin and fade within 900ms, strong ease-out, on the UI
- * thread. Fires its success haptic in the same frame it starts. Skipped under reduced motion.
+ * thread. Fires its success haptic in the same frame it starts, unless the action that led here
+ * already gave one (one haptic per event). Skipped under reduced motion.
  * Decorative: the score text beside it carries the meaning.
  */
 import { useEffect, useMemo } from 'react';
@@ -14,7 +15,7 @@ import { haptics } from '@/utils/haptics';
 
 const PIECES = 16;
 
-export function Celebration({ play }: { play: boolean }) {
+export function Celebration({ play, haptic = true }: { play: boolean; haptic?: boolean }) {
   const colors = useTheme();
   const reduced = useReducedMotion();
   const t = useSharedValue(0);
@@ -31,11 +32,11 @@ export function Celebration({ play }: { play: boolean }) {
 
   useEffect(() => {
     if (!play) return;
-    haptics.success();
+    if (haptic) haptics.success();
     if (reduced) return;
     t.set(0);
     t.set(withTiming(1, { duration: 900, easing: EASE_OUT }));
-  }, [play, reduced, t]);
+  }, [play, reduced, t, haptic]);
 
   if (!play || reduced) return null;
   return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.origin}>

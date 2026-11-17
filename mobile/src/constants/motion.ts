@@ -14,4 +14,4 @@ export const SPRING_RELEASE = { duration: 400, dampingRatio: 0.8 } as const;  //
 
 export const PRESS_MS = 120;
 export const SMALL_STATE_MS = 180;
-export const FLIP_MS = 420;
+export const FLIP_MS = 300;
