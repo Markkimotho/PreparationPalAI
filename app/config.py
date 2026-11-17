@@ -107,7 +107,7 @@ class Settings(BaseSettings):
     @model_validator(mode='after')
     def validate_security(self):
         import re
-        if self.production and not self.auth_enabled:
+        if self.production and not (self.auth_enabled or self.auth_mode == 'oidc'):
             raise ValueError('PRODUCTION requires AUTH_ENABLED=true')
         from urllib.parse import urlsplit
         endpoint = urlsplit(self.ollama_base_url)
@@ -121,6 +121,15 @@ class Settings(BaseSettings):
                 raise ValueError('GATEWAY_API_KEY is required when INFERENCE_BACKEND=gateway')
             if 'ollama_model' not in self.model_fields_set:
                 self.ollama_model = 'open-default'
+        if self.auth_mode == 'oidc':
+            issuer = urlsplit(self.oidc_issuer)
+            if not self.oidc_issuer:
+                raise ValueError('OIDC_ISSUER is required when AUTH_MODE=oidc')
+            if issuer.scheme not in ('http', 'https') or not issuer.hostname or issuer.username or issuer.password:
+                raise ValueError('OIDC_ISSUER must be an HTTP(S) URL without credentials')
+            if not self.oidc_audience:
+                raise ValueError('OIDC_AUDIENCE is required when AUTH_MODE=oidc')
+            self.auth_enabled = True            # signed-in learners replace static keys
         if self.billing_enabled:
             if self.inference_backend != 'gateway':
                 raise ValueError('BILLING_ENABLED requires INFERENCE_BACKEND=gateway (usage is priced by gateway alias)')
@@ -138,7 +147,7 @@ class Settings(BaseSettings):
             if (public.scheme not in ('http', 'https') or not public.hostname or public.username or
                 public.password or public.path not in ('', '/') or public.query or public.fragment):
                 raise ValueError('PUBLIC_BASE_URL must be an HTTP(S) origin without path or credentials')
-        if self.auth_enabled and not self.auth_tokens:
+        if self.auth_enabled and self.auth_mode == 'tokens' and not self.auth_tokens:
             raise ValueError('AUTH_TOKENS must contain at least one token digest')
         for digest, principal in self.auth_tokens.items():
             if not re.fullmatch(r'[0-9a-f]{64}', digest):
