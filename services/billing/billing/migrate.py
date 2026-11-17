@@ -24,10 +24,20 @@ def apply_migrations() -> list[str]:
     return applied
 
 
+def bootstrap() -> dict:
+    """Apply migrations, then publish the seed prices if none exist. Safe to run on every start."""
+    from billing.pricing import seed_if_empty
+    applied = apply_migrations()
+    with db.transaction() as conn:
+        conn.execute('LOCK TABLE billing.prices IN EXCLUSIVE MODE')
+        seeded = seed_if_empty(conn)
+    return {'applied': applied, 'prices_seeded': seeded}
+
+
 if __name__ == '__main__':
     settings = get_settings()
     if not settings.database_url:
         sys.exit('Set BILLING_DATABASE_URL')
     db.configure(settings.database_url)
-    print('applied:', apply_migrations() or 'nothing to do')
+    print(bootstrap())
     db.close()

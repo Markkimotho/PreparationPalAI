@@ -76,3 +76,16 @@ def test_reservation_status_is_restricted():
             conn.execute("INSERT INTO billing.accounts (id) VALUES ('a1')")
             conn.execute("INSERT INTO billing.reservations (request_id, account_id, amount_micros, action, alias, status) "
                          "VALUES ('r', 'a1', 10, 'chat', 'open-default', 'weird')")
+
+
+def test_bootstrap_applies_migrations_and_seeds_prices_exactly_once():
+    """A fresh deployment must be able to price actions without anyone running extra commands."""
+    from billing.migrate import bootstrap
+    from billing.pricing import current_prices
+    first = bootstrap()
+    assert first['prices_seeded'] is False or first['prices_seeded'] is True   # tests clean tables, so seeding state varies
+    with database.transaction() as conn:
+        assert {'open-default', 'guard', 'embed-default', 'premium-claude'} <= set(current_prices(conn))
+    assert bootstrap()['prices_seeded'] is False          # second boot must not publish a new version
+    with database.transaction() as conn:
+        assert {p.version for p in current_prices(conn).values()} == {1}
