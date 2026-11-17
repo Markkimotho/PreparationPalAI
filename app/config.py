@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     embedding_alias: str = "embed-default"
     embedding_dimensions: int | None = Field(default=None, ge=32, le=8192)  # Matryoshka size; None = provider default
 
+    # Accounts: "tokens" = static workspace keys (self-hosted); "oidc" = signed-in learners (hosted).
+    auth_mode: Literal["tokens", "oidc"] = "tokens"
+    oidc_issuer: str = ""
+    oidc_audience: str = ""
+    oidc_jwks_url: str = ""
+
     # Billing (hosted mode): reserve before each model action, settle the real usage after.
     billing_enabled: bool = False
     billing_base_url: str = ""
