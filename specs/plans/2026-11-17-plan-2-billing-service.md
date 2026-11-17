@@ -169,7 +169,9 @@ Reconcile joins on `metadata.spend_logs_metadata.request_id`, ignores `action: u
 - [ ] **Step 1: Tests**: `test_sweep_releases_only_stale`; `test_reconcile_zero_drift_when_all_settled`; `test_reconcile_charges_missing_usage_once` (run twice → one adjust); `test_reconcile_ignores_other_apps` (rows whose key alias differs); `test_check_prices_flags_changed_alias_only`.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS. **Step 5: Commit.**
 
-### Task 8: Deploy wiring, dashboard and runbook
+### Task 8: Deploy wiring, dashboard and runbook (DONE)
+
+Built: billing, billing-db and billing-jobs services in `docker-compose.hosted.yml`; `billing/scheduler.py`; job results stored in `billing.job_runs` and exported by `/metrics`; Prometheus scrape plus 7 alerts (validated with promtool) and Grafana panels; CI job with Postgres; `engineering/runbooks/billing.md`; `bootstrap()` seeds prices on first start. **Live end-to-end proof** (real app + real billing on Postgres + real LiteLLM + fake provider): lazy starter grant, reserve and settle with pinned price version, 402 shape, fail-closed 503, idempotent top-up webhook, and a reconcile of 6 reservations against 40 gateway rows with zero drift. The run also found and fixed a real bug (chat needs two model calls with history).
 
 **Files:**
 - Modify: `docker-compose.yml` (add `billing` + `billing-db` under profile `hosted`), `docker-compose.hosted.yml` (`BILLING_ENABLED=true`, URLs, tokens via `${...:?}`), `monitoring/` (Grafana billing panel: charged, margin, written-off, drift, open reservations; alert on drift > 0 and written-off > $1/day), `.github/workflows/quality.yml` (Postgres service, billing tests), `.env.example`
