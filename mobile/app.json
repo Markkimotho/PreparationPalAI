@@ -15,7 +15,8 @@
       "bundleIdentifier": "app.preparationpal.mobile",
       "supportsTablet": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CADisableMinimumFrameDurationOnPhone": true
       }
     },
     "android": {
