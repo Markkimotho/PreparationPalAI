@@ -161,7 +161,9 @@ Also fixed here: `ingest_documents` embeds in a thread pool, which drops context
 - [ ] **Step 1: Tests**: `test_gateway_catalogue_lists_aliases_with_tiers` (premium-* → `premium`, open-* → `open`, `guard`/`embed-default` hidden); `test_stale_model_preference_returns_409` (Review Focus 3: `qwen2.5:7b` → 409 whose detail lists `open-default`); `test_pull_disabled_in_gateway_mode`; `test_readiness_checks_gateway` (`/health/liveliness` down → not ready); picker test: no Pull button when `pullable` false.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** backend and `cd frontend && npm test` → PASS. **Step 5: Commit.**
 
-### Task 7: Hosted compose wiring, live smoke and evals on gateway aliases
+### Task 7: Hosted compose wiring, live smoke and evals on gateway aliases (DONE except live-provider steps)
+
+Verified: hosted compose validates; `scripts/smoke_gateway.py` gate-tested; gateway runbook + strict docs build pass; eval harness reads `EVAL_MODELS`. Integration proof: the real app through a real LiteLLM container to the fake provider: readiness true, 6 learner aliases, a chat answered via the `open-default` fallback, and the gateway spend logs show `end_user` and `spend_logs_metadata.request_id` per call (guard x3, main, embed per chat). STILL OPEN, needs provider keys: run `scripts/smoke_gateway.py` against staging and `pytest evals -m eval` per alias (Step 3).
 
 **Files:**
 - Create: `docker-compose.hosted.yml`, `scripts/smoke_gateway.py`, `engineering/runbooks/gateway.md`

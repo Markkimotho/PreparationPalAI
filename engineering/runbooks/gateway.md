@@ -67,6 +67,7 @@ to be searchable under the new model.
 | Symptom | Likely cause |
 | --- | --- |
 | Every request returns 503 | Gateway unreachable or the key's budget is exhausted. Check `/health/ready` and the gateway logs. |
+| Every request returns 409 "Model 'qwen2.5:7b' is not available" | `OLLAMA_MODEL` is pinned to a self-hosted tag (often from a `.env`). Set `OLLAMA_MODEL=open-default` or remove it. `/health/ready` shows `chat_model: false`. |
 | Fallback never used | The key is not allowed to call the `*-fallback` aliases. Recreate it with the key script. |
 | Answers say safety checking is unavailable | The `guard` alias failed with a non-gateway error. Check the guard model in the gateway config. |
 | Usage records are all `estimated` | The provider omits `usage`. Check the alias mapping or the provider. |
