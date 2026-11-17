@@ -149,7 +149,7 @@ Also fixed here: `ingest_documents` embeds in a thread pool, which drops context
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** Existing self-hosted data keeps working: when backend is `ollama` and the legacy collection name exists, use it (test `test_legacy_ollama_collection_still_read`).
 - [ ] **Step 4: Run** `pytest tests -q` → PASS. **Step 5: Commit.**
 
-### Task 6: Catalogue, health and model management in gateway mode
+### Task 6: Catalogue, health and model management in gateway mode (DONE, 335 backend + 69 frontend tests green)
 
 **Files:**
 - Modify: `app/analysis.py:48-60`, `app/model_catalog.py`, `app/api.py:208-265`, `app/diagnostics.py:95-110`, `frontend/src/components/` model picker (hide Pull when `pullable` is false)

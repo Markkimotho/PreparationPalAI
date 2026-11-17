@@ -15,11 +15,12 @@ export function ModelPicker() {
 
   const info = catalogue?.find(m => m.id === selected);
   const isInstalled = info?.installed ?? installed.includes(selected);
+  const canPull = info?.pullable !== false;  // hosted deployments manage models for you
 
   const options: SelectOption[] = [...new Set([...supported, ...(selected ? [selected] : [])])].map((m) => ({
     value: m,
     label: m,
-    hint: !online ? 'unavailable: Ollama offline' : catalogue?.find(entry => entry.id === m)?.installed || installed.includes(m) ? "installed" : catalogue?.find(entry => entry.id === m)?.availability ?? 'unknown',
+    hint: !online ? (canPull ? 'unavailable: Ollama offline' : 'unavailable: service offline') : catalogue?.find(entry => entry.id === m)?.tier === 'premium' ? 'premium' : catalogue?.find(entry => entry.id === m)?.installed || installed.includes(m) ? "installed" : catalogue?.find(entry => entry.id === m)?.availability ?? 'unknown',
   }));
 
   const pull = async () => {
@@ -51,7 +52,7 @@ export function ModelPicker() {
           placeholder="Model"
         />
       </div>
-      {!isInstalled && selected && (
+      {!isInstalled && selected && canPull && (
         <button
           type="button"
           className={styles.pull}
@@ -68,7 +69,7 @@ export function ModelPicker() {
           onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
           <div className={styles.infoHeader}><h2 id={infoId}>{selected}</h2>
             <button type="button" autoFocus aria-label="Close model info" onClick={() => dialog.current?.close()}>Close</button></div>
-          <p className={styles.availability}>{!online ? 'Ollama is offline' : isInstalled ? 'Installed and ready' : 'Not installed'}</p>
+          <p className={styles.availability}>{!online ? (canPull ? 'Ollama is offline' : 'The model service is offline') : isInstalled ? (canPull ? 'Installed and ready' : 'Available') : 'Not installed'}</p>
           <h3>Best for</h3><p>{info.recommended_use}</p>
           <h3>Resources</h3><p>{info.resources}</p>
           <dl><div><dt>Tool calling</dt><dd>{info.tools == null ? 'Not verified' : info.tools ? 'Supported' : 'Not supported'}</dd></div>
