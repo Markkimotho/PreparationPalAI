@@ -34,7 +34,9 @@
 
 ---
 
-### Task 1: Service scaffold, schema and test database
+### Task 1: Service scaffold, schema and test database (DONE, 10 tests)
+
+Design decision made here: ledger `amount_micros` changes TOTAL funds (grants and top-ups positive, settles negative). Reserve and release rows have `amount_micros = 0` and carry the hold in a new `hold_micros` column, so `available + reserved == SUM(ledger.amount_micros)` holds exactly and total spend is simply `-SUM(amount) WHERE kind='settle'`. `reservations` also gains `charged_micros`.
 
 **Files:**
 - Create: `services/billing/pyproject.toml`, `services/billing/billing/__init__.py`, `billing/settings.py`, `billing/db.py`, `billing/migrations/001_init.sql`, `billing/migrate.py`, `services/billing/Dockerfile`, `services/billing/README.md`, `services/billing/docker-compose.test.yml`, `services/billing/tests/conftest.py`, `tests/test_migrations.py`

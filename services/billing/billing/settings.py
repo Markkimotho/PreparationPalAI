@@ -1,0 +1,15 @@
+"""Environment-driven settings. Secrets are read from the environment only."""
+import os
+from dataclasses import dataclass, field
+
+
+@dataclass(frozen=True)
+class Settings:
+    database_url: str = field(default_factory=lambda: os.environ.get('BILLING_DATABASE_URL', ''), repr=False)
+    service_token: str = field(default_factory=lambda: os.environ.get('BILLING_SERVICE_TOKEN', ''), repr=False)
+    starter_grants_per_day: int = field(default_factory=lambda: int(os.environ.get('STARTER_GRANTS_PER_DAY', '200')))
+    pool_max: int = field(default_factory=lambda: int(os.environ.get('BILLING_POOL_MAX', '20')))
+
+
+def get_settings() -> Settings:
+    return Settings()
