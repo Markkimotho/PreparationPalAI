@@ -1,3 +1,4 @@
+import { SECTIONS } from "../sections/registry";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -51,7 +52,7 @@ describe("Sidebar", () => {
     renderAt("/quiz", { collapsed: true });
     expect(screen.queryByText("Quiz Prep")).not.toBeInTheDocument();
     // Links remain (icon-only) and accessible via title.
-    expect(screen.getAllByRole("link")).toHaveLength(8);
+    expect(screen.getAllByRole("link")).toHaveLength(SECTIONS.length);
   });
 
   it("traps focus and closes on Escape when used as a mobile drawer", async () => {

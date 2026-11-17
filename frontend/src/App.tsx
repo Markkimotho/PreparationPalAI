@@ -10,6 +10,7 @@ import { RegularChat } from "./sections/RegularChat";
 import { StudyAgent } from "./sections/StudyAgent";
 import { Coach } from "./sections/Coach";
 import { DrawingReviews } from './sections/DrawingReviews';
+import { Account } from './sections/Account/Account';
 
 export function App() {
   return (
@@ -26,6 +27,7 @@ export function App() {
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/guide" element={<Guide />} />
             <Route path="/drawings" element={<DrawingReviews />} />
+            <Route path="/account" element={<Account />} />
             <Route path="*" element={<Navigate to="/quiz" replace />} />
           </Route>
         </Routes>

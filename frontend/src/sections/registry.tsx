@@ -8,7 +8,8 @@ export type SectionId =
   | "chat"
   | "cards"
   | "drawings"
-  | "guide";
+  | "guide"
+  | "account";
 
 export interface SectionDef {
   id: SectionId;
@@ -86,6 +87,13 @@ const GuideIcon = (
   </svg>
 );
 
+const AccountIcon = (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
+    <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
 export const SECTIONS: SectionDef[] = [
   { id: "prepare", path: "/prepare", label: "Preparation Coach", blurb: "Learn, practise, interview, and review weak areas.", icon: QuizIcon },
   { id: 'drawings', path: '/drawings', label: 'Drawing reviews', blurb: 'Submit and review visual answers.', icon: CardsIcon },
@@ -131,6 +139,7 @@ export const SECTIONS: SectionDef[] = [
     blurb: "Study walkthroughs, feature help, and troubleshooting.",
     icon: GuideIcon,
   },
+  { id: "account", path: "/account", label: "Account", blurb: "Credits, purchases and account settings.", icon: AccountIcon },
 ];
 
 export function sectionForPath(pathname: string): SectionDef {

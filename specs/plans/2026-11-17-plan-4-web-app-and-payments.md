@@ -43,7 +43,7 @@ Files: `app/api.py`, `app/billing_client.py`, `app/metered.py` (exempt routes), 
 
 Files: `frontend/src/auth/session.ts`, `frontend/src/api/access.ts`, `frontend/src/components/AccessGate.tsx`, tests.
 
-### Task 4: Account page — balance, history, buy credits, delete account
+### Task 4: Account page — balance, history, buy credits, delete account (DONE, 9 tests)
 
 Files: `frontend/src/sections/Account.tsx`, `frontend/src/api/billing.ts`, `frontend/src/payments/paddle.ts`, route and navigation, tests.
 
