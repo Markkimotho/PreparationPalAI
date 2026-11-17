@@ -47,7 +47,9 @@ Files: `frontend/src/auth/session.ts`, `frontend/src/api/access.ts`, `frontend/s
 
 Files: `frontend/src/sections/Account.tsx`, `frontend/src/api/billing.ts`, `frontend/src/payments/paddle.ts`, route and navigation, tests.
 
-### Task 5: Installable app (PWA)
+### Task 5: Installable app (PWA) (DONE, 16 web + 8 server tests)
+
+Also fixed here: the server's client-route fallback did not include `/account` or `/auth/callback`, so the sign-in redirect would have returned 404 in production.
 
 Files: `frontend/public/manifest.webmanifest`, icons, `frontend/public/sw.js`, `frontend/public/sw-strategy.js`, `frontend/index.html`, `frontend/src/pwa/register.ts`, `app/api.py` (MIME types, no-cache for the worker), tests.
 

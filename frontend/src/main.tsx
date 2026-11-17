@@ -4,10 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { AccessGate } from "./components/AccessGate";
 import { installDiagnostics } from './api/diagnostics';
+import { registerServiceWorker } from './pwa/register';
 import "./styles/theme.css";
 import "./styles/global.css";
 
 installDiagnostics();
+void registerServiceWorker();
 (window as Window & { EXCALIDRAW_ASSET_PATH?: string }).EXCALIDRAW_ASSET_PATH = '/excalidraw/';
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

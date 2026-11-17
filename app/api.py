@@ -672,18 +672,34 @@ def flashcards_delete_card(deck_id: str, card_id: str) -> Deck:
 _DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
+import mimetypes  # noqa: E402
+
+mimetypes.add_type('application/manifest+json', '.webmanifest')
+
+# Client-side routes: a reload or a sign-in redirect to these must load the app, not 404.
+CLIENT_ROUTES = {'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide', 'drawings', 'account', 'auth'}
+NO_CACHE = {'index.html', 'sw.js', 'sw-strategy.js', 'manifest.webmanifest'}
+
+
 class SPAStaticFiles(StaticFiles):
-    """StaticFiles that serves index.html for unknown (non-file) routes."""
+    """Serves the built web app: index.html for client routes, correct headers for the PWA files."""
 
     async def get_response(self, path: str, scope):
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
+            name = path.strip('/') or 'index.html'
         except StarletteHTTPException as exc:
-            if exc.status_code == 404 and path.strip('/').split('/')[0] in {
-                'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide', 'drawings'
-            }:
-                return await super().get_response("index.html", scope)
-            raise
+            if exc.status_code == 404 and path.strip('/').split('/')[0] in CLIENT_ROUTES:
+                response, name = await super().get_response("index.html", scope), 'index.html'
+            else:
+                raise
+        if name in NO_CACHE or name.endswith('/index.html'):
+            response.headers['Cache-Control'] = 'no-cache'        # always revalidate the shell and the worker
+        elif name.startswith('assets/'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'   # content-hashed by Vite
+        if name == 'sw.js':
+            response.headers['Service-Worker-Allowed'] = '/'
+        return response
 
 
 if _DIST.is_dir():
