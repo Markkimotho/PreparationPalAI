@@ -47,4 +47,6 @@
 
 ### Task 5: Account screen — balance, history, buy credits with RevenueCat, delete account, sign out (DONE, 8 tests)
 
-### Task 6: Build configuration, CI, docs and a native build check
+### Task 6: Build configuration, CI, docs and a native build check (DONE)
+
+Cloud build on EAS (`simulator` profile, build cddfd07f) succeeded; the 139 MB app installed on an iPhone 17 Pro simulator and launched to the branded sign-in screen, so the native modules (RevenueCat, secure store, web view, auth session) compile and link. A local native build was abandoned for lack of disk space.
