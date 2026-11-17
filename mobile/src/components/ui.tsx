@@ -106,7 +106,10 @@ export function Button({ label, onPress, variant = 'primary', accent = 'blue', i
   return <PressableScale onPress={onPress} disabled={disabled || busy} accessibilityLabel={label} accessibilityState={{ busy: !!busy }}
     style={(disabled || busy) && variant === 'primary' ? styles.dimmed : disabled ? styles.dimmed : undefined}>
     {variant === 'primary'
-      ? <LinearGradient colors={[main, deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[shape, styles.primaryShadow, { shadowColor: deep }]}>{inner}</LinearGradient>
+      // The shadow sits on a solid layer under the gradient so iOS can rasterise it cheaply.
+      ? <View style={[styles.primaryShadow, { shadowColor: deep, backgroundColor: deep, borderRadius: Radius.md }]}>
+        <LinearGradient colors={[main, deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={shape}>{inner}</LinearGradient>
+      </View>
       : <View style={[shape, { backgroundColor: variant === 'secondary' ? soft : variant === 'danger' ? colors.dangerSoft : 'transparent' }]}>{inner}</View>}
   </PressableScale>;
 }

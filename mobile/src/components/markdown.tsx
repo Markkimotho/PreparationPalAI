@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 export default function Markdown({ text, dark }: { text: string; dark?: boolean; dom?: import('expo/dom').DOMProps }) {
-  return <div style={{ fontFamily: '-apple-system, system-ui, sans-serif', fontSize: 16, lineHeight: 1.5, color: dark ? '#eef4ef' : '#13221b', overflowWrap: 'anywhere' }}>
+  return <div style={{ fontFamily: '-apple-system, system-ui, sans-serif', fontSize: 17, lineHeight: 1.45, color: dark ? '#eef1f4' : '#1f262b', overflowWrap: 'anywhere', margin: '-1em 0' }}>
     <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}
       components={{ a: ({ children }) => <span>{children}</span> }}>{text}</ReactMarkdown>
   </div>;

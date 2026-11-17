@@ -12,7 +12,8 @@ const TABS = [
 
 export default function TabsLayout() {
   const colors = useTheme();
-  return <NativeTabs backgroundColor={colors.background} indicatorColor={colors.backgroundSelected} labelStyle={{ selected: { color: colors.tint } }}>
+  // Tab switches never animate (they are peers, used dozens of times a session): the platform's own tab bar.
+  return <NativeTabs tintColor={colors.tint} indicatorColor={colors.blueSoft} labelStyle={{ selected: { color: colors.tint } }}>
     {TABS.map(t => <NativeTabs.Trigger key={t.name} name={t.name}>
       <NativeTabs.Trigger.Label>{t.label}</NativeTabs.Trigger.Label>
       <NativeTabs.Trigger.Icon sf={t.sf} md={t.md} />
