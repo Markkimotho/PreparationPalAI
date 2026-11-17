@@ -83,3 +83,12 @@ def test_sign_in_configuration_is_public_but_contains_no_secrets(monkeypatch):
     assert client.get('/api/auth/status').json() == {
         'enabled': True, 'mode': 'oidc', 'issuer': 'https://auth.example.com/oidc',
         'web': {'endpoint': 'https://auth.example.com', 'client_id': 'web-app-id', 'resource': 'https://api.example.com'}}
+
+
+def test_opening_the_balance_offers_the_starter_allowance_first(billing):
+    """A new learner must see their free credits on the Account page, not 0 until their first study action."""
+    metered._started.clear()
+    billing.grant_reason = 'granted'
+    client.get('/api/billing/balance')
+    paths = [p for _, p, _ in billing.calls]
+    assert paths.index('/v1/accounts/local/grants/starter') < paths.index('/v1/accounts/local/balance')

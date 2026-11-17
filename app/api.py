@@ -236,7 +236,9 @@ def billing_balance():
     if not settings.billing_enabled:
         raise HTTPException(404, 'Billing is not enabled.')
     try:
-        b = metered.get_client().balance(workspace_id.get())
+        client = metered.get_client()
+        metered._ensure_started(client, workspace_id.get())      # show the free allowance before the first study action
+        b = client.balance(workspace_id.get())
     except BillingUnavailable:
         raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
     return {'available_credits': b['available_micros'] // 1000, 'reserved_credits': b['reserved_micros'] // 1000,
