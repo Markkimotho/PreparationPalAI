@@ -152,7 +152,9 @@ Built differently from the plan, for stronger guarantees: one ASGI middleware (`
   - Frontend Vitest: 402 shows balance, required credits and a Top up link; estimate renders "about N credits".
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** Keep `limits.consume()` as the rate limit; billing is separate. **Step 4: Run** `pytest tests -q && pytest services/billing/tests -q && (cd frontend && npm test)` → PASS. **Step 5: Commit.**
 
-### Task 7: Sweeper and reconciler
+### Task 7: Sweeper and reconciler (DONE, 10 tests)
+
+Reconcile joins on `metadata.spend_logs_metadata.request_id`, ignores `action: unscoped` rows, other apps' keys and failed calls, and is idempotent (one `adjust` per reservation, later runs report zero). Jobs exit 3 on drift so cron can alert.
 
 **Files:**
 - Create: `billing/jobs.py`, `tests/test_jobs.py`
