@@ -114,7 +114,9 @@ Built: `app/metering.py`, `GuardedChatGateway`/`RawChatGateway`/`chat_model`/`ra
 - [ ] **Step 6: Run** `pytest tests/test_metering.py tests/test_gateway_llm.py -q` → PASS; `pytest tests -q` → all PASS.
 - [ ] **Step 7: Commit.**
 
-### Task 4: Safety judge, vision and all call sites on the factory
+### Task 4: Safety judge, vision and all call sites on the factory (DONE, 315 backend tests green)
+
+Built: all chat call sites on `chat_model` (factory defaults Ollama `base_url`/`keep_alive`); `vision_json` in `app/llm.py`; `supports_vision` and `guard_model` in `app/model_catalog.py`; drawings and exports use them; boundary tests in `tests/test_inference_boundary.py`; gateway drawing tests in `tests/test_drawings_gateway.py`. Gateway mode ignores the UI-selected model for moderation (always `guard`) and vision review (always `vision-open`).
 
 **Files:**
 - Modify: `app/safety.py:42-68`, `app/drawings.py:170-178,220-245`, `app/chain.py`, `app/graph.py`, `app/code_assistant.py`, `app/quiz.py`, `app/flashcards.py`, `app/coach.py`, `app/analysis.py`, `app/exports.py`

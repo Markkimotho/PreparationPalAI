@@ -20,7 +20,7 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.config import get_settings
-from app.model_catalog import require_model
+from app.model_catalog import guard_model, require_model, supports_vision
 from app.safety import POLICY, SafetyError, moderate
 from app.workspace import identity_id, role
 from app.prompt_library import render_prompt
@@ -113,7 +113,7 @@ def normalized_png(data):
 
 def check_text(text, model=None):
     settings = get_settings()
-    moderate(text, model=require_model(model), base_url=settings.ollama_base_url, timeout=settings.llm_timeout)
+    moderate(text, model=guard_model(model), base_url=settings.ollama_base_url, timeout=settings.llm_timeout)
 
 
 @router.post('')
@@ -167,11 +167,14 @@ def list_submissions(limit: int = Query(50, ge=1, le=100), before: int | None = 
 
 @router.get('/vision-models')
 def vision_models():
+    settings = get_settings()
+    if settings.inference_backend == 'gateway':
+        return {'models': [settings.vision_alias]}
     from app.analysis import get_installed_models
     available = []
     for model in get_installed_models():
         try:
-            response = httpx.post(f'{get_settings().ollama_base_url}/api/show', json={'model': model}, timeout=5)
+            response = httpx.post(f'{settings.ollama_base_url}/api/show', json={'model': model}, timeout=5)
             response.raise_for_status()
             if 'vision' in response.json().get('capabilities', []):
                 available.append(model)
@@ -218,29 +221,18 @@ def human_review(drawing_id: str, req: HumanReview):
 
 
 def vision_call(model, system, text, image, schema):
-    settings = get_settings()
-    with httpx.Client(base_url=settings.ollama_base_url, timeout=httpx.Timeout(settings.llm_timeout, connect=5)) as client:
-        response = client.post('/api/chat', json=dict(model=model, stream=False, format=schema,
-            messages=[dict(role='system', content=system), dict(role='user', content=text,
-                images=[base64.b64encode(image).decode()])], options=dict(temperature=0,
-                num_ctx=settings.llm_context_tokens, num_predict=min(1200, settings.llm_output_tokens))))
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get('prompt_eval_count', 0) >= settings.llm_context_tokens - 256:
-            raise ValueError('Image review may have exceeded its context window')
-        return json.loads(payload['message']['content'])
+    from app.llm import vision_json
+    return vision_json(model, system, text, image, schema)
 
 
 @router.post('/{drawing_id}/ai-review')
 def ai_review(drawing_id: str, req: AIRequest):
-    model = require_model(req.model)
+    settings = get_settings()
+    model = settings.vision_alias if settings.inference_backend == 'gateway' else require_model(req.model)
     with connect() as db:
         row, body = load(db, drawing_id)
-    settings = get_settings()
     try:
-        info = httpx.post(f'{settings.ollama_base_url}/api/show', json={'model': model}, timeout=10)
-        info.raise_for_status()
-        if 'vision' not in info.json().get('capabilities', []):
+        if not supports_vision(model):
             raise HTTPException(409, 'Choose an installed vision model for AI drawing review. Your submission remains saved for human review.')
         text = json.dumps({'question': body['question'], 'explanation': body['explanation'], 'reference': body['reference']})
         check_text(text, req.safety_model)

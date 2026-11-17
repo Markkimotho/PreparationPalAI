@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.config import get_settings
-from app.model_catalog import require_model
+from app.model_catalog import guard_model
 from app.safety import moderate
 
 router = APIRouter(prefix='/api/exports', tags=['Study exports'])
@@ -154,7 +154,7 @@ def export_study(req: ExportRequest):
         raise HTTPException(422, 'There are no questions to export.')
     settings = get_settings()
     moderate(json.dumps({'title': req.title, 'questions': [q.model_dump() for q in req.questions]}),
-             model=require_model(req.model), base_url=settings.ollama_base_url, timeout=settings.llm_timeout)
+             model=guard_model(req.model), base_url=settings.ollama_base_url, timeout=settings.llm_timeout)
     try:
         body = render_pdf(req) if req.format == 'pdf' else render_markdown(req)
     except ValueError as exc:

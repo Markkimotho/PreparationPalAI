@@ -1,4 +1,5 @@
 """One catalogue for all UI surfaces. Unknown capabilities stay unknown."""
+import httpx
 from fastapi import HTTPException
 
 from app.analysis import get_installed_models
@@ -36,3 +37,18 @@ def require_model(model: str | None) -> str:
         raise HTTPException(409, detail=f"Model '{name}' is not installed or Ollama is offline. "
                             "Select it in the model picker and choose Pull, then retry.")
     return name
+
+
+def guard_model(requested: str | None) -> str:
+    """The model that moderates text. Gateway mode ignores the caller's choice."""
+    settings = get_settings()
+    return settings.guard_alias if settings.inference_backend == 'gateway' else require_model(requested)
+
+
+def supports_vision(model: str) -> bool:
+    settings = get_settings()
+    if settings.inference_backend == 'gateway':
+        return model == settings.vision_alias
+    response = httpx.post(f'{settings.ollama_base_url}/api/show', json={'model': model}, timeout=10)
+    response.raise_for_status()
+    return 'vision' in response.json().get('capabilities', [])

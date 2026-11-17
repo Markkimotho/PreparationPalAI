@@ -190,3 +190,32 @@ def raw_chat_model(model: str, **kwargs):
     """Unguarded gateway model for the safety judge. Ollama callers build their own."""
     return RawChatGateway(**_gateway_kwargs(model, kwargs))
 
+
+
+def vision_json(model: str, system: str, text: str, image_png: bytes, schema: dict) -> dict:
+    """One structured image-plus-text call. Returns the parsed JSON object."""
+    import base64
+    from langchain_core.messages import HumanMessage
+    settings = get_settings()
+    if settings.inference_backend == 'gateway':
+        prompt = [SystemMessage(content=system), HumanMessage(content=[
+            {'type': 'text', 'text': text},
+            {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,' + base64.b64encode(image_png).decode()}}])]
+        classifier = raw_chat_model(model, temperature=0, format=schema, num_predict=min(1200, settings.llm_output_tokens))
+        response = classifier.invoke(prompt, config={'callbacks': []})
+        record_response(response, model, 'vision', prompt)
+        if (response.usage_metadata or {}).get('input_tokens', 0) >= settings.llm_context_tokens - 256:
+            raise ValueError('Image review may have exceeded its context window')
+        return json.loads(response.content)
+    with httpx.Client(base_url=settings.ollama_base_url, timeout=httpx.Timeout(settings.llm_timeout, connect=5)) as client:
+        import base64 as b64
+        response = client.post('/api/chat', json=dict(model=model, stream=False, format=schema,
+            messages=[dict(role='system', content=system), dict(role='user', content=text,
+                images=[b64.b64encode(image_png).decode()])], options=dict(temperature=0,
+                num_ctx=settings.llm_context_tokens, num_predict=min(1200, settings.llm_output_tokens))))
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get('prompt_eval_count', 0) >= settings.llm_context_tokens - 256:
+            raise ValueError('Image review may have exceeded its context window')
+        record(UsageRecord(model, 'vision', int(payload.get('prompt_eval_count', 0)), int(payload.get('eval_count', 0)), 'eval_count' not in payload))
+        return json.loads(payload['message']['content'])
