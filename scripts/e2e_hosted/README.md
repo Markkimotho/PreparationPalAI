@@ -20,3 +20,16 @@ report). Re-run it after changes to auth, storage, billing or the gateway config
 
 Expected: alice gets 500 starter credits and a document in her own workspace; mallory (unverified email) gets
 402; bob sees none of alice's data; deleting bob returns 204 and later requests return 403; alice is untouched.
+
+## Payment scenario
+
+`payments.py` drives a purchase and refund through the real app and billing service, with
+`fake_paddle.py` standing in for Paddle's transactions API (start billing with
+`PADDLE_API_BASE=http://127.0.0.1:18200` and test `PADDLE_*` values) and correctly signed webhooks.
+
+    python scripts/e2e_hosted/fake_paddle.py 18200 paddle.jsonl
+    python scripts/e2e_hosted/payments.py issuer.json paddle.jsonl <PADDLE_WEBHOOK_SECRET>
+
+Expected: the checkout is tagged with the signed-in learner even when the client names another account;
+five deliveries of the same payment credit once; a forged signature gets 401; a half refund delivered twice
+is applied once; the history shows the purchase and the refund.

@@ -53,6 +53,8 @@ Also fixed here: the server's client-route fallback did not include `/account` o
 
 Files: `frontend/public/manifest.webmanifest`, icons, `frontend/public/sw.js`, `frontend/public/sw-strategy.js`, `frontend/index.html`, `frontend/src/pwa/register.ts`, `app/api.py` (MIME types, no-cache for the worker), tests.
 
-### Task 6: Deploy, docs and end-to-end
+### Task 6: Deploy, docs and end-to-end (DONE)
+
+Live run (`scripts/e2e_hosted/payments.py`, real app with sign-in and Postgres, real billing, a stand-in for Paddle's API, signed webhooks): checkout tagged with the signed-in learner although the client named another account; five deliveries of one payment credited 10,500 once; a forged signature got 401; a half refund delivered twice removed 5,250 once; history read "Credits purchased +10,500, Refund -5,250". The live build served `/auth/callback` and `/account` (both would have 404ed before Task 5), the worker with `no-cache` and `Service-Worker-Allowed: /`, the manifest as `application/manifest+json`, and hashed assets as immutable for a year. Caddy validated the hosted Caddyfile.
 
 Files: `deploy/Caddyfile.hosted` (public webhook path), `docker-compose.hosted.yml` (Paddle settings), `engineering/runbooks/payments.md`, tests; a signed-webhook end-to-end run against the live stack.
