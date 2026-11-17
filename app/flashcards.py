@@ -18,7 +18,9 @@ from app.generation import validated_batches
 from langchain_core.messages import HumanMessage
 from app.llm import chat_model
 
+from app import db
 from app.config import get_settings
+from app.workspace import workspace_id
 from app.prompt_library import PromptProfile, render_prompt
 from app.quiz import _extract_json  # robust JSON parsing shared with quiz gen
 from app.retriever import get_retriever
@@ -70,13 +72,36 @@ def _summary(deck: dict) -> dict:
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
 
+def _pg_mutate(deck_id: str, change):
+    """Lock one deck row, let `change(deck)` edit it in place, save it. Returns change's result, or None if no such deck."""
+    with db.transaction() as conn:
+        row = conn.execute('SELECT body FROM app.flashcard_decks WHERE workspace = %s AND id = %s FOR UPDATE',
+                           (workspace_id.get(), deck_id)).fetchone()
+        if row is None:
+            return None
+        deck = row['body']
+        result = change(deck)
+        if result:
+            conn.execute('UPDATE app.flashcard_decks SET body = %s::jsonb WHERE workspace = %s AND id = %s',
+                         (json.dumps(deck), workspace_id.get(), deck_id))
+        return result
+
+
 def list_decks() -> list[dict]:
-    with _lock:
-        decks = _load()
+    if db.enabled():
+        with db.transaction() as conn:
+            decks = [r['body'] for r in conn.execute('SELECT body FROM app.flashcard_decks WHERE workspace = %s', (workspace_id.get(),))]
+    else:
+        with _lock:
+            decks = _load()
     return [_summary(d) for d in sorted(decks, key=lambda d: -d.get("created_at", 0))]
 
 
 def get_deck(deck_id: str) -> dict | None:
+    if db.enabled():
+        with db.transaction() as conn:
+            row = conn.execute('SELECT body FROM app.flashcard_decks WHERE workspace = %s AND id = %s', (workspace_id.get(), deck_id)).fetchone()
+        return row['body'] if row else None
     with _lock:
         for d in _load():
             if d["id"] == deck_id:
@@ -99,6 +124,11 @@ def create_deck(name: str, cards: list[dict] | None = None) -> dict:
             for c in (cards or [])
         ],
     }
+    if db.enabled():
+        with db.transaction() as conn:
+            conn.execute('INSERT INTO app.flashcard_decks (workspace, id, body) VALUES (%s, %s, %s::jsonb)',
+                         (workspace_id.get(), deck["id"], json.dumps(deck)))
+        return deck
     with _lock:
         decks = _load()
         decks.append(deck)
@@ -107,6 +137,9 @@ def create_deck(name: str, cards: list[dict] | None = None) -> dict:
 
 
 def delete_deck(deck_id: str) -> bool:
+    if db.enabled():
+        with db.transaction() as conn:
+            return bool(conn.execute('DELETE FROM app.flashcard_decks WHERE workspace = %s AND id = %s', (workspace_id.get(), deck_id)).rowcount)
     with _lock:
         decks = _load()
         remaining = [d for d in decks if d["id"] != deck_id]
@@ -118,6 +151,8 @@ def delete_deck(deck_id: str) -> bool:
 
 def add_card(deck_id: str, front: str, back: str) -> dict | None:
     card = {"id": _new_id(), "front": front, "back": back, "created_at": time.time()}
+    if db.enabled():
+        return _pg_mutate(deck_id, lambda deck: deck.setdefault("cards", []).append(card) or card)
     with _lock:
         decks = _load()
         for d in decks:
@@ -129,6 +164,14 @@ def add_card(deck_id: str, front: str, back: str) -> dict | None:
 
 
 def update_card(deck_id: str, card_id: str, front: str, back: str) -> dict | None:
+    if db.enabled():
+        def change(deck):
+            for c in deck.get("cards", []):
+                if c["id"] == card_id:
+                    c["front"], c["back"] = front, back
+                    return c
+            return None
+        return _pg_mutate(deck_id, change)
     with _lock:
         decks = _load()
         for d in decks:
@@ -142,6 +185,12 @@ def update_card(deck_id: str, card_id: str, front: str, back: str) -> dict | Non
 
 
 def delete_card(deck_id: str, card_id: str) -> bool:
+    if db.enabled():
+        def change(deck):
+            before = len(deck.get("cards", []))
+            deck["cards"] = [c for c in deck.get("cards", []) if c["id"] != card_id]
+            return len(deck["cards"]) != before
+        return bool(_pg_mutate(deck_id, change))
     with _lock:
         decks = _load()
         for d in decks:

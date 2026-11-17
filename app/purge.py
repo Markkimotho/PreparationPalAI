@@ -50,6 +50,10 @@ def _remove_tree(path: Path) -> int:
 
 
 def _flashcards(workspace: str) -> int:
+    from app import db
+    if db.enabled():
+        with db.transaction() as conn:
+            return conn.execute('DELETE FROM app.flashcard_decks WHERE workspace = %s', (workspace,)).rowcount
     return _remove_tree(Path(get_base_settings().flashcards_dir) / 'workspaces' / workspace)
 
 
