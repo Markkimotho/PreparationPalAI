@@ -84,17 +84,21 @@ def _jobs(workspace: str) -> int:
 
 
 def _usage(workspace: str) -> int:
+    from app import db
+    if db.enabled():
+        with db.transaction() as conn:
+            return conn.execute('DELETE FROM app.usage_events WHERE workspace = %s', (workspace,)).rowcount
     path = Path(get_base_settings().usage_db)
     if not path.exists():
         return 0
-    db = sqlite3.connect(path, timeout=10)
+    conn = sqlite3.connect(path, timeout=10)
     try:
-        with db:
-            return db.execute('DELETE FROM usage WHERE workspace = ?', (workspace,)).rowcount
+        with conn:
+            return conn.execute('DELETE FROM usage WHERE workspace = ?', (workspace,)).rowcount
     except sqlite3.OperationalError:                 # table not created yet
         return 0
     finally:
-        db.close()
+        conn.close()
 
 
 def _chat_memory(workspace: str) -> int:
