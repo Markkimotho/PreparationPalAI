@@ -125,12 +125,29 @@ def test_billing_down_at_settle_keeps_the_usage_and_flushes_later(billing):
 
 def test_runaway_actions_are_stopped_and_still_charged(billing):
     from unittest.mock import patch
-    runaway = engine(usage(), usage(), usage())     # chat reserves one main call
+    runaway = engine(usage(), usage(), usage())     # chat reserves two main calls: rephrase, then answer
     with patch('app.api.lcel_chain.stream', side_effect=runaway):
         response = post_chat()
     assert 'more model steps than allowed' in response.text
     settle = next(b for m, p, b in billing.calls if p.endswith('/settle'))
-    assert sum(u['input_tokens'] for u in settle['usage']) == 200      # the call that crossed the line was kept
+    assert sum(u['input_tokens'] for u in settle['usage']) == 300      # two allowed calls plus the one that crossed the line
+
+
+def test_a_chat_with_history_may_rephrase_then_answer(billing):
+    """Found by the live end-to-end run: with chat history the RAG chain makes two model calls."""
+    from unittest.mock import patch
+    with patch('app.api.lcel_chain.stream', side_effect=engine(usage('open-default', 'main', 90, 10), usage('open-default', 'main', 300, 40))):
+        response = post_chat()
+    assert 'more model steps than allowed' not in response.text and '"type": "token"' in response.text
+    reserve = next(b for m, p, b in billing.calls if p == '/v1/reservations')
+    assert next(l for l in reserve['lines'] if l['alias'] == 'open-default')['calls'] == 2
+
+
+def test_langgraph_chat_has_the_same_allowance(billing):
+    from unittest.mock import patch
+    with patch('app.api.langgraph_module.stream', side_effect=engine(usage(), usage())):
+        response = post_chat(mode='langgraph')
+    assert 'more model steps than allowed' not in response.text
 
 
 def test_client_disconnect_still_settles_what_was_used(billing):

@@ -50,7 +50,7 @@ class Spec:
 
 
 ROUTES: list[tuple[str, re.Pattern, Spec]] = [(m, re.compile(p + r'/?$'), s) for m, p, s in [
-    ('POST', r'/api/chat/stream', Spec('chat')),
+    ('POST', r'/api/chat/stream', Spec('chat', lambda b: 2)),   # rephrase with history, then answer
     ('POST', r'/api/code-chat/stream', Spec('code_chat')),
     ('POST', r'/api/agent/stream', Spec('agent', lambda b: 12)),
     ('POST', r'/api/quiz/generate', Spec('quiz_generate', _batches('n', 10))),
