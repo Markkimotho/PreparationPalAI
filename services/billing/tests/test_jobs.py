@@ -134,3 +134,18 @@ def test_job_results_are_reported_through_the_metrics_endpoint(conn, monkeypatch
     assert 'billing_job_problem{job="reconcile"} 1.0' in text and 'billing_job_problem{job="check-prices"} 0.0' in text
     assert 'billing_reconcile_drift_micros 500.0' in text and 'billing_price_drift 0.0' in text
     assert 'billing_job_last_run_timestamp{job="reconcile"}' in text
+
+
+def test_reports_are_plain_integers_that_serialize_even_after_a_correction(conn, prices):
+    """Postgres returns SUM(bigint) as Decimal; a report built from it must still be JSON-safe."""
+    import json
+    from dataclasses import asdict
+    ledger.credit(conn, 'a1', 1_000_000, 'topup', 't1')
+    ledger.reserve(conn, 'a1', 'r1', 100_000, 'chat', 'open-default')
+    age(conn, 'r1', 60)
+    jobs.sweep(conn, NOW)
+    rows = [row('r1', 'open-default', 8000, 2500)]
+    for _ in range(2):                                          # the second run sees an earlier correction
+        report = jobs.reconcile(conn, rows, KEY)
+        assert all(type(v) is int for v in asdict(report).values())
+        json.dumps(asdict(report))

@@ -73,8 +73,8 @@ def reconcile(conn, spend_rows: list[dict], key_alias: str) -> ReconcileReport:
         expected = sum(charge_micros(Usage(alias, i, o), prices[alias]) for alias, (i, o) in entry['usage'].items() if alias in prices)
         found = conn.execute('SELECT account_id, status, charged_micros FROM billing.reservations WHERE request_id = %s', (reservation_id,)).fetchone()
         settled = found is not None and found['status'] == 'settled'
-        corrected = conn.execute("SELECT COALESCE(-SUM(amount_micros), 0) AS n FROM billing.ledger WHERE kind = 'adjust' AND ref = %s",
-                                 (f'reconcile:{reservation_id}',)).fetchone()['n']
+        corrected = int(conn.execute("SELECT COALESCE(-SUM(amount_micros), 0) AS n FROM billing.ledger WHERE kind = 'adjust' AND ref = %s",
+                                     (f'reconcile:{reservation_id}',)).fetchone()['n'])         # SUM(bigint) is numeric in Postgres
         actual = (found['charged_micros'] or 0) if settled else 0
         shortfall = expected - actual - corrected
         if shortfall <= 0:
