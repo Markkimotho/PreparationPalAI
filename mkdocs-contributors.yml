@@ -24,6 +24,7 @@ nav:
       - Bounded inference: runbooks/inference.md
       - AI gateway inference: runbooks/gateway.md
       - Billing and credits: runbooks/billing.md
+      - Accounts and storage: runbooks/accounts.md
       - Study guardrails and exports: runbooks/study-guardrails.md
       - Drawing answers and review: runbooks/drawing-review.md
       - Ingestion boundaries: runbooks/ingestion.md

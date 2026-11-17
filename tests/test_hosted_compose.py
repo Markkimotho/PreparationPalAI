@@ -70,3 +70,69 @@ def test_app_and_worker_bill_through_the_internal_service():
         assert values['BILLING_SERVICE_TOKEN'].startswith('${BILLING_SERVICE_TOKEN:?')
     assert 'usage_data:/app/data/usage' in COMPOSE['services']['worker']['volumes']      # the settle outbox must survive restarts
     assert 'billing_pg' in COMPOSE['volumes']
+
+
+# ---- accounts, storage and the public edge ------------------------------------------------
+
+def test_third_party_images_carry_an_explicit_version():
+    for name, service in COMPOSE['services'].items():
+        if 'image' in service:
+            assert ':' in service['image'] and not service['image'].endswith(':latest'), f"{name}: {service['image']}"
+    assert COMPOSE['services']['logto']['image'] == 'svhd/logto:1.46.0'
+    assert COMPOSE['services']['app-db']['image'] == 'pgvector/pgvector:0.8.7-pg16'
+
+
+def test_only_the_proxy_faces_the_internet():
+    for name, service in COMPOSE['services'].items():
+        for port in service.get('ports', []):
+            published = str(port)
+            if name == 'proxy':
+                assert published in ('80:80', '443:443'), published
+            else:
+                assert published.startswith('127.0.0.1:'), f'{name} publishes {published}'
+    assert not any(str(p).startswith(('3001', '127.0.0.1:3001')) for p in COMPOSE['services']['logto'].get('ports', []))   # sign-in is only reachable through the proxy
+
+
+def test_web_and_worker_use_postgres_and_signed_in_learners():
+    for service in ('web', 'worker'):
+        values = env(service)
+        assert values['STORAGE_BACKEND'] == 'postgres' and values['AUTH_MODE'] == 'oidc' and values['PRODUCTION'] == 'true'
+        assert values['DATABASE_URL'].startswith('postgresql://app:${APP_DB_PASSWORD:?')
+        assert values['OIDC_ISSUER'] == 'https://${AUTH_HOST:?Set the sign-in hostname}/oidc'
+        assert values['OIDC_JWKS_URL'] == 'http://logto:3001/oidc/jwks'                 # keys are fetched privately, not over the internet
+        assert values['OIDC_AUDIENCE'].startswith('${OIDC_AUDIENCE:?')
+        assert 'AUTH_TOKENS' not in values                                              # no shared static keys in hosted mode
+
+
+def test_the_app_migrates_its_database_before_serving():
+    web, worker = COMPOSE['services']['web']['command'], COMPOSE['services']['worker']['command']
+    assert 'app.migrate_db' in web[-1] and 'uvicorn' in web[-1]
+    assert 'app.migrate_db' in worker[-1] and 'app.jobs' in worker[-1]
+    assert COMPOSE['services']['web']['depends_on']['app-db']['condition'] == 'service_healthy'
+
+
+def test_the_sign_in_service_is_configured_for_the_public_hostname_behind_the_proxy():
+    logto = env('logto')
+    assert logto['TRUST_PROXY_HEADER'] == '1'
+    assert logto['ENDPOINT'] == 'https://${AUTH_HOST:?Set the sign-in hostname}'
+    assert logto['DB_URL'].startswith('postgres://logto:${LOGTO_DB_PASSWORD:?')
+    assert COMPOSE['services']['logto']['ports'] == ['127.0.0.1:3002:3002']              # admin console: reach it through an SSH tunnel
+
+
+def test_the_proxy_routes_both_hostnames_with_security_headers():
+    caddy = (ROOT / 'deploy' / 'Caddyfile.hosted').read_text()
+    assert '{$PUBLIC_HOST}' in caddy and '{$AUTH_HOST}' in caddy
+    assert 'reverse_proxy web:8000' in caddy and 'reverse_proxy logto:3001' in caddy
+    assert 'X-Content-Type-Options nosniff' in caddy and 'Strict-Transport-Security' in caddy
+    proxy = COMPOSE['services']['proxy']
+    assert './deploy/Caddyfile.hosted:/etc/caddy/Caddyfile:ro' in proxy['volumes']
+    assert any(e.startswith('AUTH_HOST=${AUTH_HOST:?') for e in proxy['environment'])
+    assert any(e.startswith('PUBLIC_HOST=${PUBLIC_HOST:?') for e in proxy['environment'])
+
+
+def test_every_new_service_has_limits_and_a_restart_policy():
+    for name in ('logto', 'logto-db', 'app-db', 'proxy'):
+        service = COMPOSE['services'][name]
+        assert 'mem_limit' in service and service.get('restart') == 'unless-stopped', name
+    for name in ('logto-db', 'app-db'):
+        assert 'healthcheck' in COMPOSE['services'][name] and COMPOSE['services'][name]['volumes']

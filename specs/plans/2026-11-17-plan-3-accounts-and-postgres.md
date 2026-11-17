@@ -107,7 +107,9 @@ Jobs (`app/jobs_store.py`), rate limits (`app/limits.py`), flashcards, coach ses
 
 - [ ] Tests: add/search/delete round trip; dedupe by deterministic chunk id; Review Focus 5 for vector search (user B's query never returns user A's chunks, even with identical text); a second embedding model uses a separate `collection`; `ingest_documents` keeps recording embed usage. Commit and push.
 
-### Task 8: Run Logto and document sign-in
+### Task 8: Run Logto and document sign-in (DONE, 8 compose tests)
+
+`docker-compose.hosted.yml` is now complete on its own (proxy on two hostnames with HSTS, Logto 1.46.0, pgvector 0.8.7-pg16, billing, jobs); do not combine it with `docker-compose.production.yml`. The app and worker run `python -m app.migrate_db` before starting. CI runs the Postgres-backed tests against a pgvector service. Runbook: `engineering/runbooks/accounts.md`.
 
 **Files:** Modify `docker-compose.hosted.yml` (services `logto` pinned, `logto-db`), `tests/test_hosted_compose.py`, `.env.example`; Create `engineering/runbooks/accounts.md`; update `mkdocs-contributors.yml`.
 

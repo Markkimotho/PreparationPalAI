@@ -1,9 +1,21 @@
 # Hosted deployment: inference goes through the shared AI gateway, so there is no Ollama here.
 # Prerequisites:  docker network create ai-gateway   (ai-gateway repo's stack joins it)
 #                 GATEWAY_API_KEY from ai-gateway: scripts/new_app_key.sh preparationpal-prod <usd>
-# Run:  docker compose -f docker-compose.hosted.yml -f docker-compose.production.yml up -d --build
-# (docker-compose.production.yml adds the Caddy proxy and requires AUTH settings.)
+# Run:  docker compose -f docker-compose.hosted.yml up -d --build      (set the variables listed in .env.example)
+# This file is complete on its own: it includes the Caddy proxy, sign-in (Logto) and Postgres.
+# Do not combine it with docker-compose.production.yml (that overlay is for self-hosted static keys).
 x-app-env: &app-env
+  - PRODUCTION=true
+  - PUBLIC_BASE_URL=https://${PUBLIC_HOST:?Set your public hostname}
+  - STORAGE_BACKEND=postgres
+  - DATABASE_URL=postgresql://app:${APP_DB_PASSWORD:?Set a long random database password}@app-db:5432/app
+  - AUTH_MODE=oidc
+  - OIDC_ISSUER=https://${AUTH_HOST:?Set the sign-in hostname}/oidc
+  - OIDC_JWKS_URL=http://logto:3001/oidc/jwks
+  - OIDC_AUDIENCE=${OIDC_AUDIENCE:?Set the API identifier configured in Logto}
+  - LOGTO_ENDPOINT=http://logto:3001
+  - LOGTO_MANAGEMENT_APP_ID=${LOGTO_MANAGEMENT_APP_ID:-}
+  - LOGTO_MANAGEMENT_APP_SECRET=${LOGTO_MANAGEMENT_APP_SECRET:-}
   - INFERENCE_BACKEND=gateway
   - GATEWAY_BASE_URL=http://litellm:4000
   - GATEWAY_API_KEY=${GATEWAY_API_KEY:?Create a key with ai-gateway scripts/new_app_key.sh}
@@ -21,8 +33,14 @@ services:
     container_name: preparationpalai-web
     ports:
       - "127.0.0.1:8000:8000"
+    command: ["sh", "-c", "python -m app.migrate_db && exec uvicorn app.api:app --host 0.0.0.0 --port 8000 --no-access-log"]
     environment: *app-env
     networks: [default, ai-gateway]
+    depends_on:
+      app-db:
+        condition: service_healthy
+      billing:
+        condition: service_healthy
     volumes:
       - ./data/pdfs:/app/data/pdfs
       - chroma_data:/app/data/chroma
@@ -43,8 +61,11 @@ services:
 
   worker:
     build: .
-    command: [python, -m, app.jobs]
+    command: ["sh", "-c", "python -m app.migrate_db && exec python -m app.jobs"]
     environment: *app-env
+    depends_on:
+      app-db:
+        condition: service_healthy
     networks: [default, ai-gateway]
     volumes:
       - chroma_data:/app/data/chroma
@@ -65,6 +86,71 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 30s
+
+  app-db:
+    image: pgvector/pgvector:0.8.7-pg16
+    environment:
+      - POSTGRES_USER=app
+      - POSTGRES_DB=app
+      - POSTGRES_PASSWORD=${APP_DB_PASSWORD:?Set a long random database password}
+    volumes:
+      - app_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 1g
+
+  logto-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=logto
+      - POSTGRES_DB=logto
+      - POSTGRES_PASSWORD=${LOGTO_DB_PASSWORD:?Set a long random database password}
+    volumes:
+      - logto_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logto -d logto"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 512m
+
+  logto:
+    image: svhd/logto:1.46.0
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm start"]
+    environment:
+      - TRUST_PROXY_HEADER=1
+      - DB_URL=postgres://logto:${LOGTO_DB_PASSWORD:?Set a long random database password}@logto-db:5432/logto
+      - ENDPOINT=https://${AUTH_HOST:?Set the sign-in hostname}
+      - ADMIN_ENDPOINT=http://localhost:3002
+    ports:
+      - "127.0.0.1:3002:3002"      # admin console: reach it through an SSH tunnel, never publicly
+    depends_on:
+      logto-db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 768m
+
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      - PUBLIC_HOST=${PUBLIC_HOST:?Set your public hostname}
+      - AUTH_HOST=${AUTH_HOST:?Set the sign-in hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile.hosted:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web, logto]
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1
 
   billing-db:
     image: postgres:16-alpine
@@ -132,6 +218,10 @@ networks:
     external: true
 
 volumes:
+  app_pg:
+  logto_pg:
+  caddy_data:
+  caddy_config:
   billing_pg:
   chroma_data:
   flashcards_data:
