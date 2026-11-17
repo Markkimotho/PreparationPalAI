@@ -38,3 +38,6 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Local trial stack state (keys, pids, logs)
+scripts/local_stack/.state/
