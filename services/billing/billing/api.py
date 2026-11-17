@@ -175,6 +175,11 @@ async def insufficient(_request, exc: ledger.InsufficientCredits):
         premium_requires_purchase=exc.premium_requires_purchase).model_dump())
 
 
+@app.exception_handler(ledger.AccountClosed)
+async def account_closed(_request, _exc):
+    return JSONResponse(status_code=403, content={'detail': 'This account has been closed.'})
+
+
 @app.exception_handler(UnknownAlias)
 async def unknown_alias(_request, exc: UnknownAlias):
     metrics.UNKNOWN_ALIAS.inc()
@@ -190,6 +195,14 @@ def ensure_account(account_id: str):
     with db.transaction() as conn:
         ledger.ensure_account(conn, account_id)
         return as_balance(ledger.balance(conn, account_id))
+
+
+@router.post('/v1/accounts/{account_id}/close', status_code=204)
+def close_account(account_id: str):
+    """Account deletion: release holds, refuse new work, keep the anonymous ledger."""
+    with db.transaction() as conn:
+        ledger.close_account(conn, account_id)
+    return Response(status_code=204)
 
 
 @router.post('/v1/accounts/{account_id}/grants/starter', response_model=GrantOut)
@@ -218,7 +231,7 @@ def get_history(account_id: str, limit: int = Query(50, ge=1, le=200), before_id
 
 
 @router.post('/v1/reservations', status_code=201, response_model=ReserveOut,
-          responses={402: {'model': InsufficientOut}})
+          responses={402: {'model': InsufficientOut}, 403: {'description': 'The account was closed'}})
 def reserve(body: ReserveIn):
     with db.transaction() as conn:
         prices = pricing.current_prices(conn)

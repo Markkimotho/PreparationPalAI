@@ -18,6 +18,10 @@ class InsufficientCredits(Exception):
         self.premium_requires_purchase = premium_requires_purchase
 
 
+class AccountClosed(Exception):
+    """The learner deleted their account; no new work may be reserved."""
+
+
 @dataclass(frozen=True)
 class Balance:
     available_micros: int
@@ -113,6 +117,8 @@ def reserve(conn, account_id: str, request_id: str, micros: int, action: str, al
         raise ValueError('reservation cannot be negative')
     ensure_account(conn, account_id)
     available, reserved, starter = _lock(conn, account_id)
+    if is_closed(conn, account_id):
+        raise AccountClosed(account_id)
     existing = conn.execute('SELECT account_id FROM billing.reservations WHERE request_id = %s', (request_id,)).fetchone()
     if existing is not None:
         if existing['account_id'] != account_id:
@@ -185,6 +191,20 @@ def release(conn, request_id: str) -> None:
     _append(conn, account_id, 0, 'release', request_id, hold=-res['amount_micros'])
     _save(conn, account_id, available + res['amount_micros'], reserved - res['amount_micros'], starter + res['starter_hold_micros'])
     conn.execute("UPDATE billing.reservations SET status = 'released' WHERE request_id = %s", (request_id,))
+
+
+def is_closed(conn, account_id: str) -> bool:
+    row = conn.execute('SELECT closed_at FROM billing.accounts WHERE id = %s', (account_id,)).fetchone()
+    return bool(row and row['closed_at'])
+
+
+def close_account(conn, account_id: str) -> None:
+    """Stop an account taking new work. Open holds are released first; the ledger is kept. Idempotent."""
+    ensure_account(conn, account_id)        # an account that never transacted still gets a closed tombstone
+    _lock(conn, account_id)
+    for row in conn.execute("SELECT request_id FROM billing.reservations WHERE account_id = %s AND status = 'open'", (account_id,)).fetchall():
+        release(conn, row['request_id'])
+    conn.execute('UPDATE billing.accounts SET closed_at = COALESCE(closed_at, now()) WHERE id = %s', (account_id,))
 
 
 def refund(conn, provider: str, provider_ref: str, micros: int) -> SettleResult:

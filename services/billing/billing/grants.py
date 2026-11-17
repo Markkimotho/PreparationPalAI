@@ -13,7 +13,7 @@ STARTER_DAYS = 30
 @dataclass(frozen=True)
 class GrantResult:
     granted: bool
-    reason: Literal['granted', 'already_granted', 'daily_cap', 'email_unverified', 'email_in_use', 'disposable_email']
+    reason: Literal['granted', 'already_granted', 'daily_cap', 'email_unverified', 'email_in_use', 'disposable_email', 'account_closed']
 
 
 class _Refused(Exception):
@@ -36,6 +36,8 @@ def grant_starter(conn, account_id: str, today: date, cap: int | None = None,
     ref = f'starter:{account_id}'
     if conn.execute("SELECT 1 FROM billing.ledger WHERE kind = 'grant' AND ref = %s", (ref,)).fetchone():
         return GrantResult(False, 'already_granted')
+    if ledger.is_closed(conn, account_id):
+        return GrantResult(False, 'account_closed')
     key = None
     if settings.require_verified_email:
         if not email_verified or not email or not emails.is_valid(email):

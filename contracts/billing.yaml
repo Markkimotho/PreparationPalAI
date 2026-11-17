@@ -34,6 +34,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/accounts/{account_id}/close:
+    post:
+      summary: Close Account
+      description: 'Account deletion: release holds, refuse new work, keep the anonymous
+        ledger.'
+      operationId: close_account_v1_accounts__account_id__close_post
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/accounts/{account_id}/grants/starter:
     post:
       summary: Starter Grant
@@ -184,6 +213,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/InsufficientOut'
           description: Payment Required
+        '403':
+          description: The account was closed
         '422':
           description: Validation Error
           content:

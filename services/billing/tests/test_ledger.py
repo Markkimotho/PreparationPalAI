@@ -159,3 +159,38 @@ def test_invariants_hold_after_random_operations(conn):
     kinds = {r['kind']: r['n'] for r in conn.execute('SELECT kind, count(*) AS n FROM billing.ledger GROUP BY kind')}
     assert {'topup', 'reserve', 'settle', 'release', 'adjust', 'refund'} <= set(kinds), kinds   # the run is not vacuous
     assert conn.execute("SELECT count(*) AS n FROM billing.reservations WHERE status = 'settled' AND charged_micros > 0").fetchone()['n'] > 5
+
+
+# ---- closing an account -----------------------------------------------------------------
+
+def test_closing_releases_open_holds_and_refuses_new_ones(conn):
+    fund(conn, micros=10_000)
+    ledger.reserve(conn, 'a1', 'r1', 3_000, 'chat', 'open-default')
+    ledger.close_account(conn, 'a1')
+    assert state(conn) == (10_000, 0) and ledger.invariant_holds(conn, 'a1')
+    with pytest.raises(ledger.AccountClosed):
+        ledger.reserve(conn, 'a1', 'r2', 1, 'chat', 'open-default')
+
+
+def test_closing_twice_and_closing_an_unknown_account_are_harmless(conn):
+    fund(conn, micros=500)
+    ledger.close_account(conn, 'a1')
+    ledger.close_account(conn, 'a1')
+    ledger.close_account(conn, 'never-existed')
+    assert ledger.balance(conn, 'a1').available_micros == 500          # the ledger is kept, anonymously
+    with pytest.raises(ledger.AccountClosed):
+        ledger.reserve(conn, 'never-existed', 'r9', 1, 'chat', 'open-default')   # tombstone: cannot be resurrected
+
+
+def test_a_late_settle_for_a_closed_account_still_charges(conn):
+    fund(conn, micros=10_000)
+    ledger.reserve(conn, 'a1', 'r1', 3_000, 'chat', 'open-default')
+    ledger.close_account(conn, 'a1')
+    assert ledger.settle(conn, 'r1', 1_000, 1).charged_micros == 1_000 and ledger.invariant_holds(conn, 'a1')
+
+
+def test_a_closed_account_gets_no_starter_allowance(conn):
+    from datetime import date
+    from billing.grants import grant_starter
+    ledger.close_account(conn, 'a1')
+    assert grant_starter(conn, 'a1', date(2026, 11, 17)).reason == 'account_closed'

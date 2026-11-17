@@ -162,3 +162,13 @@ def test_metrics_report_charges_and_margin(client):
     text = client.get('/metrics').text
     assert 'billing_charged_micros_total{action="chat",alias="open-default"}' in text
     assert 'billing_margin_micros_total{alias="open-default"}' in text
+
+
+def test_closing_an_account_through_the_api(client):
+    topup(client)
+    reserve(client)
+    assert client.post('/v1/accounts/a1/close').status_code == 204
+    assert client.post('/v1/accounts/a1/close').status_code == 204
+    assert client.get('/v1/accounts/a1/balance').json()['reserved_micros'] == 0
+    refused = reserve(client, request_id='r2')
+    assert refused.status_code == 403 and refused.json() == {'detail': 'This account has been closed.'}
