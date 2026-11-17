@@ -1,6 +1,11 @@
 # PreparationPalAI as a hosted, pay-per-use product
 
-Status: draft for approval · Date: 2026-11-17 · Owner: Mark
+Status: approved 2026-11-17 · Owner: Mark
+
+Deferred to pre-launch (decided by Mark): selling entity (individual vs registered
+business) and production domain. Build proceeds with placeholders
+(`PUBLIC_HOST`, test-mode payment accounts); both block only store submission and
+live payments.
 
 This spec lives outside `docs/` and `engineering/` on purpose: both are published
 MkDocs sites, and pricing and business plans should not go public.
