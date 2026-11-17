@@ -117,8 +117,8 @@ def ready():
     except Exception:
         pass
     try:
-        from app.vectorstore import get_vectorstore
-        get_vectorstore()._collection.count()
+        from app.vectorstore import count_chunks
+        count_chunks()
         dependencies['vectorstore'] = True
     except Exception:
         pass

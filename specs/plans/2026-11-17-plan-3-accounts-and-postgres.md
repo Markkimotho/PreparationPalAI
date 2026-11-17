@@ -95,7 +95,9 @@ Test database: `docker compose -f tests/support/docker-compose.pg.yml up -d` (pg
 
 - [ ] For each store: run the store's **existing** test file against Postgres (parametrized fixture `backend in {files, postgres}`), add the two-user isolation test from Review Focus 5, and a concurrency test for job claiming (ten workers, one job, one winner). Commit and push after each store.
 
-### Task 7: pgvector instead of Chroma in hosted mode
+### Task 7: pgvector instead of Chroma in hosted mode (DONE, 11 tests)
+
+`get_vectorstore()` returns a `PgVectorStore` when `STORAGE_BACKEND=postgres`; ingest, clear, counts, sources, readiness and purge all branch on it. Verified on real Postgres: with selective workspace filters the planner uses an exact btree plan, so results are complete; `hnsw.iterative_scan` is set so the HNSW plan stays correct for a very large tenant.
 
 **Files:** Create `app/pgvector_store.py`, `app/migrations/002_vectors.sql`, `tests/test_pgvector_store.py`; Modify `app/vectorstore.py`.
 

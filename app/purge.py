@@ -65,6 +65,14 @@ def _vectors(workspace: str) -> int:
     return removed
 
 
+def _vectors_postgres(workspace: str) -> int:
+    from app import db
+    if not db.enabled():
+        return 0
+    with db.transaction() as conn:
+        return conn.execute('DELETE FROM app.chunks WHERE workspace = %s', (workspace,)).rowcount
+
+
 def _coach(workspace: str) -> int:
     """Coach sessions and drawing submissions share this workspace folder."""
     return _remove_tree(Path(get_base_settings().coach_db).parent / 'workspaces' / workspace)
@@ -105,6 +113,6 @@ def _chat_memory(workspace: str) -> int:
     return removed
 
 
-for _name, _fn in (('flashcards', _flashcards), ('vectors', _vectors), ('coach', _coach),
+for _name, _fn in (('flashcards', _flashcards), ('vectors', _vectors), ('vectors_postgres', _vectors_postgres), ('coach', _coach),
                    ('jobs', _jobs), ('usage', _usage), ('chat_memory', _chat_memory)):
     register(_name, _fn)
