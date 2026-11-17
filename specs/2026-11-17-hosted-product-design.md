@@ -145,8 +145,10 @@ ai-gateway/             NEW separate repo: LiteLLM config, Compose, key admin sc
   `vision-open` (GLM vision for drawing review), `embed-default`, `premium-claude`,
   `premium-gpt`, `premium-grok`. Fallbacks per alias (for example GLM via Z.ai first,
   OpenRouter second).
-- Apps pass `user=<account id>` and metadata `{action, request_id}` on every call so
-  spend logs can be joined to the ledger.
+- Apps pass `user=<account id>` (stored as `end_user`) and
+  `metadata.spend_logs_metadata={action, request_id}` on every call so spend logs can be
+  joined to the ledger. Reconciliation reads `GET /spend/logs/v2`. Virtual keys must be
+  allowed every alias including `*-fallback` ones, or LiteLLM silently skips fallbacks.
 - Cost source: the gateway returns token `usage` (with `stream_options.include_usage`
   for streams). LiteLLM's `x-litellm-response-cost` header is not sent on streaming
   responses (reported in LiteLLM issue #12689), so billing computes cost from usage

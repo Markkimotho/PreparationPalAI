@@ -17,7 +17,7 @@
 - `INFERENCE_BACKEND` is `ollama` (default) or `gateway`. With `ollama`, every existing test passes unchanged.
 - Gateway aliases, exact names: `open-default`, `open-fast`, `open-reasoning`, `guard`, `vision-open`, `embed-default`, `premium-claude`, `premium-gpt`, `premium-grok`.
 - Moderation and verification always run on the `guard` alias in gateway mode, never on the user's model.
-- Every gateway call passes `user=<workspace id>` and `metadata={"action": ..., "request_id": ...}`.
+- Every gateway call passes `user=<workspace id>` (LiteLLM stores it as `end_user`) and `metadata={"spend_logs_metadata": {"action": ..., "request_id": ...}}`. Plain `metadata.request_id` is not retained by LiteLLM (verified in `ai-gateway` e2e).
 - Provider keys only via `os.environ/...` references in LiteLLM config; no secret in either repo. `.env` stays gitignored.
 - LiteLLM image pinned to an exact release tag (no `latest`, no `main-stable`).
 - Gateway reachable only on the private Docker network `ai-gateway`; never published on a public port.
@@ -51,9 +51,11 @@
 - [ ] **Step 3: Write `config.yaml`** mapping aliases to providers (primary, then fallback): `open-default` → Z.ai GLM-4.6, fallback OpenRouter `z-ai/glm-4.6`; `open-fast` → OpenRouter Qwen3-14B class; `open-reasoning` → OpenRouter Qwen3-235B-A22B; `guard` → same model as `open-fast`; `vision-open` → GLM-4.6V; `embed-default` → Qwen3 embedding (pick current cheapest on OpenRouter or Alibaba Model Studio, record dimension in README); premium aliases → Anthropic, OpenAI, xAI current flagship. `general_settings`: `master_key`, `database_url`, `store_model_in_db: false`. Write `docker-compose.yml` (litellm pinned to the newest stable tag at execution time, Postgres 16 with volume, healthchecks, `mem_limit`), external network `ai-gateway`.
 - [ ] **Step 4: Write `scripts/new_app_key.sh`** calling `POST /key/generate` with `key_alias`, `max_budget`, `budget_duration: "30d"`, `models` = all aliases; prints the key once.
 - [ ] **Step 5: Run** `pytest tests -q` → PASS.
-- [ ] **Step 6: Commit.** Then ask Mark before `gh repo create Markkimotho/ai-gateway --private` and push (outward-facing).
+- [x] **Step 6: Commit.** DONE: private repo `Markkimotho/ai-gateway` created (Mark approved), image pinned to `v1.108.9`.
 
-### Task 2: Gateway end-to-end test against a fake provider
+### Task 2: Gateway end-to-end test against a fake provider (DONE, 8 e2e + 12 gate tests green)
+
+Findings folded in: keys need fallback aliases (script reads `/v1/models`); spend rows key on the provider response id (fake must return unique ids); read spend via `GET /spend/logs/v2` with `end_user` and dates; correlation via `spend_logs_metadata`.
 
 **Files (ai-gateway):**
 - Create: `tests/fake_provider/app.py`, `tests/fake_provider/Dockerfile`, `config.test.yaml`, `docker-compose.test.yml`, `tests/test_e2e.py`, `.github/workflows/ci.yml`
@@ -99,7 +101,7 @@
 - [ ] **Step 3: Write `tests/test_gateway_llm.py`**:
   - `test_schema_maps_to_response_format`: `chat_model("open-default", format=schema).invoke(...)` sends `response_format.type == "json_schema"` and the schema.
   - `test_num_predict_maps_to_max_tokens`: sends `max_tokens == min(num_predict, llm_output_tokens)`.
-  - `test_sends_user_and_metadata`: body has `user == workspace id` and `metadata.request_id`.
+  - `test_sends_user_and_metadata`: body has `user == workspace id` and `metadata.spend_logs_metadata == {"action": ..., "request_id": ...}`.
   - `test_records_main_and_guard_usage`: one invoke records one `main` (alias `open-default`) and the guard records (alias `guard`, purpose `guard`) with fake token counts.
   - `test_missing_usage_is_estimated`: `usage=None` → record `estimated is True` and `input_tokens == ceil(chars/4)`.
   - `test_gateway_error_raises_unavailable_and_records_nothing` (Review Focus 2).
