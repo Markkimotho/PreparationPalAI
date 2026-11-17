@@ -39,7 +39,7 @@ Files: `billing/packs.py`, `billing/paddle.py`, `billing/api.py`, `billing/setti
 
 Files: `app/api.py`, `app/billing_client.py`, `app/metered.py` (exempt routes), tests `tests/test_billing_web.py`.
 
-### Task 3: Web sign-in
+### Task 3: Web sign-in (DONE, 11 tests)
 
 Files: `frontend/src/auth/session.ts`, `frontend/src/api/access.ts`, `frontend/src/components/AccessGate.tsx`, tests.
 

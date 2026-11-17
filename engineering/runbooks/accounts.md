@@ -33,7 +33,22 @@ Reach the admin console through an SSH tunnel (it is bound to loopback only):
 5. **Verified email**: keep "require verified email" on. The free allowance is only granted for verified emails.
 6. **Management API** (optional, for deleting the sign-in): create a machine-to-machine application with
    the Logto Management API role and set `LOGTO_MANAGEMENT_APP_ID` and `LOGTO_MANAGEMENT_APP_SECRET`.
-7. **Roles** (optional): create `admin`, `editor`, `reader` roles and add a `roles` claim to the access token.
+7. **Access-token claims (required).** Logto access tokens do not carry the email by default, but the app reads
+   `email` and `email_verified` from the token to grant the free allowance, and `roles` for permissions. In
+   Console > Custom JWT > Access token, add:
+
+   ```js
+   const getCustomJwtClaims = async ({ token, context }) => ({
+     email: context.user.primaryEmail ?? undefined,
+     // Logto only sets a primary email after the learner confirms a one-time code.
+     email_verified: Boolean(context.user.primaryEmail),
+     roles: (context.user.roles ?? []).map((role) => role.name),
+   });
+   ```
+
+   Without this step every learner is treated as unverified and nobody receives free credits.
+8. **Web client id**: set `OIDC_WEB_CLIENT_ID` to the web application's id; the app publishes it (with the
+   endpoint and API resource, none of them secret) at `/api/auth/status`.
 
 ## Free starter allowance
 
