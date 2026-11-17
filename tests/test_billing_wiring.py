@@ -26,6 +26,7 @@ def billing(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, 'inference_backend', 'gateway')
     monkeypatch.setattr(settings, 'ollama_model', 'open-default')
     monkeypatch.setattr(metered, 'get_client', lambda: billing_client.BillingClient(client=fake.client()))
+    metered._started.clear()
     monkeypatch.setattr('app.model_catalog.get_installed_models', lambda: {'open-default', 'open-fast', 'premium-claude'})
     yield fake
 
@@ -246,3 +247,45 @@ def test_worker_job_fails_closed_when_billing_is_down(billing):
         run_once()
     assert get_job(job['id'])['state'] == 'failed'
     scrape.assert_not_called()
+
+
+# ---- starter allowance needs a verified email ---------------------------------------------
+
+def grant_calls(billing):
+    return [b for m, p, b in billing.calls if p.endswith('/grants/starter')]
+
+
+def test_the_learners_verified_email_is_sent_with_the_grant_request(billing):
+    from app.workspace import account_email, email_verified
+    billing.grant_reason = 'granted'
+    tokens = account_email.set('Learner@Example.com'), email_verified.set(True)
+    try:
+        metered._ensure_started(billing_client.BillingClient(client=billing.client()), 'u-abc')
+    finally:
+        account_email.reset(tokens[0]); email_verified.reset(tokens[1])
+    assert grant_calls(billing) == [{'email': 'Learner@Example.com', 'email_verified': True}]
+
+
+def test_an_unverified_learner_is_asked_again_after_verifying(billing):
+    from app.workspace import account_email, email_verified
+    client = billing_client.BillingClient(client=billing.client())
+    billing.grant_reason = 'email_unverified'
+    metered._ensure_started(client, 'u-abc')
+    metered._ensure_started(client, 'u-abc')
+    assert len(grant_calls(billing)) == 2                       # not cached while unsettled
+    billing.grant_reason = 'granted'
+    token = email_verified.set(True)
+    try:
+        metered._ensure_started(client, 'u-abc')
+        metered._ensure_started(client, 'u-abc')
+    finally:
+        email_verified.reset(token)
+    assert len(grant_calls(billing)) == 3                       # settled once, then cached
+
+
+def test_a_refused_duplicate_mailbox_is_not_asked_again(billing):
+    client = billing_client.BillingClient(client=billing.client())
+    billing.grant_reason = 'email_in_use'
+    metered._ensure_started(client, 'u-dup')
+    metered._ensure_started(client, 'u-dup')
+    assert len(grant_calls(billing)) == 1

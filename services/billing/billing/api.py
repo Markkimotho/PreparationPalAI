@@ -52,6 +52,11 @@ class BalanceOut(Strict):
     starter_micros: int
 
 
+class StarterIn(Strict):
+    email: str | None = Field(default=None, max_length=320)
+    email_verified: bool = False
+
+
 class GrantOut(Strict):
     granted: bool
     reason: str
@@ -188,9 +193,11 @@ def ensure_account(account_id: str):
 
 
 @router.post('/v1/accounts/{account_id}/grants/starter', response_model=GrantOut)
-def starter_grant(account_id: str):
+def starter_grant(account_id: str, body: StarterIn | None = None):
+    body = body or StarterIn()
     with db.transaction() as conn:
-        result = grants.grant_starter(conn, account_id, datetime.now(timezone.utc).date())
+        result = grants.grant_starter(conn, account_id, datetime.now(timezone.utc).date(),
+                                      email=body.email, email_verified=body.email_verified)
     metrics.STARTER_GRANTS.labels(result.reason).inc()
     return GrantOut(granted=result.granted, reason=result.reason)
 

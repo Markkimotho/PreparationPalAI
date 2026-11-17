@@ -32,7 +32,7 @@
 
 ---
 
-### Task 1: Verify OIDC tokens (`app/oidc.py`)
+### Task 1: Verify OIDC tokens (`app/oidc.py`) (DONE, 22 tests, 0.9s)
 
 **Files:** Create `app/oidc.py`, `tests/test_oidc.py`, `tests/support/fake_issuer.py`. Modify `requirements.txt`, `pyproject.toml` (add `pyjwt[crypto]>=2.8`).
 
@@ -48,7 +48,7 @@
 - [ ] **Step 3: Implement** with `jwt.PyJWKClient`-style caching written by hand (own cache dict, lock, clock injection) so rotation and outage rules are explicit.
 - [ ] **Step 4: Run** → PASS. **Step 5: Commit and push.**
 
-### Task 2: Accept OIDC tokens in workspace auth
+### Task 2: Accept OIDC tokens in workspace auth (DONE, 13 tests; `/api/auth/status` now also returns `mode` and `issuer`)
 
 **Files:** Modify `app/config.py` (`auth_mode`, `oidc_issuer`, `oidc_audience`, `oidc_jwks_url`; validator), `app/auth.py` (`WorkspaceAuth`), `tests/test_auth.py`; Create `tests/test_auth_oidc.py`.
 
@@ -57,7 +57,9 @@
 - [ ] **Step 1: Tests:** valid token reaches a route as workspace `u-…`; two tokens for two subjects get different workspaces and cannot see each other's flashcards; rejected token gives 401 with `WWW-Authenticate: Bearer error="invalid_token"` and no reason text; `reader` role cannot mutate; `/metrics` and model pulls stay admin-only; `tokens` mode behaves exactly as before; `AUTH_MODE=oidc` without issuer or audience fails settings validation; `production` still requires auth.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** full suite → PASS. **Step 5: Commit and push.**
 
-### Task 3: Starter grants only for verified, distinct people
+### Task 3: Starter grants only for verified, distinct people (DONE, 18 billing + 3 app tests)
+
+A refused attempt changes nothing (savepoint): it neither uses the daily cap nor burns the mailbox. `BILLING_REQUIRE_VERIFIED_EMAIL=false` exists for deployments without accounts (tests default to it, and `tests/test_emails.py` switches it on).
 
 **Files:** Billing: Create `services/billing/billing/migrations/004_email_keys.sql` (`billing.grant_emails(email_key TEXT PRIMARY KEY, account_id TEXT, created_at)`), `billing/emails.py`, `billing/disposable_domains.txt`, `tests/test_emails.py`; Modify `billing/grants.py`, `billing/api.py` (`POST /v1/accounts/{id}/grants/starter` takes `{email, email_verified}`), regenerate `contracts/billing.yaml`. App: Modify `app/metered.py` (`_ensure_started` passes the principal's email), `app/billing_client.py`.
 

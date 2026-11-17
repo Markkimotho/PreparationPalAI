@@ -52,6 +52,14 @@ paths:
           type: string
           default: ''
           title: Authorization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/StarterIn'
+              - type: 'null'
+              title: Body
       responses:
         '200':
           description: Successful Response
@@ -723,6 +731,21 @@ components:
       - written_off_micros
       - available_micros
       title: SettleOut
+    StarterIn:
+      properties:
+        email:
+          anyOf:
+          - type: string
+            maxLength: 320
+          - type: 'null'
+          title: Email
+        email_verified:
+          type: boolean
+          title: Email Verified
+          default: false
+      additionalProperties: false
+      type: object
+      title: StarterIn
     TopupIn:
       properties:
         provider:

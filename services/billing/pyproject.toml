@@ -23,5 +23,5 @@ pythonpath = ["."]
 packages = ["billing", "billing.migrations"]
 
 [tool.setuptools.package-data]
-billing = ["prices.seed.yaml"]
+billing = ["prices.seed.yaml", "disposable_domains.txt"]
 "billing.migrations" = ["*.sql"]

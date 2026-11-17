@@ -28,7 +28,7 @@ from app import billing_outbox
 from app.billing_client import (BillingUnavailable, CreditsRequired, ReservationMissing, UnpricedModel, get_client)
 from app.config import get_settings
 from app.metering import ActionLimitExceeded, Meter, UsageRecord, bind
-from app.workspace import workspace_id
+from app.workspace import account_email, email_verified, workspace_id
 
 logger = logging.getLogger(__name__)
 
@@ -131,13 +131,19 @@ def aggregate(records: list[UsageRecord]) -> list[dict]:
 _started: set[str] = set()
 
 
+SETTLED_GRANT_OUTCOMES = {'granted', 'already_granted', 'email_in_use', 'disposable_email'}
+
+
 def _ensure_started(client, account_id: str) -> None:
-    if account_id not in _started:
-        try:
-            client.grant_starter(account_id)       # idempotent on the billing side
-            _started.add(account_id)
-        except BillingUnavailable:
-            pass                                   # the reservation below will fail closed if billing is really down
+    """Offer the free allowance once per account. Billing decides; the learner's email must be verified."""
+    if account_id in _started:
+        return
+    try:
+        result = client.grant_starter(account_id, account_email.get(), email_verified.get())     # idempotent on the billing side
+    except BillingUnavailable:
+        return                                     # the reservation below will fail closed if billing is really down
+    if result.get('reason') in SETTLED_GRANT_OUTCOMES:
+        _started.add(account_id)                   # an unverified learner is asked again after they verify
 
 
 @dataclass

@@ -78,8 +78,9 @@ class BillingClient:
             raise UnpricedModel(alias)
         return r.json()['micros']
 
-    def grant_starter(self, account_id: str) -> None:
-        self._send('POST', f'/v1/accounts/{account_id}/grants/starter')
+    def grant_starter(self, account_id: str, email: str | None = None, email_verified: bool = False) -> dict:
+        r = self._send('POST', f'/v1/accounts/{account_id}/grants/starter', json=dict(email=email, email_verified=email_verified))
+        return r.json() if r.status_code == 200 else {'granted': False, 'reason': 'unknown'}
 
 
 @lru_cache

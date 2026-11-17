@@ -1,0 +1,27 @@
+# One domain per line. Matches the domain and any subdomain. Extend as abuse appears.
+mailinator.com
+guerrillamail.com
+guerrillamail.net
+guerrillamailblock.com
+sharklasers.com
+10minutemail.com
+10minutemail.net
+tempmail.com
+temp-mail.org
+tempail.com
+yopmail.com
+yopmail.net
+trashmail.com
+getnada.com
+throwawaymail.com
+maildrop.cc
+dispostable.com
+fakeinbox.com
+mintemail.com
+mohmal.com
+emailondeck.com
+burnermail.io
+spamgourmet.com
+mytemp.email
+mailnesia.com
+moakt.com

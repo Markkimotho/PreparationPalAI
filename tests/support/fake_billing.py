@@ -17,6 +17,7 @@ class FakeBilling:
         self.unknown_aliases: set[str] = set()
         self.reserved_amount = 4_000
         self.settled: dict[str, int] = {}
+        self.grant_reason = 'already_granted'
 
     # -- helpers ---------------------------------------------------------
     def paths(self, suffix=''):
@@ -62,7 +63,7 @@ class FakeBilling:
                 self.settled[rid] = 0
             return httpx.Response(204)
         if path.endswith('/grants/starter'):
-            return httpx.Response(200, json={'granted': False, 'reason': 'already_granted'})
+            return httpx.Response(200, json={'granted': False, 'reason': self.grant_reason})
         if path.endswith('/balance'):
             return httpx.Response(200, json=dict(available_micros=self.available, reserved_micros=0, starter_micros=0))
         if path == '/v1/estimate':
