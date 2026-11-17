@@ -18,3 +18,10 @@ dev = ["pytest>=8.0"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.setuptools]
+packages = ["billing", "billing.migrations"]
+
+[tool.setuptools.package-data]
+billing = ["prices.seed.yaml"]
+"billing.migrations" = ["*.sql"]
