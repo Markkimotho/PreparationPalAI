@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     guard_alias: str = "guard"          # moderation + verification model alias
     vision_alias: str = "vision-open"
     embedding_alias: str = "embed-default"
+    embedding_dimensions: int | None = Field(default=None, ge=32, le=8192)  # Matryoshka size; None = provider default
 
     # ChromaDB (local, free)
     chroma_persist_dir: str = "data/chroma"

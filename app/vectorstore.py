@@ -1,4 +1,5 @@
 import concurrent.futures
+import contextvars
 import logging
 import time
 
@@ -7,7 +8,7 @@ from langchain_core.documents import Document
 from chromadb.config import Settings as ChromaSettings
 
 from app.config import get_settings
-from app.embeddings import get_embeddings
+from app.embeddings import collection_name, get_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -15,26 +16,26 @@ _vectorstore: Chroma | None = None
 _workspace_stores: dict[str, Chroma] = {}
 
 
+def _build_store(name: str) -> Chroma:
+    settings = get_settings()
+    return Chroma(collection_name=name, embedding_function=get_embeddings(),
+                  persist_directory=settings.chroma_persist_dir,
+                  client_settings=ChromaSettings(anonymized_telemetry=False))
+
+
 def get_vectorstore() -> Chroma:
+    """Workspace-scoped store for the active embedding model; rebuilt if that model changes."""
     global _vectorstore
     from app.workspace import workspace_id
+    name = collection_name()
     workspace = workspace_id.get()
     if workspace != 'local':
-        if workspace not in _workspace_stores:
-            settings = get_settings()
-            _workspace_stores[workspace] = Chroma(
-                collection_name=settings.chroma_collection_name,
-                embedding_function=get_embeddings(), persist_directory=settings.chroma_persist_dir,
-                client_settings=ChromaSettings(anonymized_telemetry=False))
+        cached = _workspace_stores.get(workspace)
+        if cached is None or cached._collection.name != name:
+            _workspace_stores[workspace] = _build_store(name)
         return _workspace_stores[workspace]
-    if _vectorstore is None:
-        settings = get_settings()
-        _vectorstore = Chroma(
-            collection_name=settings.chroma_collection_name,
-            embedding_function=get_embeddings(),
-            persist_directory=settings.chroma_persist_dir,
-            client_settings=ChromaSettings(anonymized_telemetry=False),
-        )
+    if _vectorstore is None or _vectorstore._collection.name != name:
+        _vectorstore = _build_store(name)
     return _vectorstore
 
 
@@ -88,8 +89,11 @@ def ingest_documents(
 
     t0 = time.perf_counter()
     workers = max(1, min(max_workers, len(batches)))
+    # Worker threads do not inherit context variables; copy one per task so usage
+    # metering and workspace identity follow the request into the pool.
+    contexts = [contextvars.copy_context() for _ in batches]
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        vectors_per_batch = list(pool.map(_embed, batches))
+        vectors_per_batch = list(pool.map(lambda pair: pair[0].run(_embed, pair[1]), zip(contexts, batches)))
 
     for batch, vectors in zip(batches, vectors_per_batch):
         collection.upsert(

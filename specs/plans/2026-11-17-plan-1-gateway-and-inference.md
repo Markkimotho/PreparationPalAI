@@ -134,7 +134,9 @@ Built: all chat call sites on `chat_model` (factory defaults Ollama `base_url`/`
 - [ ] **Step 5: Run** `pytest tests -q` → all PASS.
 - [ ] **Step 6: Commit.**
 
-### Task 5: Embeddings through the gateway, collection per embedding model
+### Task 5: Embeddings through the gateway, collection per embedding model (DONE, 325 backend tests green)
+
+Also fixed here: `ingest_documents` embeds in a thread pool, which drops context variables; it now copies a context per task so usage metering and workspace identity follow the request. New setting `embedding_dimensions` (default none; Plan 3 sets 1024 for pgvector HNSW after verifying the provider honours it).
 
 **Files:**
 - Modify: `app/embeddings.py`, `app/vectorstore.py:17-38`
