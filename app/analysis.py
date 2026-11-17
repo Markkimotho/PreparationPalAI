@@ -7,7 +7,7 @@ import time
 
 import httpx
 from langchain_core.messages import HumanMessage
-from app.llm import ChatOllama
+from app.llm import chat_model
 
 from app.config import SUPPORTED_MODELS, get_settings
 from app.prompt_library import PromptProfile, render_prompt
@@ -135,11 +135,9 @@ def _run_single_model(model: str, question: str, context: str, profile: PromptPr
     settings = get_settings()
     t0 = time.perf_counter()
     try:
-        llm = ChatOllama(
+        llm = chat_model(
             model=model,
-            base_url=settings.ollama_base_url,
             temperature=0.1,
-            keep_alive=settings.ollama_keep_alive,
         )
         prompt = render_prompt('document_analysis', profile=profile, context=context, question=question, evidence_mode='documents')
         response = llm.invoke([HumanMessage(content=prompt)])
@@ -218,11 +216,9 @@ def generate_insights(top_k: int = 10, model: str | None = None, profile: Prompt
 
         context = _build_context(docs)
         try:
-            llm = ChatOllama(
+            llm = chat_model(
                 model=model,
-                base_url=settings.ollama_base_url,
                 temperature=0,
-                keep_alive=settings.ollama_keep_alive,
             )
             prompt = render_prompt('document_analysis', profile=profile, context=context, question=question, evidence_mode='documents')
             response = llm.invoke([HumanMessage(content=prompt)])

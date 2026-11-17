@@ -180,6 +180,8 @@ def chat_model(model: str | None = None, **kwargs):
     if model is not None:
         kwargs['model'] = model
     kwargs = _bounded(kwargs)
+    kwargs.setdefault('base_url', settings.ollama_base_url)
+    kwargs.setdefault('keep_alive', settings.ollama_keep_alive)
     kwargs['client_kwargs'] = {'timeout': httpx.Timeout(settings.llm_timeout, connect=5)}
     return GuardedChatOllama(**kwargs)
 
@@ -188,5 +190,3 @@ def raw_chat_model(model: str, **kwargs):
     """Unguarded gateway model for the safety judge. Ollama callers build their own."""
     return RawChatGateway(**_gateway_kwargs(model, kwargs))
 
-
-ChatOllama = chat_model  # call sites migrate to chat_model in a later task

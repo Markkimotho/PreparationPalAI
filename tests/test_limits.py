@@ -3,7 +3,7 @@ import pytest
 from fastapi import HTTPException
 from app.config import get_base_settings
 from app.limits import consume
-from app.llm import ChatOllama
+from app.llm import chat_model as ChatOllama
 from app.workspace import identity_id
 from fastapi.testclient import TestClient
 from app.api import app

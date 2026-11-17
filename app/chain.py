@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_classic.chains.history_aware_retriever import create_history_aware_retriever
 from langchain_classic.chains.retrieval import create_retrieval_chain
-from app.llm import ChatOllama
+from app.llm import chat_model
 
 from app.config import get_settings
 from app.memory import add_messages, get_chat_history
@@ -17,11 +17,9 @@ from langchain_core.prompts import PromptTemplate
 
 def _build_chain(model: str | None = None, top_k: int | None = None, profile: PromptProfile | None = None):
     settings = get_settings()
-    llm = ChatOllama(
+    llm = chat_model(
         model=model or settings.ollama_model,
-        base_url=settings.ollama_base_url,
         temperature=0,
-        keep_alive=settings.ollama_keep_alive,
     )
     retriever = get_retriever(top_k=top_k)
 

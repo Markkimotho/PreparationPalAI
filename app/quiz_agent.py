@@ -18,7 +18,7 @@ from collections.abc import Iterator
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
-from app.llm import ChatOllama
+from app.llm import chat_model
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
@@ -208,11 +208,9 @@ def invoke_agent(
     the same thread_id for as long as the process is alive.
     """
     settings = get_settings()
-    llm = ChatOllama(
+    llm = chat_model(
         model=model or settings.ollama_model,
-        base_url=settings.ollama_base_url,
         temperature=0.2,
-        keep_alive=settings.ollama_keep_alive,
     )
     agent = create_react_agent(
         llm,

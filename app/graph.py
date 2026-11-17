@@ -8,7 +8,8 @@ from typing import Annotated, Sequence, TypedDict
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
-from app.llm import ChatOllama
+from langchain_core.language_models import BaseChatModel
+from app.llm import chat_model
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
@@ -27,13 +28,11 @@ class GraphState(TypedDict):
     answer: str
 
 
-def _get_llm(model: str | None = None) -> ChatOllama:
+def _get_llm(model: str | None = None) -> BaseChatModel:
     settings = get_settings()
-    return ChatOllama(
+    return chat_model(
         model=model or settings.ollama_model,
-        base_url=settings.ollama_base_url,
         temperature=0,
-        keep_alive=settings.ollama_keep_alive,
     )
 
 

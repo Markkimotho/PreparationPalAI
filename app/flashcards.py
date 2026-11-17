@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.generation import validated_batches
 
 from langchain_core.messages import HumanMessage
-from app.llm import ChatOllama
+from app.llm import chat_model
 
 from app.config import get_settings
 from app.prompt_library import PromptProfile, render_prompt
@@ -180,11 +180,9 @@ def generate_cards(
     context = "\n\n---\n\n".join(
         f"[{d.metadata.get('source', 'doc')}] {d.page_content}" for d in docs
     )
-    llm = ChatOllama(
+    llm = chat_model(
         model=model or settings.ollama_model,
-        base_url=settings.ollama_base_url,
         temperature=0.3,
-        keep_alive=settings.ollama_keep_alive,
         format=CardBatch.model_json_schema(),
     )
     def prompt(count, existing, repair, batch_schema, feedback):

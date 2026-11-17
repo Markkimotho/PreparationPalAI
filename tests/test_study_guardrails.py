@@ -57,7 +57,7 @@ def test_moderation_fails_closed(raw):
 
 
 def test_unsafe_generated_output_never_streams():
-    from app.llm import ChatOllama
+    from app.llm import chat_model as ChatOllama
     raw = ChatResult(generations=[ChatGeneration(message=AIMessage(content='unsafe payload'))])
     def inspect(text, **kwargs):
         if 'unsafe payload' in text:
@@ -78,7 +78,7 @@ def test_profanity_backstop_does_not_block_scientific_terms():
 
 @pytest.mark.asyncio
 async def test_async_output_is_checked_before_first_chunk():
-    from app.llm import ChatOllama
+    from app.llm import chat_model as ChatOllama
     raw = ChatResult(generations=[ChatGeneration(message=AIMessage(content='unsafe payload'))])
     with patch('app.llm.moderate', side_effect=[None, SafetyError('blocked')]), \
          patch('langchain_ollama.ChatOllama._generate', return_value=raw):
