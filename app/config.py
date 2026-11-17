@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     embedding_alias: str = "embed-default"
     embedding_dimensions: int | None = Field(default=None, ge=32, le=8192)  # Matryoshka size; None = provider default
 
+    # Storage: "files" (SQLite, JSON and embedded Chroma, single host) or "postgres" (hosted, multi-user).
+    storage_backend: Literal["files", "postgres"] = "files"
+    database_url: SecretStr = Field(default=SecretStr(""), repr=False)
+
     # Accounts: "tokens" = static workspace keys (self-hosted); "oidc" = signed-in learners (hosted).
     auth_mode: Literal["tokens", "oidc"] = "tokens"
     oidc_issuer: str = ""
@@ -126,6 +130,8 @@ class Settings(BaseSettings):
                 raise ValueError('GATEWAY_API_KEY is required when INFERENCE_BACKEND=gateway')
             if 'ollama_model' not in self.model_fields_set:
                 self.ollama_model = 'open-default'
+        if self.storage_backend == 'postgres' and not self.database_url.get_secret_value():
+            raise ValueError('DATABASE_URL is required when STORAGE_BACKEND=postgres')
         if self.auth_mode == 'oidc':
             issuer = urlsplit(self.oidc_issuer)
             if not self.oidc_issuer:

@@ -77,7 +77,9 @@ A refused attempt changes nothing (savepoint): it neither uses the daily cap nor
 
 - [ ] **Step 1: Tests** for Review Focus 4 using fake stores; two deletes in a row; deletion while a hold is open releases it first; billing 403 after close. **Step 2–5:** run red, implement, run green, commit and push.
 
-### Task 5: Postgres layer and app schema
+### Task 5: Postgres layer and app schema (DONE, 12 tests)
+
+Test database: `docker compose -f tests/support/docker-compose.pg.yml up -d` (pgvector/pgvector:pg16, 127.0.0.1:15433); tests skip cleanly when it is not running. `chunks.embedding` is fixed at `vector(1024)` (HNSW, cosine), matching the gateway's Matryoshka size.
 
 **Files:** Create `app/db.py`, `app/migrations/001_app.sql` (schema `app`; tables `flashcard_decks`, `coach_sessions`, `drawings`, `ingestion_jobs`, `usage_events`, all with `workspace TEXT NOT NULL` and an index starting with `workspace`), `app/migrate_db.py`, `tests/test_app_db.py`, `docker-compose.test.yml` fixture for Postgres+pgvector (`pgvector/pgvector:pg16`).
 
