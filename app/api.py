@@ -70,6 +70,7 @@ from fastapi import Request
 from app.ingestion import IMAGE_EXTENSIONS
 from app.exports import router as exports_router
 from app.drawings import router as drawings_router
+from app.llm import ModelServiceUnavailable
 from app.safety import SafetyError
 from fastapi.responses import JSONResponse
 from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
@@ -117,6 +118,11 @@ app.include_router(drawings_router)
 @app.exception_handler(SafetyError)
 async def safety_error_handler(request, exc):
     return JSONResponse(status_code=422, content={'detail': str(exc)})
+
+
+@app.exception_handler(ModelServiceUnavailable)
+async def model_unavailable_handler(request, exc):
+    return JSONResponse(status_code=503, content={'detail': str(exc)}, headers={'Retry-After': '10'})
 
 
 @app.middleware('http')
@@ -183,7 +189,7 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
                 else:
                     continue
                 yield f"data: {json.dumps(frame)}\n\n"
-        except SafetyError as exc:
+        except (SafetyError, ModelServiceUnavailable) as exc:
             status = 'error'
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
         except Exception as exc:  # noqa: BLE001 — surface any engine failure to client

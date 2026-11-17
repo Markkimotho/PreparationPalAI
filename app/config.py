@@ -2,7 +2,9 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, model_validator
+from typing import Literal
+
+from pydantic import Field, SecretStr, model_validator
 from app.workspace import workspace_id
 
 # Curated list of supported Ollama chat models, shown in this order in the UI.
@@ -28,6 +30,15 @@ class Settings(BaseSettings):
     # Keep the model resident in memory between requests to avoid cold-load
     # latency. "30m" keeps it warm for 30 min after the last call; "-1" = forever.
     ollama_keep_alive: str = "30m"
+
+    # Inference backend: "ollama" (self-hosted, default) or "gateway" (OpenAI-compatible
+    # LiteLLM gateway, see specs/2026-11-17-hosted-product-design.md).
+    inference_backend: Literal["ollama", "gateway"] = "ollama"
+    gateway_base_url: str = ""
+    gateway_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+    guard_alias: str = "guard"          # moderation + verification model alias
+    vision_alias: str = "vision-open"
+    embedding_alias: str = "embed-default"
 
     # ChromaDB (local, free)
     chroma_persist_dir: str = "data/chroma"
@@ -85,6 +96,14 @@ class Settings(BaseSettings):
         endpoint = urlsplit(self.ollama_base_url)
         if endpoint.scheme not in ('http', 'https') or not endpoint.hostname or endpoint.username or endpoint.password:
             raise ValueError('OLLAMA_BASE_URL must be an HTTP(S) origin without credentials')
+        if self.inference_backend == 'gateway':
+            gateway = urlsplit(self.gateway_base_url)
+            if gateway.scheme not in ('http', 'https') or not gateway.hostname or gateway.username or gateway.password:
+                raise ValueError('GATEWAY_BASE_URL must be an HTTP(S) origin without credentials')
+            if not self.gateway_api_key.get_secret_value():
+                raise ValueError('GATEWAY_API_KEY is required when INFERENCE_BACKEND=gateway')
+            if 'ollama_model' not in self.model_fields_set:
+                self.ollama_model = 'open-default'
         if not self.ollama_model.strip() or not self.ollama_embedding_model.strip():
             raise ValueError('Set OLLAMA_MODEL and OLLAMA_EMBEDDING_MODEL to non-empty installed tags')
         if self.production and '*' in self.cors_origins:

@@ -75,7 +75,9 @@ Findings folded in: keys need fallback aliases (script reads `/v1/models`); spen
 - [ ] **Step 4: Run** e2e → PASS. Add CI job running Task 1 tests and e2e.
 - [ ] **Step 5: Commit.**
 
-### Task 3: Usage meter and gateway chat model
+### Task 3: Usage meter and gateway chat model (DONE, 26 new tests; 307 backend tests green)
+
+Built: `app/metering.py`, `GuardedChatGateway`/`RawChatGateway`/`chat_model`/`raw_chat_model`/`record_response`/`ModelServiceUnavailable` in `app/llm.py`, settings in `app/config.py`, 503 + SSE mapping in `app/api.py`, `finish_reason == 'length'` truncation check in `app/generation.py`. Deviation: the judge's gateway path (`app/safety.py judge()`) landed here because the usage test needs it; Task 4 keeps drawings/vision/call sites/boundary test. Gateway payload sends `max_completion_tokens` not `max_tokens`; tests accept either.
 
 **Files:**
 - Create: `app/metering.py`, `tests/support/fake_openai.py`, `tests/test_metering.py`, `tests/test_gateway_llm.py`

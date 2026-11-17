@@ -28,7 +28,8 @@ def validated_batches(llm, render: Callable, parse: Callable, batch_model: type[
         for attempt in range(2):
             try:
                 response = llm.invoke([HumanMessage(content=render(count, items, bool(attempt), batch_schema, feedback))], format=batch_schema)
-                if getattr(response, 'response_metadata', {}).get('done_reason') == 'length':
+                meta = getattr(response, 'response_metadata', {})
+                if 'length' in (meta.get('done_reason'), meta.get('finish_reason')):
                     raise ValueError('Output limit reached')
                 raw = parse(response.content)
                 batch = batch_model.model_validate({key: raw} if isinstance(raw, list) else raw)
