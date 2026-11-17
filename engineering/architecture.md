@@ -53,6 +53,7 @@ See [AI gateway inference](runbooks/gateway.md).
 | Model catalogue and preflight | `app/model_catalog.py` |
 | Bounded model construction | `app/llm.py` (`chat_model`, guards, vision) and `app/embeddings.py` |
 | Usage metering | `app/metering.py` records tokens per model call inside a metering scope |
+| Billing | `app/metered.py` reserves and settles credits around every model route; `services/billing` owns balances ([runbook](runbooks/billing.md)) |
 | Gateway model list | `app/gateway_models.py` (aliases served to learners, cached) |
 
 The older Streamlit UI and multi-model analysis remain operator/development tools.

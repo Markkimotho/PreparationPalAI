@@ -18,3 +18,11 @@ scrape_configs:
       - targets: ["web:8000"]
         labels:
           service: preparationpalai-web
+
+  # Internal billing service (credit ledger). Only reachable inside the hosted Compose network.
+  - job_name: billing
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["billing:8100"]
+        labels:
+          service: billing

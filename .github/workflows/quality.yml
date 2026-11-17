@@ -12,6 +12,25 @@ concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  billing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: {POSTGRES_USER: billing, POSTGRES_PASSWORD: test, POSTGRES_DB: billing}
+        ports: ['15432:5432']
+        options: >-
+          --health-cmd "pg_isready -U billing -d billing" --health-interval 3s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e 'services/billing[dev]'
+      - run: python -m pytest services/billing/tests -q
+        env:
+          BILLING_TEST_DATABASE_URL: postgresql://billing:test@127.0.0.1:15432/billing
   container-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
