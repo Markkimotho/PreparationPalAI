@@ -1,0 +1,73 @@
+# Hosted deployment: inference goes through the shared AI gateway, so there is no Ollama here.
+# Prerequisites:  docker network create ai-gateway   (ai-gateway repo's stack joins it)
+#                 GATEWAY_API_KEY from ai-gateway: scripts/new_app_key.sh preparationpal-prod <usd>
+# Run:  docker compose -f docker-compose.hosted.yml -f docker-compose.production.yml up -d --build
+# (docker-compose.production.yml adds the Caddy proxy and requires AUTH settings.)
+x-app-env: &app-env
+  - INFERENCE_BACKEND=gateway
+  - GATEWAY_BASE_URL=http://litellm:4000
+  - GATEWAY_API_KEY=${GATEWAY_API_KEY:?Create a key with ai-gateway scripts/new_app_key.sh}
+  - EMBEDDED_WORKER=false
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: preparationpalai-web
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment: *app-env
+    networks: [default, ai-gateway]
+    volumes:
+      - ./data/pdfs:/app/data/pdfs
+      - chroma_data:/app/data/chroma
+      - flashcards_data:/app/data/flashcards
+      - coach_data:/app/data/coach
+      - jobs_data:/app/data/jobs
+      - usage_data:/app/data/usage
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2
+    stop_grace_period: 180s
+
+  worker:
+    build: .
+    command: [python, -m, app.jobs]
+    environment: *app-env
+    networks: [default, ai-gateway]
+    volumes:
+      - chroma_data:/app/data/chroma
+      - jobs_data:/app/data/jobs
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 4g
+    cpus: 2
+    stop_grace_period: 180s
+    healthcheck:
+      test: [CMD, python, -c, "from app.jobs import queue_status; assert queue_status()['worker']"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+
+networks:
+  ai-gateway:
+    external: true
+
+volumes:
+  chroma_data:
+  flashcards_data:
+  coach_data:
+  jobs_data:
+  usage_data:
