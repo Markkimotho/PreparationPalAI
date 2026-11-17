@@ -87,7 +87,9 @@ Test database: `docker compose -f tests/support/docker-compose.pg.yml up -d` (pg
 
 - [ ] Tests: migrations apply twice idempotently; every table has a non-null `workspace` and a workspace-leading index (read from `information_schema`/`pg_indexes`); pool survives a dropped connection. Run red, implement, run green, commit and push.
 
-### Task 6: Move the per-user stores to Postgres
+### Task 6: Move the per-user stores to Postgres (DONE, 67 tests across both backends)
+
+Jobs (`app/jobs_store.py`), rate limits (`app/limits.py`), flashcards, coach sessions and drawings (`app/session_stores.py`) each run on either backend through one API. Every store has parity tests run against SQLite files and Postgres, a test that the backend under test is really in use (so a Postgres run cannot pass vacuously), and a two-learner isolation test. Concurrency is covered: ten workers racing for one job, 30 parallel requests against a limit of 5, 15 parallel card additions, ten racing answers, and 12 simultaneous reviews. `tests/test_account_deletion_pg.py` proves account deletion empties every table for one learner and spares the neighbour.
 
 **Files:** Modify `app/flashcards.py`, `app/coach.py`, `app/drawings.py`, `app/jobs.py`, `app/limits.py`; each keeps its public functions and switches on `db.enabled()`. Create `tests/test_postgres_stores.py` and `tests/support/pg.py` (fixture that skips when Postgres is unavailable and CI provides it).
 

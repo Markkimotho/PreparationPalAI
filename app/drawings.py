@@ -19,7 +19,9 @@ from fastapi.responses import Response, JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field
 
+from app import db as pgdb
 from app.config import get_settings
+from app.session_stores import PgDrawings, SqliteDrawings, open_postgres, open_sqlite, sqlite_drawings
 from app.model_catalog import guard_model, require_model, supports_vision
 from app.safety import POLICY, SafetyError, moderate
 from app.workspace import identity_id, role
@@ -62,24 +64,20 @@ class VisualReview(BaseModel):
 
 @contextmanager
 def connect():
-    # Reuse the workspace-scoped, durable coach data volume, separate table.
-    path = Path(get_settings().coach_db)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(path, timeout=10)
-    db.row_factory = sqlite3.Row
-    db.execute('CREATE TABLE IF NOT EXISTS drawings (id TEXT PRIMARY KEY, owner TEXT NOT NULL, body TEXT NOT NULL, image BLOB NOT NULL)')
-    try:
-        with db:
-            yield db
-    finally:
-        db.close()
+    """A drawing store for the current workspace: SQLite file (self-hosted) or Postgres (hosted)."""
+    if pgdb.enabled():
+        with open_postgres(PgDrawings) as store:
+            yield store
+        return
+    with open_sqlite(sqlite_drawings, Path(get_settings().coach_db), SqliteDrawings) as store:
+        yield store
 
 
-def load(db, drawing_id):
-    row = db.execute('SELECT * FROM drawings WHERE id=?', (drawing_id,)).fetchone()
+def load(db, drawing_id, for_update=False):
+    row = db.get(drawing_id, for_update=for_update)
     if not row or (row['owner'] != identity_id.get() and role.get() not in ('editor', 'admin')):
         raise HTTPException(404, 'Drawing not found')
-    return row, json.loads(row['body'])
+    return row, row['body']
 
 
 def public(body):
@@ -145,24 +143,17 @@ def submit(req: Submission):
                 scene={'type': 'excalidraw', 'version': 2, 'elements': elements}, reference=reference,
                 created=time.time(), status='pending', reviews=[], session_id=req.session_id, index=req.index)
     with connect() as db:
-        db.execute('INSERT INTO drawings VALUES (?, ?, ?, ?)',
-                   (body['id'], identity_id.get(), json.dumps(body), image))
+        db.insert(body['id'], identity_id.get(), body, image)
     return public(body)
 
 
 @router.get('')
 def list_submissions(limit: int = Query(50, ge=1, le=100), before: int | None = Query(None, ge=1)):
     reviewer = role.get() in ('editor', 'admin')
-    clauses, parameters = [], []
-    if not reviewer:
-        clauses.append('owner=?'); parameters.append(identity_id.get())
-    if before is not None:
-        clauses.append('rowid<?'); parameters.append(before)
-    where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
     with connect() as db:
-        rows = db.execute('SELECT rowid AS cursor, body FROM drawings' + where + ' ORDER BY rowid DESC LIMIT ?', [*parameters, limit + 1]).fetchall()
-        return JSONResponse({'drawings': [public(json.loads(r['body'])) for r in rows[:limit]],
-            'can_review': reviewer, 'next_cursor': rows[limit - 1]['cursor'] if len(rows) > limit else None}, headers={'Cache-Control': 'no-store'})
+        rows = db.page(None if reviewer else identity_id.get(), before, limit + 1)
+    return JSONResponse({'drawings': [public(body) for _, body in rows[:limit]],
+        'can_review': reviewer, 'next_cursor': rows[limit - 1][0] if len(rows) > limit else None}, headers={'Cache-Control': 'no-store'})
 
 
 @router.get('/vision-models')
@@ -200,12 +191,11 @@ def scene(drawing_id: str):
 
 def save_review(drawing_id, review):
     with connect() as db:
-        # Re-read inside the write transaction to preserve concurrent reviews.
-        db.execute('BEGIN IMMEDIATE')
-        _, body = load(db, drawing_id)
+        # Re-read under a write lock so concurrent reviews are all preserved.
+        _, body = load(db, drawing_id, for_update=True)
         body['reviews'].append(review)
         body['status'] = 'reviewed' if any(r.get('status', 'reviewed') == 'reviewed' for r in body['reviews']) else 'needs_clarification'
-        db.execute('UPDATE drawings SET body=? WHERE id=?', (json.dumps(body), drawing_id))
+        db.update_body(drawing_id, body)
     return public(body)
 
 

@@ -78,7 +78,12 @@ def _vectors_postgres(workspace: str) -> int:
 
 
 def _coach(workspace: str) -> int:
-    """Coach sessions and drawing submissions share this workspace folder."""
+    """Coach sessions and drawing submissions share this workspace folder (or these tables)."""
+    from app import db
+    if db.enabled():
+        with db.transaction() as conn:
+            return (conn.execute('DELETE FROM app.coach_sessions WHERE workspace = %s', (workspace,)).rowcount
+                    + conn.execute('DELETE FROM app.drawings WHERE workspace = %s', (workspace,)).rowcount)
     return _remove_tree(Path(get_base_settings().coach_db).parent / 'workspaces' / workspace)
 
 
