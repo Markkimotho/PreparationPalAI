@@ -5,7 +5,7 @@
 # Works with the development build (Metro running) or a release build; needs no tapping.
 set -euo pipefail
 path="$1"; out="$2"; settle="${3:-2.5}"
-xcrun simctl openurl booted "preparationpal://${path}"
+xcrun simctl openurl booted "tayarishe://${path}"
 sleep "$settle"
 mkdir -p "$(dirname "$out")"
 xcrun simctl io booted screenshot "$out" >/dev/null 2>&1

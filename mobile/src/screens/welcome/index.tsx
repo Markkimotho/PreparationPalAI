@@ -56,7 +56,7 @@ export function Welcome() {
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const { signIn, notice, error } = useSession();
-  // Development builds only: preparationpal://sign-in?slide=2 opens on a slide (screenshots, review).
+  // Development builds only: tayarishe://sign-in?slide=2 opens on a slide (screenshots, review).
   const { slide } = useLocalSearchParams<{ slide?: string }>();
   const initial = __DEV__ && slide ? Math.max(0, Math.min(LAST, Number(slide) || 0)) : 0;
   const [page, setPage] = useState(initial);
@@ -89,9 +89,9 @@ export function Welcome() {
   return <Animated.View style={[styles.flex, background]}>
     <Blobs scrollX={scrollX} width={width} colors={colors} />
     <Animated.View entering={ENTER_DECORATION} style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.brand} accessible accessibilityRole="header" accessibilityLabel="PreparationPalAI">
+      <View style={styles.brand} accessible accessibilityRole="header" accessibilityLabel="Tayarishe">
         <View style={[styles.logo, { backgroundColor: colors.brand }]}><View style={[styles.logoInner, { backgroundColor: colors.mint }]} /></View>
-        <Text style={[styles.wordmark, { color: colors.text }]}>PreparationPalAI</Text>
+        <Text style={[styles.wordmark, { color: colors.text }]}>Tayarishe</Text>
       </View>
       {page < LAST && <PressableScale onPress={() => goTo(LAST)} accessibilityLabel="Skip" style={styles.skip}>
         <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip</Text>

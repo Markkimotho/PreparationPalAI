@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "PreparationPalAI",
-    "slug": "preparationpal",
+    "name": "Tayarishe",
+    "slug": "tayarishe",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "preparationpal",
+    "scheme": "tayarishe",
     "userInterfaceStyle": "automatic",
     "platforms": [
       "ios",
       "android"
     ],
     "ios": {
-      "bundleIdentifier": "app.preparationpal.mobile",
+      "bundleIdentifier": "app.tayarishe",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "app.preparationpal.mobile",
+      "package": "app.tayarishe",
       "adaptiveIcon": {
         "backgroundColor": "#194f3c",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

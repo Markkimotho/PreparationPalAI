@@ -88,7 +88,7 @@ export function Setup({ editing = false }: { editing?: boolean }) {
     switch (step) {
       case 0: return <>
         <View style={styles.hero}><Avatar seed={seed} name={draft.display_name} size={104} /></View>
-        <Title text="What should we call you?" sub="It’s how PrepPal greets you." />
+        <Title text="What should we call you?" sub="It’s how Tayarishe greets you." />
         <Field label="Your name" hideLabel value={draft.display_name} onChangeText={t => set({ display_name: t.slice(0, 40) })}
           placeholder="Your first name" autoFocus={!editing} autoCapitalize="words" returnKeyType="next" accent={draft.accent}
           onSubmitEditing={() => canContinue && go(1)} />

@@ -11,7 +11,7 @@ import { API_URL, APP_SCHEME } from '@/constants/config';
 interface NativeConfig { endpoint: string; client_id: string; resource: string }
 interface Stored { accessToken: string; refreshToken?: string; expiresAt: number }
 
-const KEY = 'preparationpal.tokens';
+const KEY = 'tayarishe.tokens';
 const EARLY = 60_000;              // refresh a minute before expiry
 let config: NativeConfig | null = null;
 let discovery: AuthSession.DiscoveryDocument | null = null;

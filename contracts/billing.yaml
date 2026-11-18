@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: PreparationPalAI billing
+  title: Tayarishe billing
   version: 1.0.0
 paths:
   /v1/accounts/{account_id}:

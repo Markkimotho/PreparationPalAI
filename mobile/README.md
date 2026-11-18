@@ -1,4 +1,4 @@
-# PreparationPalAI for iOS and Android
+# Tayarishe for iOS and Android
 
 One Expo (SDK 58) app for both stores. It uses the same account, API and credit balance as the web app.
 
@@ -89,14 +89,14 @@ scripts/sim-shot.sh "sign-in?slide=2" /tmp/shots/slide3.png               # deep
 `?slide=N` on the sign-in route opens the carousel on a slide, and `deck/<id>?face=back` opens a deck
 flipped, in development builds only. `scripts/local_stack/seed_deck.py` adds an 8-card sample deck to a
 local account (the fake model provider cannot write real cards). Every tab is
-reachable by link (`preparationpal://quiz`, `/cards`, `/coach`, `/account`). The local server stack is in
+reachable by link (`tayarishe://quiz`, `/cards`, `/coach`, `/account`). The local server stack is in
 `scripts/local_stack/` at the repository root.
 
 Environment (per build profile in `eas.json`; all are public by design):
 
 | Variable | Meaning |
 | --- | --- |
-| `EXPO_PUBLIC_API_URL` | The PreparationPalAI server, for example `https://app.example.com` |
+| `EXPO_PUBLIC_API_URL` | The Tayarishe server, for example `https://app.example.com` |
 | `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | RevenueCat public SDK keys. Without them the Account tab points to the website for top-ups |
 
 Store setup, review notes and release steps: `engineering/runbooks/mobile.md`.

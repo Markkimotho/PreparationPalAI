@@ -15,7 +15,7 @@ jest.mock('expo-auth-session', () => ({
   refreshAsync: (...a: unknown[]) => mockAuth.refreshAsync(...a),
   revokeAsync: (...a: unknown[]) => mockAuth.revokeAsync(...a),
   fetchDiscoveryAsync: (...a: unknown[]) => mockAuth.fetchDiscoveryAsync(...a),
-  makeRedirectUri: () => 'preparationpal://auth/callback',
+  makeRedirectUri: () => 'tayarishe://auth/callback',
   Prompt: { Consent: 'consent' },
 }));
 
@@ -36,12 +36,12 @@ test('signing in uses PKCE, asks for a refresh token and an access token for our
   mockAuth.promptAsync.mockResolvedValue({ type: 'success', params: { code: 'code-1' } });
   mockAuth.exchangeCodeAsync.mockResolvedValue({ accessToken: 'at-1', refreshToken: 'rt-1', expiresIn: 3600, issuedAt: Math.floor(Date.now() / 1000) });
   expect(await session.signIn()).toBe(true);
-  expect(mockAuth.configs[0]).toMatchObject({ clientId: 'native-app', redirectUri: 'preparationpal://auth/callback', usePKCE: true,
+  expect(mockAuth.configs[0]).toMatchObject({ clientId: 'native-app', redirectUri: 'tayarishe://auth/callback', usePKCE: true,
     scopes: expect.arrayContaining(['openid', 'offline_access', 'email', 'roles']), extraParams: { resource: 'https://api.example.com' } });
   expect(mockAuth.exchangeCodeAsync).toHaveBeenCalledWith(expect.objectContaining({ code: 'code-1', clientId: 'native-app',
     extraParams: { code_verifier: 'verifier-123', resource: 'https://api.example.com' } }), expect.anything());
   expect(await session.accessToken()).toBe('at-1');
-  expect(JSON.parse(mockStore['preparationpal.tokens']).refreshToken).toBe('rt-1');
+  expect(JSON.parse(mockStore['tayarishe.tokens']).refreshToken).toBe('rt-1');
 });
 
 test('a cancelled sign-in stores nothing', async () => {
@@ -51,26 +51,26 @@ test('a cancelled sign-in stores nothing', async () => {
 });
 
 test('an expired token is refreshed for our API resource', async () => {
-  mockStore['preparationpal.tokens'] = JSON.stringify({ accessToken: 'old', refreshToken: 'rt-1', expiresAt: Date.now() - 1000 });
+  mockStore['tayarishe.tokens'] = JSON.stringify({ accessToken: 'old', refreshToken: 'rt-1', expiresAt: Date.now() - 1000 });
   mockAuth.refreshAsync.mockResolvedValue({ accessToken: 'new', refreshToken: 'rt-2', expiresIn: 3600 });
   expect(await session.accessToken()).toBe('new');
   expect(mockAuth.refreshAsync).toHaveBeenCalledWith({ clientId: 'native-app', refreshToken: 'rt-1', extraParams: { resource: 'https://api.example.com' } }, expect.anything());
-  expect(JSON.parse(mockStore['preparationpal.tokens']).refreshToken).toBe('rt-2');
+  expect(JSON.parse(mockStore['tayarishe.tokens']).refreshToken).toBe('rt-2');
 });
 
 test('a refresh that fails signs the learner out and clears the keychain', async () => {
-  mockStore['preparationpal.tokens'] = JSON.stringify({ accessToken: 'old', refreshToken: 'rt-1', expiresAt: Date.now() - 1000 });
+  mockStore['tayarishe.tokens'] = JSON.stringify({ accessToken: 'old', refreshToken: 'rt-1', expiresAt: Date.now() - 1000 });
   mockAuth.refreshAsync.mockRejectedValue(new Error('invalid_grant'));
   expect(await session.accessToken()).toBeNull();
-  expect(mockStore['preparationpal.tokens']).toBeUndefined();
+  expect(mockStore['tayarishe.tokens']).toBeUndefined();
 });
 
 test('signing out revokes the refresh token and clears the keychain even if revocation fails', async () => {
-  mockStore['preparationpal.tokens'] = JSON.stringify({ accessToken: 'at', refreshToken: 'rt-1', expiresAt: Date.now() + 3600_000 });
+  mockStore['tayarishe.tokens'] = JSON.stringify({ accessToken: 'at', refreshToken: 'rt-1', expiresAt: Date.now() + 3600_000 });
   mockAuth.revokeAsync.mockRejectedValue(new Error('offline'));
   await session.signOut();
   expect(mockAuth.revokeAsync).toHaveBeenCalledWith(expect.objectContaining({ token: 'rt-1', clientId: 'native-app' }), expect.anything());
-  expect(mockStore['preparationpal.tokens']).toBeUndefined();
+  expect(mockStore['tayarishe.tokens']).toBeUndefined();
 });
 
 test('explains when the server has no native sign-in configured', async () => {
