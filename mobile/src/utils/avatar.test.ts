@@ -27,3 +27,9 @@ test('shuffle seeds match the server pattern and differ', () => {
   expect(seed).toMatch(/^[A-Za-z0-9_-]{8}$/);
   expect(newSeed(() => 0)).not.toBe(newSeed(() => 0.99));
 });
+
+test('matches the shared avatar contract, so the web draws the same avatar', () => {
+  const contract = require('../../../contracts/avatar-vectors.json');
+  for (const { seed, spec } of contract.avatars) expect(avatarSpec(seed)).toEqual(spec);
+  for (const { name, initial } of contract.initials) expect(initialOf(name)).toBe(initial);
+});

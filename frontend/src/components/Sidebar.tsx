@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { SECTIONS } from "../sections/registry";
 import styles from "./Sidebar.module.css";
+import { Avatar } from '../profile/Avatar';
+import { useProfile } from '../profile/ProfileContext';
 
 interface Props {
   collapsed: boolean;
@@ -52,6 +54,8 @@ export function Sidebar({
 
   const isRail = !isMobile && collapsed;
 
+  const { profile, status, workspace } = useProfile();
+  const name = profile.display_name.trim();
   const aside = (
     <aside
       ref={navRef}
@@ -87,6 +91,12 @@ export function Sidebar({
           </NavLink>
         ))}
       </nav>
+
+      {status === 'ready' && profile.onboarded && <NavLink to="/account" className={styles.me} title={isRail ? (name || 'Your profile') : undefined}
+        aria-label={`${name || 'Your profile'}: account`} onClick={() => isMobile && onCloseMobile()}>
+        <Avatar seed={`${workspace}:${profile.avatar_seed}`} name={name} size={34} />
+        {!isRail && <span className={styles.meText}><strong>{name || 'Your profile'}</strong><span>{profile.subjects[0] ?? 'Account'}</span></span>}
+      </NavLink>}
 
       {!isMobile && (
         <button

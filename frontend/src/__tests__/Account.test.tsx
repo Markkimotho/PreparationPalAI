@@ -84,3 +84,17 @@ it('explains that credits are a hosted feature when billing is off', async () =>
   render(<Account />);
   expect(await screen.findByText(/Credits and account settings are available on hosted PreparationPalAI/)).toBeInTheDocument();
 });
+
+it('shows who the learner is and links to edit the profile', async () => {
+  const { MemoryRouter } = await import('react-router-dom');
+  const profile = await import('../profile/ProfileContext');
+  const { DEFAULT_PROFILE } = await import('../api/profile');
+  const spy = vi.spyOn(profile, 'useProfile').mockReturnValue({ status: 'ready', workspace: 'u-x', save: vi.fn(),
+    profile: { ...DEFAULT_PROFILE, display_name: 'Amani', goal: 'exam', exam_context: 'KCSE 2027', level: 'advanced', subjects: ['Chemistry'], accent: 'coral', onboarded: true } });
+  render(<MemoryRouter><Account /></MemoryRouter>);
+  expect(screen.getByRole('heading', { name: 'Amani' })).toBeInTheDocument();
+  expect(screen.getByText('Preparing for KCSE 2027 · Advanced · 10 a day')).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: "Amani's avatar" })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Edit profile' })).toHaveAttribute('href', '/setup?edit=1');
+  spy.mockRestore();
+});

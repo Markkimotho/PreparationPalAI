@@ -699,7 +699,7 @@ import mimetypes  # noqa: E402
 mimetypes.add_type('application/manifest+json', '.webmanifest')
 
 # Client-side routes: a reload or a sign-in redirect to these must load the app, not 404.
-CLIENT_ROUTES = {'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide', 'drawings', 'account', 'auth'}
+CLIENT_ROUTES = {'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide', 'drawings', 'account', 'auth', 'setup'}
 NO_CACHE = {'index.html', 'sw.js', 'sw-strategy.js', 'manifest.webmanifest'}
 
 

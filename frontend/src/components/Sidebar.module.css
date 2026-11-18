@@ -170,3 +170,10 @@
     animation: none;
   }
 }
+
+.me { display: flex; align-items: center; gap: var(--space-3); margin: auto var(--space-2) var(--space-2); padding: var(--space-2);
+  border-radius: var(--radius); color: var(--text); text-decoration: none; }
+.me:hover { background: var(--surface-2); }
+.meText { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.meText strong { font-family: var(--font-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meText span { color: var(--text-dim); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

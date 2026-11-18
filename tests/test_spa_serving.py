@@ -19,7 +19,7 @@ def client(tmp_path):
     return TestClient(app)
 
 
-@pytest.mark.parametrize('path', ['/account', '/auth/callback?code=abc&state=xyz', '/prepare', '/flashcards/123'])
+@pytest.mark.parametrize('path', ['/account', '/auth/callback?code=abc&state=xyz', '/prepare', '/flashcards/123', '/setup', '/setup?edit=1'])
 def test_client_routes_load_the_app_on_reload_and_after_sign_in(client, path):
     r = client.get(path)
     assert r.status_code == 200 and '<title>app</title>' in r.text
@@ -43,3 +43,14 @@ def test_the_manifest_has_the_manifest_content_type(client):
 def test_the_app_shell_is_revalidated_but_hashed_assets_are_cached_for_a_year(client):
     assert client.get('/account').headers['cache-control'] == 'no-cache'
     assert client.get('/assets/index-abc123.js').headers['cache-control'] == 'public, max-age=31536000, immutable'
+
+
+def test_every_route_the_web_app_defines_is_served_on_reload():
+    """Gate: a page added to frontend/src/App.tsx must also be in CLIENT_ROUTES, or reloading it 404s.
+    This shipped twice (/account and /auth/callback, then /setup)."""
+    import re
+    from pathlib import Path
+    from app.api import CLIENT_ROUTES
+    app_tsx = (Path(__file__).resolve().parent.parent / 'frontend' / 'src' / 'App.tsx').read_text()
+    routes = {p.strip('/').split('/')[0] for p in re.findall(r'path="(/[^"*]*)"', app_tsx)} - {''}
+    assert routes and routes <= CLIENT_ROUTES, f'missing from CLIENT_ROUTES: {sorted(routes - CLIENT_ROUTES)}'

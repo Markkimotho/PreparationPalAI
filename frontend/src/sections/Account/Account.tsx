@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ACCENT_COLOURS, type Profile } from '../../api/profile';
+import { Avatar } from '../../profile/Avatar';
+import { useProfile } from '../../profile/ProfileContext';
 import { deleteAccount, getBalance, getHistory, getPacks, startCheckout, type Balance, type HistoryEntry, type Pack } from '../../api/billing';
 import { session } from '../../auth/session';
 import { openCheckout } from '../../payments/paddle';
@@ -70,6 +74,7 @@ export function Account() {
 
   return <section className={sectionStyles.section}><div className={styles.page}>
     <h1>Account</h1>
+    <ProfileCard />
     {notice && <p role="status">{notice}</p>}
     {error && <p role="alert">{error}</p>}
 
@@ -127,4 +132,28 @@ export function Account() {
       </>}
     </div>
   </div></section>;
+}
+
+const GOAL_LINE: Record<Profile['goal'], string> = { exam: 'Preparing for an exam', interview: 'Preparing for interviews', understand: 'Learning to understand deeply' };
+
+/** Who the learner is, as the app sees them; the way back into "Make it yours". */
+function ProfileCard() {
+  const { profile, status, workspace } = useProfile();
+  if (status !== 'ready') return null;
+  const name = profile.display_name.trim();
+  const colour = ACCENT_COLOURS[profile.accent];
+  const goal = profile.goal === 'exam' && profile.exam_context.trim() ? `Preparing for ${profile.exam_context.trim()}` : GOAL_LINE[profile.goal];
+  return <div className={`${styles.card} ${styles.profile}`} aria-label="Your profile">
+    <Avatar seed={`${workspace}:${profile.avatar_seed}`} name={name} size={64} label={name ? `${name}'s avatar` : 'Your avatar'} />
+    <div className={styles.profileText}>
+      <h2>{name || 'Your profile'}</h2>
+      <p className={styles.muted}>{`${goal} · ${profile.level[0].toUpperCase()}${profile.level.slice(1)} · ${profile.daily_goal} a day`}</p>
+      {profile.subjects.length > 0 && <ul className={styles.subjects} aria-label="Subjects">
+        {profile.subjects.map(s => <li key={s} style={{ background: colour.soft, color: colour.deep }}>{s}</li>)}
+      </ul>}
+    </div>
+    <Link to="/setup?edit=1" className={styles.edit} style={{ borderColor: colour.main, color: colour.deep, background: colour.soft }}>
+      {profile.onboarded ? 'Edit profile' : 'Make it yours'}
+    </Link>
+  </div>;
 }

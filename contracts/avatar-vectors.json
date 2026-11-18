@@ -1,0 +1,111 @@
+{
+  "_comment": "Avatars must look identical on every device. Generated from mobile/src/utils/avatar.ts; mobile and web tests both check against this file.",
+  "avatars": [
+    {
+      "seed": "",
+      "spec": {
+        "colors": [
+          "#ff8a72",
+          "#c63c2b"
+        ],
+        "motif": "petal",
+        "angle": 90,
+        "ink": "#ffffff"
+      }
+    },
+    {
+      "seed": "u-aaaaaaaaaaaaaaaaaaaa:k3x9qz7m",
+      "spec": {
+        "colors": [
+          "#ffc34d",
+          "#e07a05"
+        ],
+        "motif": "orbit",
+        "angle": 315,
+        "ink": "#ffffff"
+      }
+    },
+    {
+      "seed": "u-bbbbbbbbbbbbbbbbbbbb:",
+      "spec": {
+        "colors": [
+          "#6ee7c5",
+          "#1d4f9f"
+        ],
+        "motif": "petal",
+        "angle": 45,
+        "ink": "#ffffff"
+      }
+    },
+    {
+      "seed": "local:abc123",
+      "spec": {
+        "colors": [
+          "#ffb648",
+          "#f8624d"
+        ],
+        "motif": "petal",
+        "angle": 135,
+        "ink": "#ffffff"
+      }
+    },
+    {
+      "seed": "u-0123456789abcdef0123:zz99",
+      "spec": {
+        "colors": [
+          "#ffc34d",
+          "#e07a05"
+        ],
+        "motif": "orbit",
+        "angle": 0,
+        "ink": "#ffffff"
+      }
+    },
+    {
+      "seed": "preparationpal",
+      "spec": {
+        "colors": [
+          "#ff8a72",
+          "#c63c2b"
+        ],
+        "motif": "petal",
+        "angle": 90,
+        "ink": "#ffffff"
+      }
+    },
+    {
+      "seed": "ünïcødé:seed",
+      "spec": {
+        "colors": [
+          "#ff8a72",
+          "#c63c2b"
+        ],
+        "motif": "orbit",
+        "angle": 135,
+        "ink": "#ffffff"
+      }
+    }
+  ],
+  "initials": [
+    {
+      "name": "Amani",
+      "initial": "A"
+    },
+    {
+      "name": " kofi ",
+      "initial": "K"
+    },
+    {
+      "name": "Ólafur",
+      "initial": "Ó"
+    },
+    {
+      "name": "",
+      "initial": ""
+    },
+    {
+      "name": "李雷",
+      "initial": "李"
+    }
+  ]
+}
