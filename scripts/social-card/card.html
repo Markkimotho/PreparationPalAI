@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<!-- The link-preview image (1200 x 630). Built from the landing page's own stylesheet so it always
+     matches the site; rendered by render.sh with headless Brave/Chrome. -->
+<link rel="stylesheet" href="../../frontend/public/landing.css">
+<style>
+  @font-face { font-family: "Source Sans 3"; src: url("../../frontend/public/fonts/source-sans-3-latin-variable.woff2") format("woff2"); font-weight: 200 900; }
+  @font-face { font-family: "Manrope"; src: url("../../frontend/public/fonts/manrope-latin-variable.woff2") format("woff2"); font-weight: 200 800; }
+  *, *::before, *::after { animation: none !important; }            /* a still frame */
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  .card { position: relative; width: 1200px; height: 630px; display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; padding: 0 64px; overflow: hidden; }
+  .card .brand { position: absolute; top: 44px; left: 64px; font-size: 22px; }
+  .card .mark { width: 30px; height: 30px; }
+  .card h1 { font-size: 74px; }
+  .card .lead { font-size: 24px; margin: 22px 0 0; max-width: 520px; }
+  .card .pill { font-size: 18px; margin-bottom: 20px; }
+  .card .scene { height: 630px; transform: scale(.96); transform-origin: center; }
+  .card .glow-a { right: -200px; top: -260px; } .card .glow-b { left: -260px; top: 360px; }
+</style></head><body>
+<div class="card">
+  <div class="glow glow-a"></div><div class="glow glow-b"></div>
+  <span class="brand"><span class="mark"></span>PreparationPalAI</span>
+  <div>
+    <p class="pill"><span>✦</span> 500 free credits to start</p>
+    <h1>Study deeply.<br><span class="grad">Prepare confidently.</span></h1>
+    <p class="lead">Exam and interview practice built from your own notes. Pay only for what you use.</p>
+  </div>
+  <div class="scene">
+    <div class="orb orb-1"></div><div class="orb orb-2"></div>
+    <div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ph-head"><span class="ph-av">A</span><span><b>Good evening, Amani</b><small>12 of 20 today</small></span></div>
+      <div class="flip"><div class="flip-in">
+        <div class="face front"><span class="tag">Question</span><b>What makes most of a cell’s ATP?</b><small>Tap to flip</small></div>
+        <div class="face back"><span class="tag">Answer</span><b>The mitochondria</b></div>
+      </div></div>
+      <div class="ph-buttons"><span class="rb amber">↺</span><span class="rb white">⟳</span><span class="rb green">✓</span></div>
+    </div></div>
+    <div class="float notes"><div class="sheet s3"></div><div class="sheet s2"></div><div class="sheet s1"><i></i><i></i><i class="hl"></i><i></i></div></div>
+    <div class="float quiz"><span class="opt">A <em>Binary search</em></span><span class="opt ok">✓ <em>O(log n)</em></span></div>
+    <div class="float medal"><div class="coin"><span class="cf">A+</span><span class="cb">92%</span></div></div>
+    <div class="float streak">🔥 <b>7-day streak</b></div>
+    <span class="spark k1">✦</span><span class="spark k2">✦</span><span class="spark k3">✦</span>
+  </div>
+</div>
+</body></html>

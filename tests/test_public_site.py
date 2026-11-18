@@ -54,3 +54,12 @@ def test_landing_stylesheet_url_changes_when_the_stylesheet_does():
     version = _re.search(r'/landing\.css\?v=([0-9a-f]{12}|dev)"', client.get('/').text)
     assert version, 'the stylesheet link must carry a content version'
     assert version[1] == public_site.stylesheet_version()
+
+
+def test_link_preview_image_is_the_size_social_sites_expect():
+    """1200 x 630 PNG (scripts/social-card renders it); other sizes are cropped or rejected."""
+    import struct
+    from pathlib import Path
+    data = (Path(__file__).resolve().parent.parent / 'frontend' / 'public' / 'social-preview.png').read_bytes()
+    assert data[:8] == b'\x89PNG\r\n\x1a\n'
+    assert struct.unpack('>II', data[16:24]) == (1200, 630)
