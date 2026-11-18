@@ -3,7 +3,7 @@
 Fresh Logto has no admin account and no management credentials, so this writes the two records
 straight into Logto's database, in the same shape Logto's own API stores them:
   * a Native application whose redirect is preparationpal://auth/callback (what Expo produces for
-    the app's scheme), and
+    the app's scheme), a single-page application for the web app at http://localhost:18000, and
   * the API resource the server checks as the token audience,
 and turns off the breached-password lookup, which needs internet access from the container.
 Prints the settings start_app.sh needs. Local trial only; production uses the admin console
@@ -20,6 +20,8 @@ from pathlib import Path
 COMPOSE = Path(__file__).with_name('docker-compose.logto.yml')
 TENANT = 'default'
 NATIVE_ID = 'ppal-native-local'
+WEB_ID = 'ppal-web-local'
+WEB_REDIRECTS = {'redirectUris': ['http://localhost:18000/auth/callback'], 'postLogoutRedirectUris': ['http://localhost:18000/']}
 RESOURCE_ID = 'ppal-api-local'
 AUDIENCE = 'https://api.preparationpal.local'
 REDIRECTS = {'redirectUris': ['preparationpal://auth/callback'], 'postLogoutRedirectUris': ['preparationpal://']}
@@ -43,6 +45,10 @@ def main() -> None:
             VALUES ({literal(TENANT)}, {literal(NATIVE_ID)}, 'PreparationPalAI phone app (local)', {literal(secrets.token_hex(16))},
                     'Local trial; created by scripts/local_stack/setup_logto.py', 'Native', {literal(json.dumps(REDIRECTS))}::jsonb, '{{}}'::jsonb)
             ON CONFLICT (id) DO UPDATE SET oidc_client_metadata = EXCLUDED.oidc_client_metadata""")
+    sql(f"""INSERT INTO applications (tenant_id, id, name, secret, description, type, oidc_client_metadata, custom_client_metadata)
+            VALUES ({literal(TENANT)}, {literal(WEB_ID)}, 'PreparationPalAI web app (local)', {literal(secrets.token_hex(16))},
+                    'Local trial; created by scripts/local_stack/setup_logto.py', 'SPA', {literal(json.dumps(WEB_REDIRECTS))}::jsonb, '{{}}'::jsonb)
+            ON CONFLICT (id) DO UPDATE SET oidc_client_metadata = EXCLUDED.oidc_client_metadata""")
     sql(f"""INSERT INTO resources (tenant_id, id, name, indicator, is_default, access_token_ttl)
             VALUES ({literal(TENANT)}, {literal(RESOURCE_ID)}, 'PreparationPalAI API (local)', {literal(AUDIENCE)}, false, 3600)
             ON CONFLICT (id) DO NOTHING""")
@@ -55,7 +61,7 @@ def main() -> None:
     signup = sql(f"SELECT sign_up::text FROM sign_in_experiences WHERE tenant_id = {literal(TENANT)}")
     policy = sql(f"SELECT password_policy::text FROM sign_in_experiences WHERE tenant_id = {literal(TENANT)}")
     print(f'native app: {app}\napi resource: {api}\nsign-up: {signup}\npassword policy: {policy}')
-    print(f'\nexport OIDC_NATIVE_CLIENT_ID={NATIVE_ID}')
+    print(f'\nexport OIDC_NATIVE_CLIENT_ID={NATIVE_ID} OIDC_WEB_CLIENT_ID={WEB_ID}')
 
 
 if __name__ == '__main__':

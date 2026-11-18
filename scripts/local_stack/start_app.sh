@@ -37,7 +37,7 @@ export INFERENCE_BACKEND=gateway GATEWAY_BASE_URL=http://127.0.0.1:14000 GATEWAY
 export EMBEDDING_DIMENSIONS=1024 BILLING_ENABLED=true BILLING_BASE_URL=http://127.0.0.1:18100 BILLING_SERVICE_TOKEN=local-token
 export BILLING_OUTBOX_DB="$STATE/outbox.sqlite3" STORAGE_BACKEND=postgres DATABASE_URL=postgresql://app:test@127.0.0.1:15433/local
 export AUTH_MODE=oidc OIDC_ISSUER=https://localhost:8443/oidc OIDC_JWKS_URL=http://localhost:3001/oidc/jwks
-export OIDC_AUDIENCE=https://api.preparationpal.local OIDC_NATIVE_CLIENT_ID JOBS_DIR="$STATE/jobs" EMBEDDED_WORKER=false
+export OIDC_AUDIENCE=https://api.preparationpal.local OIDC_NATIVE_CLIENT_ID OIDC_WEB_CLIENT_ID="${OIDC_WEB_CLIENT_ID:-ppal-web-local}" JOBS_DIR="$STATE/jobs" EMBEDDED_WORKER=false
 cd "$ROOT"
 .venv/bin/python -m app.migrate_db >/dev/null
 running app || { nohup .venv/bin/python -m uvicorn app.api:app --port 18000 > "$STATE/app.log" 2>&1 & echo $! > "$STATE/app.pid"; }
