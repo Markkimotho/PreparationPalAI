@@ -161,3 +161,12 @@
 .meText { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 .meText strong { font-family: var(--font-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meText span { color: var(--text-dim); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Bottom-left help link: quieter than the study tools above. */
+.footerLink { display: flex; align-items: center; gap: var(--space-3); min-height: 40px; margin-top: auto; padding: 4px var(--space-2);
+  border-radius: var(--radius); color: var(--text-dim); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+.rail .footerLink { justify-content: center; }
+.footerIcon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; color: var(--text-dim); background: var(--surface-2); }
+.footerActive { color: var(--text); background: var(--bg); box-shadow: var(--shadow); }
+@media (hover: hover) and (pointer: fine) { .footerLink:hover { color: var(--text); background: var(--surface-2); } }
+.footerLink + .me { margin-top: var(--space-2); }

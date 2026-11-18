@@ -34,6 +34,14 @@ describe("Sidebar", () => {
     expect(screen.getByText("Guide")).toBeInTheDocument();
   });
 
+  it("keeps Guide out of the main list and at the bottom of the sidebar", () => {
+    renderAt("/quiz");
+    const main = screen.getByRole("navigation");
+    expect(main).not.toHaveTextContent("Guide");
+    const guide = screen.getByRole("link", { name: "Guide" });
+    expect(main.compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("marks the active route with aria-current", () => {
     renderAt("/agent");
     const active = screen.getByRole("link", { current: "page" });

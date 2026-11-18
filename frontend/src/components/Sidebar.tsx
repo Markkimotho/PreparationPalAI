@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { SECTIONS } from "../sections/registry";
 import styles from "./Sidebar.module.css";
+
+/** Sections shown at the bottom of the sidebar instead of in the main list. */
+const FOOTER_SECTIONS = ["guide"];
 import { Avatar } from '../profile/Avatar';
 import { ACCENT_COLOURS } from '../api/profile';
 import { useProfile } from '../profile/ProfileContext';
@@ -78,7 +81,7 @@ export function Sidebar({
       {isMobile && <button type="button" onClick={onCloseMobile} aria-label="Close menu">Close menu</button>}
 
       <nav className={styles.nav}>
-        {SECTIONS.map((s) => (
+        {SECTIONS.filter((s) => !FOOTER_SECTIONS.includes(s.id)).map((s) => (
           <NavLink
             key={s.id}
             to={s.path}
@@ -95,6 +98,16 @@ export function Sidebar({
           </NavLink>
         ))}
       </nav>
+
+      {/* Help lives at the bottom, out of the way of the study tools. */}
+      {SECTIONS.filter((s) => FOOTER_SECTIONS.includes(s.id)).map((s) => (
+        <NavLink key={s.id} to={s.path} aria-label={s.label} data-section={s.id} title={isRail ? s.label : undefined}
+          className={({ isActive }) => `${styles.footerLink} ${isActive ? styles.footerActive : ""}`}
+          onClick={() => isMobile && onCloseMobile()}>
+          <span className={styles.footerIcon}>{s.icon}</span>
+          {!isRail && <span>{s.label}</span>}
+        </NavLink>
+      ))}
 
       {status === 'ready' && profile.onboarded && <NavLink to="/account" className={styles.me} title={isRail ? (name || 'Your profile') : undefined}
         aria-label={`${name || 'Your profile'}: account`} onClick={() => isMobile && onCloseMobile()}>
