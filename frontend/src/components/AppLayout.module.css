@@ -3,7 +3,7 @@
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--page);
 }
 .main {
   display: flex;
@@ -11,6 +11,9 @@
   flex: 1;
   min-width: 0;
   height: 100%;
+  /* The page's colour washes in from the top, as on the phone's screens. */
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--page) 340px);
+  transition: background var(--dur-slow) var(--ease);
 }
 .content {
   flex: 1;

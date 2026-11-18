@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { SECTIONS } from "../sections/registry";
 import styles from "./Sidebar.module.css";
 import { Avatar } from '../profile/Avatar';
+import { ACCENT_COLOURS } from '../api/profile';
 import { useProfile } from '../profile/ProfileContext';
 
 interface Props {
@@ -56,6 +57,10 @@ export function Sidebar({
 
   const { profile, status, workspace } = useProfile();
   const name = profile.display_name.trim();
+  // Personal items (study modes, account, guide) always show the learner's colour, whatever page is
+  // open; Coach, Quiz and Flashcards items carry their own colours (data-section in theme.css).
+  const own = ACCENT_COLOURS[status === 'ready' && profile.onboarded ? profile.accent : 'blue'];
+  const personalVars = { '--accent': own.main, '--accent-vivid': own.vivid, '--accent-deep': own.deep, '--accent-soft': own.soft } as React.CSSProperties;
   const aside = (
     <aside
       ref={navRef}
@@ -63,12 +68,11 @@ export function Sidebar({
         isMobile ? styles.mobile : ""
       } ${isMobile && mobileOpen ? styles.open : ""}`}
       aria-label="Sections"
+      style={personalVars}
       aria-hidden={isMobile && !mobileOpen ? true : undefined}
     >
       <div className={styles.brand}>
-        <span className={styles.logo} aria-hidden>
-          ◆
-        </span>
+        <span className={styles.logo} aria-hidden />
         {!isRail && <span className={styles.brandName}>PreparationPalAI</span>}
       </div>
       {isMobile && <button type="button" onClick={onCloseMobile} aria-label="Close menu">Close menu</button>}

@@ -14,6 +14,9 @@ interface Props {
   onChanged: () => void;
 }
 
+
+/** Cover colours cycle through the four area accents, like the phone's deck tiles. */
+const COVERS = ['green', 'blue', 'amber', 'coral'] as const;
 export function DeckList({ decks, loading, onOpen, onChanged }: Props) {
   const { selected } = useModelContext();
   const { count } = useKnowledgeBase();
@@ -132,13 +135,21 @@ export function DeckList({ decks, loading, onOpen, onChanged }: Props) {
         />
       ) : (
         <div className={styles.deckGrid}>
-          {decks.map((d) => (
+          {decks.map((d, i) => (
             <button
               key={d.id}
               type="button"
               className={styles.deckTile}
+              data-section-tone={COVERS[i % COVERS.length]}
               onClick={() => onOpen(d.id)}
             >
+              {/* A fanned stack of cards on a gradient cover, as on the phone. */}
+              <span className={styles.cover} aria-hidden>
+                <span className={styles.fan}>
+                  <span className={styles.fanBack} /><span className={styles.fanMid} />
+                  <span className={styles.fanFront}><strong>{d.card_count}</strong>cards</span>
+                </span>
+              </span>
               <span className={styles.deckName}>{d.name}</span>
               <span className={styles.deckCount}>
                 {d.card_count} card{d.card_count !== 1 ? "s" : ""}

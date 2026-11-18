@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   width: var(--sidebar-w);
-  background: var(--surface);
+  background: var(--page);
   border-right: 1px solid var(--border);
   padding: var(--space-4) var(--space-3);
   gap: var(--space-2);
@@ -19,89 +19,70 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2) var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2) var(--space-5);
 }
+/* The brand mark (same as the phone app's): a deep green diamond holding a mint square. */
 .logo {
-  color: var(--accent);
-  font-size: 1.25rem;
-  line-height: 1;
+  width: 26px; height: 26px; border-radius: 8px; background: var(--brand); transform: rotate(45deg);
+  display: grid; place-items: center; flex-shrink: 0;
 }
+.logo::after { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--mint); }
 .brandName {
+  font-family: var(--font-heading);
   font-weight: 700;
   font-size: var(--fs-md);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
   flex: 1;
 }
 .item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
+  min-height: 44px;
+  padding: 6px var(--space-2);
   border-radius: var(--radius);
   color: var(--text-dim);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--fs-sm);
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
   white-space: nowrap;
-  position: relative;
 }
 .rail .item {
   justify-content: center;
 }
-.item:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
+.item:active { transform: scale(0.97); }
+/* Each item carries its area's colour (data-section): its icon sits on a soft tile of it. */
 .icon {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-}
-
-/* Active item recolors to its own section accent, regardless of route var. */
-.item.active[data-section="quiz"] {
-  --accent: var(--accent-quiz);
-}
-.item.active[data-section="agent"] {
-  --accent: var(--accent-agent);
-}
-.item.active[data-section="code"] {
-  --accent: var(--accent-code);
-}
-.item.active[data-section="chat"] {
-  --accent: var(--accent-chat);
-}
-.item.active[data-section="cards"] {
-  --accent: var(--accent-cards);
-}
-.item.active[data-section="guide"] {
-  --accent: var(--accent-guide);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .item.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
 }
-.item.active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 18%;
-  bottom: 18%;
-  width: 3px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
+.item.active .icon {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-vivid), var(--accent-deep));
 }
-.rail .item.active::before {
-  display: none;
+@media (hover: hover) and (pointer: fine) {
+  .item:hover { background: var(--surface-2); color: var(--text); }
+  .item.active:hover { background: var(--bg); }
 }
 
 .collapse {
@@ -111,6 +92,7 @@
   border: none;
   background: transparent;
   color: var(--text-faint);
+  min-height: 40px;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--fs-sm);
@@ -171,9 +153,11 @@
   }
 }
 
-.me { display: flex; align-items: center; gap: var(--space-3); margin: auto var(--space-2) var(--space-2); padding: var(--space-2);
-  border-radius: var(--radius); color: var(--text); text-decoration: none; }
-.me:hover { background: var(--surface-2); }
+.me { display: flex; align-items: center; gap: var(--space-3); margin: auto 0 var(--space-2); padding: var(--space-2);
+  border-radius: var(--radius-lg); color: var(--text); text-decoration: none; background: var(--bg); border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm); transition: transform var(--dur-fast) var(--ease); }
+.me:active { transform: scale(0.97); }
+.rail .me { padding: 4px; border: none; background: none; box-shadow: none; }
 .meText { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 .meText strong { font-family: var(--font-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meText span { color: var(--text-dim); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

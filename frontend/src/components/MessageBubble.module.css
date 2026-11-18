@@ -12,15 +12,16 @@
   max-width: min(760px, 86%);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
-  animation: rise var(--dur-slow) var(--ease);
+  animation: rise 150ms var(--ease);      /* frequent: near-imperceptible, as on the phone */
 }
 .user .bubble {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent-vivid), var(--accent-deep));
   color: var(--on-accent);
   border-bottom-right-radius: var(--radius-sm);
 }
 .assistant .bubble {
-  background: var(--surface);
+  background: var(--bg);
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   border-bottom-left-radius: var(--radius-sm);
 }

@@ -15,8 +15,10 @@ export function AppLayout() {
   const isMobile = useIsMobile();
   const section = sectionForPath(location.pathname);
   const { profile, status } = useProfile();
-  // The learner's own colour becomes the app's accent (only once they have chosen one).
-  const accent = status === 'ready' && profile.onboarded ? ACCENT_COLOURS[profile.accent] : null;
+  // As on the phone: Coach, Quiz and Flashcards keep their own colours (theme.css); the learner's
+  // own colour fills the personal pages (study modes, account, guide, drawings).
+  const personal = !['prepare', 'quiz', 'cards'].includes(section.id);
+  const accent = personal && status === 'ready' && profile.onboarded ? ACCENT_COLOURS[profile.accent] : null;
   useEffect(() => { document.title = `${section.label} · PreparationPalAI`; }, [section.label]);
 
   const [collapsed, setCollapsed] = useState(
@@ -38,7 +40,8 @@ export function AppLayout() {
 
   return (
     <div className={styles.app} data-section={section.id}
-      style={accent ? { '--accent': accent.main, '--accent-soft': accent.soft, '--accent-border': accent.main } as React.CSSProperties : undefined}>
+      style={accent ? { '--accent': accent.main, '--accent-vivid': accent.vivid, '--accent-deep': accent.deep, '--accent-soft': accent.soft,
+        '--accent-border': `color-mix(in srgb, ${accent.main} 35%, white)`, '--focus': `color-mix(in srgb, ${accent.main} 45%, transparent)` } as React.CSSProperties : undefined}>
       <Sidebar
         collapsed={collapsed}
         onToggleCollapse={toggleCollapse}

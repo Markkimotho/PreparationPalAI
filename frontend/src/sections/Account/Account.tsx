@@ -9,6 +9,8 @@ import { openCheckout } from '../../payments/paddle';
 import sectionStyles from '../Section.module.css';
 import styles from './Account.module.css';
 
+/** Pack tiles cycle through the area colours, as on the phone. */
+const TONES = ['blue', 'amber', 'green', 'coral'] as const;
 const number = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 3 });
 const signed = (n: number) => (n > 0 ? `+${number(n)}` : number(n));
 
@@ -78,31 +80,42 @@ export function Account() {
     {notice && <p role="status">{notice}</p>}
     {error && <p role="alert">{error}</p>}
 
-    <div className={styles.card} aria-label="Credit balance">
-      <h2>Credits</h2>
+    {/* The balance, as on the phone: a gradient card in the learner's colour. */}
+    <div className={styles.hero} aria-label="Credit balance">
+      <span className={styles.ring} aria-hidden /><span className={`${styles.ring} ${styles.ringSmall}`} aria-hidden />
+      <h2 className={styles.heroLabel}><span aria-hidden>⚡</span> Credits</h2>
       {balance ? <>
         <p className={styles.big}>{number(balance.available_credits)}</p>
-        <p className={styles.muted}>
+        <p className={styles.heroNote}>
           {balance.starter_credits > 0 && `${number(balance.starter_credits)} of these are free starter credits, usable with open models. `}
           {balance.reserved_credits > 0 && `${number(balance.reserved_credits)} are held for a request in progress.`}
         </p>
-      </> : <p role="status">Loading balance…</p>}
+      </> : <p role="status" className={styles.heroNote}>Loading balance…</p>}
+      <p className={styles.heroNote}>A typical quiz uses about 14 credits.</p>
     </div>
 
-    <div className={styles.card}>
-      <h2>Buy credits</h2>
-      <p className={styles.muted}>One credit is a tenth of a US cent. A typical quiz uses about 14 credits. Prices include tax, handled by our payment provider.</p>
+    <section className={styles.block} aria-labelledby="buy-credits">
+      <h2 id="buy-credits" className={styles.blockTitle}>Buy credits</h2>
       <div className={styles.packs}>
-        {packs.map(pack => <button key={pack.id} type="button" className={styles.pack} disabled={!pack.available || buying !== ''}
-          onClick={() => void buy(pack)}>{buying === pack.id ? 'Opening checkout…' : `Buy ${number(pack.credits)} credits for ${pack.price}`}</button>)}
+        {packs.map((pack, i) => <button key={pack.id} type="button" className={styles.pack} data-tone={TONES[i % TONES.length]}
+          disabled={!pack.available || buying !== ''} onClick={() => void buy(pack)}
+          aria-label={buying === pack.id ? 'Opening checkout…' : `Buy ${number(pack.credits)} credits for ${pack.price}`}>
+          <span className={styles.packIcon} aria-hidden>⚡</span>
+          <span className={styles.packCredits}>{number(pack.credits)}</span>
+          <span className={styles.packUnit}>credits</span>
+          <span className={styles.price}>{buying === pack.id ? 'Opening…' : pack.price}</span>
+        </button>)}
       </div>
-    </div>
+      <p className={styles.muted}>One credit is a tenth of a US cent. Prices include tax, handled by our payment provider.</p>
+    </section>
 
-    <div className={styles.card}>
-      <h2>History</h2>
+    <section className={styles.block} aria-labelledby="history">
+      <h2 id="history" className={styles.blockTitle}>History</h2>
+      <div className={styles.card}>
       {history.length === 0 ? <p className={styles.muted}>No activity yet.</p> :
         <ul className={styles.history}>{history.map(entry => <li key={entry.id}>
-          <span>{entry.label}<br /><span className={styles.muted}>{new Date(entry.when).toLocaleString()}</span></span>
+          <span className={`${styles.rowIcon} ${entry.credits > 0 ? styles.rowPlus : ''}`} aria-hidden>{entry.credits > 0 ? '+' : '✦'}</span>
+          <span className={styles.rowText}>{entry.label}<span className={styles.muted}>{new Date(entry.when).toLocaleString()}</span></span>
           <span className={entry.credits > 0 ? styles.plus : styles.minus}>{signed(entry.credits)}</span>
         </li>)}</ul>}
       {nextBefore && <button type="button" className={sectionStyles.chip} onClick={async () => {
@@ -110,10 +123,9 @@ export function Account() {
       }}>Show older activity</button>}
     </div>
 
-    <div className={styles.card}>
-      <h2>Session</h2>
-      <button type="button" className={sectionStyles.chip} onClick={() => void session.signOut()}>Sign out</button>
-    </div>
+    </section>
+
+    <button type="button" className={styles.signOut} onClick={() => void session.signOut()}>Sign out</button>
 
     <div className={`${styles.card} ${styles.danger}`}>
       <h2>Delete account</h2>

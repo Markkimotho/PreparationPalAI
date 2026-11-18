@@ -45,9 +45,9 @@ export async function getWorkspace(): Promise<string> {
 }
 
 /** Text-safe accent colours for the web's light surfaces (each passes 4.5:1 on white). */
-export const ACCENT_COLOURS: Record<Accent, { main: string; soft: string; deep: string }> = {
-  blue: { main: '#1d5fc4', soft: '#e3edff', deep: '#163f80' },
-  amber: { main: '#a35a04', soft: '#fff1d6', deep: '#7a4303' },
-  green: { main: '#14775a', soft: '#dbf4e8', deep: '#0f523e' },
-  coral: { main: '#b83a2a', soft: '#ffe6e1', deep: '#8a2b1f' },
+export const ACCENT_COLOURS: Record<Accent, { main: string; vivid: string; soft: string; deep: string }> = {
+  blue: { main: '#1d5fc4', vivid: '#2f6fe4', soft: '#e3edff', deep: '#163f80' },
+  amber: { main: '#a35a04', vivid: '#f29d16', soft: '#fff1d6', deep: '#7a4303' },
+  green: { main: '#14775a', vivid: '#1fa774', soft: '#dbf4e8', deep: '#0f523e' },
+  coral: { main: '#b83a2a', vivid: '#f8624d', soft: '#ffe6e1', deep: '#8a2b1f' },
 };
