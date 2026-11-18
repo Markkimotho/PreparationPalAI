@@ -18,6 +18,18 @@ docker cp "$(docker compose -f scripts/local_stack/docker-compose.logto.yml ps -
 xcrun simctl keychain booted add-root-cert scripts/local_stack/.state/local-root.crt
 ```
 
+For the **web app** in a desktop browser, the Mac itself must trust that certificate: accepting the browser's
+warning page is not enough, because sign-in also makes background requests to Logto, which the browser
+refuses ("Could not reach the sign-in page"). Run once, then fully quit and reopen the browser:
+
+```bash
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain scripts/local_stack/.state/local-root.crt
+# remove it when you are done:
+sudo security delete-certificate -c "Caddy Local Authority - 2026 ECC Root" /Library/Keychains/System.keychain
+```
+
+Then open http://localhost:18000/prepare (the root is the marketing page) and sign in as `demo`.
+
 `check_signin.py` registers (or signs in) an account through Logto exactly as the app does and passes only
 if the server accepts the token. Stop with `scripts/local_stack/stop.sh` (add `--all` to stop sign-in too).
 State, logs and keys live in `scripts/local_stack/.state/` (git-ignored).
