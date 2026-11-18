@@ -40,8 +40,11 @@ Drawing answers are web-only for now.
     except childless absolute fills (progress bars).
   - The welcome carousel is a native paging scroll; one shared scroll value drives the 3D page turns,
     parallax, background colour and dots. Illustration loops run only on the visible slide.
-  - Flashcards follow the finger 1:1 and commit on Apple's momentum projection or 40% of the width
-    (`src/utils/swipe.ts`), springing with the release velocity.
+  - Flashcards (`src/components/card-deck.tsx`) are a 3D deck: tap flips (with a slight lift), swipe right
+    for Got it and left for Still learning. The card follows the finger 1:1, GOT IT / AGAIN stamps and
+    the cards underneath are driven by the same drag, and release commits on Apple's momentum projection
+    or 40% of the width (`src/utils/swipe.ts`). Answers are remembered per deck (`src/utils/mastery.ts`)
+    and shown as mastery bars on the deck tiles; the end of a deck offers a review of what is left.
   - Haptics: one per meaningful event (`src/utils/haptics.ts`), always with a visual change.
   - Reduced motion: no loops, 3D, parallax or confetti; crossfades only.
 - **Gate:** `src/animated-style-rule.test.ts` fails if a `useAnimatedStyle` does not read its shared values
@@ -67,7 +70,9 @@ EXPO_PUBLIC_API_URL=http://localhost:18000 npx expo start --dev-client
 scripts/sim-shot.sh "sign-in?slide=2" /tmp/shots/slide3.png               # deep link + screenshot, no tapping
 ```
 
-`?slide=N` on the sign-in route opens the carousel on a slide in development builds only. Every tab is
+`?slide=N` on the sign-in route opens the carousel on a slide, and `deck/<id>?face=back` opens a deck
+flipped, in development builds only. `scripts/local_stack/seed_deck.py` adds an 8-card sample deck to a
+local account (the fake model provider cannot write real cards). Every tab is
 reachable by link (`preparationpal://quiz`, `/cards`, `/coach`, `/account`). The local server stack is in
 `scripts/local_stack/` at the repository root.
 

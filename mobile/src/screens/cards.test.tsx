@@ -2,7 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-jest.mock('expo-router', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
+jest.mock('expo-router', () => ({
+  Link: ({ children }: { children: React.ReactNode }) => children,
+  useFocusEffect: (effect: () => void) => { require('react').useEffect(() => effect(), [effect]); },
+}));
 jest.mock('@/utils/api', () => ({ getJson: jest.fn(), postJson: jest.fn() }));
 import { getJson } from '@/utils/api';
 import { Cards } from './cards';
@@ -35,17 +38,35 @@ test('a real error from the server is shown, not hidden behind the cache', async
   expect(await screen.findByRole('alert')).toHaveTextContent('Sign in to continue.');
 });
 
-test('studying a deck flips and moves between cards, and works offline from the saved copy', async () => {
+test('studying a deck: flip, answer with Got it and Still learning, see the tally, review only what is left', async () => {
   (getJson as jest.Mock).mockResolvedValueOnce(deck);
   const first = await render(<GestureHandlerRootView><DeckStudy id="d1" /></GestureHandlerRootView>);
   expect(await screen.findByText('What makes ATP?')).toBeTruthy();
+  expect(screen.getByText('1 / 2')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Show answer' }));
   expect(screen.getByText('Mitochondria')).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Got it' }));
   expect(screen.getByText('Plant energy?')).toBeTruthy();
+  expect(screen.getByText('2 / 2')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Still learning' }));
+  expect(screen.getByText('You know 1 of 2')).toBeTruthy();
+  expect(screen.getByText('1 still learning')).toBeTruthy();
+  expect(JSON.parse((await AsyncStorage.getItem('cache:mastery:d1'))!)).toEqual(['c1']);
+  await fireEvent.press(screen.getByRole('button', { name: 'Review the 1 still learning' }));
+  expect(screen.getByText('Plant energy?')).toBeTruthy();
+  expect(screen.getByText('1 / 1')).toBeTruthy();
   await first.unmount();
   (getJson as jest.Mock).mockRejectedValueOnce(new TypeError('Network request failed'));
   await render(<GestureHandlerRootView><DeckStudy id="d1" /></GestureHandlerRootView>);
   expect(await screen.findByText(/Offline: studying the copy saved/)).toBeTruthy();
   expect(screen.getByText('What makes ATP?')).toBeTruthy();
+});
+
+test('deck tiles show how much of each deck is mastered', async () => {
+  await AsyncStorage.setItem('cache:mastery:d1', JSON.stringify(['c1']));
+  (getJson as jest.Mock).mockResolvedValue({ decks: [{ id: 'd1', name: 'Biology', card_count: 2 }, { id: 'd2', name: 'Empty one', card_count: 0 }] });
+  await render(<Cards />);
+  expect(await screen.findByText('1 of 2 mastered')).toBeTruthy();
+  expect(screen.getByText('Empty deck')).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Biology, 2 cards, 1 of 2 mastered' })).toBeTruthy();
 });

@@ -49,7 +49,7 @@ def experience(client: httpx.Client, username: str, password: str) -> str:
     r = client.put(f'{LOGTO}/api/experience', json={'interactionEvent': 'Register'})
     r.status_code < 300 or fail('start registration', r)
     r = client.post(f'{LOGTO}/api/experience/profile', json={'type': 'username', 'value': username})
-    if r.status_code == 422 and 'exist' in r.text:           # already registered: sign in instead
+    if r.status_code == 422 and r.json().get('code') == 'user.username_already_in_use':   # registered: sign in instead
         r = client.put(f'{LOGTO}/api/experience', json={'interactionEvent': 'SignIn'})
         r.status_code < 300 or fail('start sign-in', r)
         r = client.post(f'{LOGTO}/api/experience/verification/password',
@@ -70,33 +70,42 @@ def experience(client: httpx.Client, username: str, password: str) -> str:
     return r.json()['redirectTo']
 
 
+def sign_in(client: httpx.Client, username: str, password: str) -> dict:
+    """Run the app's sign-in (authorization code + PKCE) for this account and return Logto's tokens."""
+    verifier = secrets.token_urlsafe(48)
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
+    r = client.get(f'{LOGTO}/oidc/auth', params={
+        'client_id': CLIENT_ID, 'redirect_uri': REDIRECT, 'response_type': 'code', 'prompt': 'consent',
+        'scope': 'openid offline_access profile email roles', 'resource': RESOURCE,
+        'code_challenge': challenge, 'code_challenge_method': 'S256', 'state': secrets.token_hex(8)})
+    r.status_code in (302, 303) or fail('authorization request', r)
+    client.get(LOGTO + r.headers['location'] if r.headers['location'].startswith('/') else r.headers['location'])
+    callback = follow_to_callback(client, experience(client, username, password))
+    code = parse_qs(urlsplit(callback).query).get('code', [None])[0] or fail(f'no code in {callback}')
+    print('ok  Logto redirected back to the app with a code')
+    r = client.post(f'{LOGTO}/oidc/token', data={
+        'grant_type': 'authorization_code', 'code': code, 'code_verifier': verifier,
+        'client_id': CLIENT_ID, 'redirect_uri': REDIRECT, 'resource': RESOURCE})
+    r.status_code == 200 or fail('token exchange', r)
+    return r.json()
+
+
+def local_client() -> httpx.Client:
+    return httpx.Client(verify=str(STATE / 'local-root.crt'), follow_redirects=False, timeout=20)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--username', default=f'check-{secrets.token_hex(3)}')
     parser.add_argument('--password', default=secrets.token_urlsafe(12) + 'aA1!')
     args = parser.parse_args()
-    verifier = secrets.token_urlsafe(48)
-    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
-    with httpx.Client(verify=str(STATE / 'local-root.crt'), follow_redirects=False, timeout=20) as client:
+    with local_client() as client:
         status = httpx.get(f'{API}/api/auth/status').json()
         native = status.get('native') or {}
         if native != {'endpoint': LOGTO, 'client_id': CLIENT_ID, 'resource': RESOURCE}:
             sys.exit(f'FAIL server publishes the wrong sign-in config: {native}')
         print(f'ok  server publishes sign-in config {native}')
-        r = client.get(f'{LOGTO}/oidc/auth', params={
-            'client_id': CLIENT_ID, 'redirect_uri': REDIRECT, 'response_type': 'code', 'prompt': 'consent',
-            'scope': 'openid offline_access profile email roles', 'resource': RESOURCE,
-            'code_challenge': challenge, 'code_challenge_method': 'S256', 'state': secrets.token_hex(8)})
-        r.status_code in (302, 303) or fail('authorization request', r)
-        client.get(LOGTO + r.headers['location'] if r.headers['location'].startswith('/') else r.headers['location'])
-        callback = follow_to_callback(client, experience(client, args.username, args.password))
-        code = parse_qs(urlsplit(callback).query).get('code', [None])[0] or fail(f'no code in {callback}')
-        print('ok  Logto redirected back to the app with a code')
-        r = client.post(f'{LOGTO}/oidc/token', data={
-            'grant_type': 'authorization_code', 'code': code, 'code_verifier': verifier,
-            'client_id': CLIENT_ID, 'redirect_uri': REDIRECT, 'resource': RESOURCE})
-        r.status_code == 200 or fail('token exchange', r)
-        tokens = r.json()
+        tokens = sign_in(client, args.username, args.password)
         header = tokens['access_token'].split('.')[0]
         alg = httpx.Response(200, content=base64.urlsafe_b64decode(header + '=' * (-len(header) % 4))).json()['alg']
         print(f'ok  access token issued ({alg}), refresh token {"present" if tokens.get("refresh_token") else "MISSING"}')

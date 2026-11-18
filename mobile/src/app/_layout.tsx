@@ -21,7 +21,7 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
   return <Stack screenOptions={{ headerShown: false }}>
     <Stack.Protected guard={state === 'signed-in'}>
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="deck/[id]" options={{ headerShown: true, title: '', headerTransparent: true, headerBackTitle: 'Decks' }} />
+      <Stack.Screen name="deck/[id]" options={{ headerShown: true, title: '', headerTransparent: true, headerBackTitle: 'Decks', headerTintColor: '#ffffff' }} />
     </Stack.Protected>
     <Stack.Protected guard={state === 'signed-out'}>
       <Stack.Screen name="sign-in" />
