@@ -28,6 +28,22 @@ Drawing answers are web-only for now.
   react-markdown + KaTeX renderer as the web app.
 - **Offline**: flashcard decks are cached with AsyncStorage and cleared on sign-out.
 
+## Personal for every learner
+
+- After the first sign-in, **Make it yours** (`src/screens/setup.tsx`) asks for a name, goal (exam, interviews,
+  understanding), subjects and level (and the exam, if any), a daily goal, and a colour and avatar. It is
+  saved to `GET/PUT /api/profile` (server: `app/profile.py`), so it follows the learner to every device
+  and is editable from Account > Edit profile. Skip saves the defaults.
+- The server tailors every AI request that sends no profile of its own to the learner's subjects, level,
+  goal, exam and language: chat, tutor, code, quizzes, explanations, flashcards and coaching.
+- Every account gets a unique avatar generated from its id and a shuffle seed (`src/utils/avatar.ts`).
+- The learner's colour tints the tabs, Study and Account. Study greets them by name, shows a daily goal
+  dial (`todayCount` in `src/utils/streak.ts`) and suggestions built from their subjects and goal
+  (`src/utils/suggestions.ts`); Quiz, Cards and Coach offer their subjects as one-tap topics, and Coach
+  starts on their goal.
+- The profile is cached on the phone (`cache:profile`, cleared on sign-out); setup is only shown once the
+  server confirms the profile is not set up.
+
 ## Design and motion
 
 - **Palette** (`src/constants/theme.ts`): the web app and docs family brightened. Each area has its own
