@@ -70,7 +70,7 @@ export function Account() {
 
   if (unavailable) {
     return <section className={sectionStyles.section}><div className={styles.page}><h1>Account</h1>
-      <p>Credits and account settings are available on hosted PreparationPalAI. This installation is self-hosted, so study is free and unmetered.</p>
+      <p>Credits and account settings are available on hosted Tayarishe. This installation is self-hosted, so study is free and unmetered.</p>
     </div></section>;
   }
 

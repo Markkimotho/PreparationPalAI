@@ -32,7 +32,7 @@ describe('the manifest', () => {
   const manifest = JSON.parse(readFileSync(resolve(publicDir, 'manifest.webmanifest'), 'utf8'));
 
   it('makes the app installable', () => {
-    expect(manifest).toMatchObject({ name: 'PreparationPalAI', short_name: 'PrepPal', display: 'standalone', start_url: '/prepare', scope: '/' });
+    expect(manifest).toMatchObject({ name: 'Tayarishe', short_name: 'Tayarishe', display: 'standalone', start_url: '/prepare', scope: '/' });
     expect(manifest.theme_color).toBe('#194f3c');
   });
 

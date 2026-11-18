@@ -17,7 +17,7 @@ interface Session {
   answers: { question: string; reference: string; explanation: string; result: Result }[];
   summary: { score: number; topics: { topic: string; score: number; missed: string[] }[]; next_actions: string[] } | null;
 }
-const learnerKey = 'preparationpal.learner';
+const learnerKey = 'tayarishe.learner';
 function learnerId() {
   let id = localStorage.getItem(learnerKey);
   if (!id) { id = crypto.randomUUID(); localStorage.setItem(learnerKey, id); }

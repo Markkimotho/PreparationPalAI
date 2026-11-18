@@ -23,6 +23,7 @@ export function hash(text: string): number {
 }
 
 export function avatarSpec(seed: string): AvatarSpec {
+  // A fixed constant of the algorithm (the product's original name): changing it would redraw avatars.
   const h = hash(seed || 'preparationpal');
   const colors = GRADIENTS[h % GRADIENTS.length];
   return { colors, motif: MOTIFS[(h >>> 8) % MOTIFS.length], angle: ((h >>> 16) % 8) * 45, ink: '#ffffff' };

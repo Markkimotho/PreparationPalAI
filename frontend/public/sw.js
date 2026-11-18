@@ -1,4 +1,4 @@
-/* PreparationPalAI service worker: makes the app installable and opens offline to the cached shell.
+/* Tayarishe service worker: makes the app installable and opens offline to the cached shell.
  * It never stores learner data: API calls, sign-in and payments always use the network. */
 importScripts('/sw-strategy.js');
 var SHELL = 'prep-shell-v1';

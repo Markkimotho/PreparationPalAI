@@ -76,7 +76,7 @@ export function Sidebar({
     >
       <div className={styles.brand}>
         <span className={styles.logo} aria-hidden />
-        {!isRail && <span className={styles.brandName}>PreparationPalAI</span>}
+        {!isRail && <span className={styles.brandName}>Tayarishe</span>}
       </div>
       {isMobile && <button type="button" onClick={onCloseMobile} aria-label="Close menu">Close menu</button>}
 

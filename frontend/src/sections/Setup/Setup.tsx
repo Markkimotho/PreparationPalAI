@@ -45,7 +45,7 @@ export function Setup() {
     if (first.current) { first.current = false; return; }
     heading.current?.focus();
   }, [step]);
-  useEffect(() => { document.title = `${editing ? 'Edit profile' : 'Make it yours'} · PreparationPalAI`; }, [editing]);
+  useEffect(() => { document.title = `${editing ? 'Edit profile' : 'Make it yours'} · Tayarishe`; }, [editing]);
   useEffect(() => {                                 // first-time setup hands over once the profile is set up
     if (!editing && profile.onboarded) navigate('/prepare', { replace: true });
   }, [editing, profile.onboarded, navigate]);
@@ -82,7 +82,7 @@ export function Setup() {
   const name = draft.display_name.trim();
 
   const titles = [
-    ['What should we call you?', 'It’s how PrepPal greets you.'],
+    ['What should we call you?', 'It’s how Tayarishe greets you.'],
     [`What are you working toward${name ? `, ${name}` : ''}?`, 'Your tutor adapts its questions and feedback to this.'],
     ['What are you studying?', 'Pick up to six. Your answers, quizzes and cards start here.'],
     ['How much each day?', 'Answers, cards and questions all count. You can change this any time.'],

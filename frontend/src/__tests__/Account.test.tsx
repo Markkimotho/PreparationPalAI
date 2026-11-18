@@ -82,7 +82,7 @@ it('keeps the learner signed in and explains when deletion fails', async () => {
 it('explains that credits are a hosted feature when billing is off', async () => {
   api.getBalance.mockRejectedValue(Object.assign(new Error('Billing is not enabled.'), { status: 404 }));
   render(<Account />);
-  expect(await screen.findByText(/Credits and account settings are available on hosted PreparationPalAI/)).toBeInTheDocument();
+  expect(await screen.findByText(/Credits and account settings are available on hosted Tayarishe/)).toBeInTheDocument();
 });
 
 it('shows who the learner is and links to edit the profile', async () => {

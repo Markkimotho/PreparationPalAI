@@ -53,7 +53,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
 
   if (state === 'signin') {
     return <main className="access-page"><section className="access-card access-welcome">
-      <div className="access-brand"><span className="access-logo" aria-hidden />PreparationPalAI</div>
+      <div className="access-brand"><span className="access-logo" aria-hidden />Tayarishe</div>
       <h1>Study deeply.<br />Prepare confidently.</h1>
       <p>Sign in to keep your notes, decks and progress in one place, on the web and on your phone.</p>
       <ul className="access-promises" aria-label="What you get">
@@ -79,7 +79,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
       setKey(''); setState('open');
     } catch (e) { setAccessKey(''); setError((e as Error).message); }
     finally { setBusy(false); }
-  }}><h1>PreparationPalAI</h1><p>Sign in to your study workspace.</p>
+  }}><h1>Tayarishe</h1><p>Sign in to your study workspace.</p>
     {state === 'loading' ? <p role="status">Checking access…</p> : <>
       <label htmlFor="access-key">Workspace access key</label>
       <input id="access-key" type="password" autoComplete="off" required value={key} onChange={e => setKey(e.target.value)} />

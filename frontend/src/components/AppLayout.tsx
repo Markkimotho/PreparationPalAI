@@ -19,7 +19,7 @@ export function AppLayout() {
   // own colour fills the personal pages (study modes, account, guide, drawings).
   const personal = !['prepare', 'quiz', 'cards'].includes(section.id);
   const accent = personal && status === 'ready' && profile.onboarded ? ACCENT_COLOURS[profile.accent] : null;
-  useEffect(() => { document.title = `${section.label} · PreparationPalAI`; }, [section.label]);
+  useEffect(() => { document.title = `${section.label} · Tayarishe`; }, [section.label]);
 
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(COLLAPSE_KEY) === "1",

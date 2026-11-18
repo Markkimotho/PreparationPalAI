@@ -13,7 +13,7 @@ export interface GuideSection {
 export const GUIDE: GuideSection[] = [
   {
     id: 'overview', title: 'Overview', group: 'Getting started',
-    body: `# PreparationPalAI
+    body: `# Tayarishe
 
 Turn a topic or your notes into deliberate practice for exams, interviews, and
 everyday learning. Start small: one topic, a handful of questions, and one idea

@@ -19,7 +19,7 @@ export default function DrawingCanvas({ onReady, onDirty, disabled }: Props) {
       const image = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob);
       });
-      return { image, scene: { type: 'excalidraw', version: 2, source: 'PreparationPalAI', elements, appState: { viewBackgroundColor: '#ffffff' }, files: {} } };
+      return { image, scene: { type: 'excalidraw', version: 2, source: 'Tayarishe', elements, appState: { viewBackgroundColor: '#ffffff' }, files: {} } };
     });
   }} onChange={elements => {
     const next = elements.map(element => `${element.id}:${element.version}:${element.isDeleted}`).join('|');
