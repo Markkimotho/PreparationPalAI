@@ -13,7 +13,9 @@ def test_public_html_without_ollama(monkeypatch):
     monkeypatch.setattr(get_settings(), 'public_base_url', 'https://prep.example')
     r = client.get('/')
     assert r.status_code == 200
-    assert '<h1>Practise the questions' in r.text
+    assert '<h1>Study deeply.' in r.text
+    assert 'href="/prepare"' in r.text and '500 free credits' in r.text
+    assert '<script src' not in r.text                      # the landing page stays JavaScript-free
     assert 'rel="canonical" href="https://prep.example/"' in r.text
     assert 'property="og:image" content="https://prep.example/social-preview.png"' in r.text
     schema = json.loads(re.search(r'application/ld\+json">(.*?)</script>', r.text)[1])
@@ -42,3 +44,13 @@ def test_public_origin_rejects_embedded_credentials():
     from app.config import Settings
     with pytest.raises(ValueError, match='PUBLIC_BASE_URL'):
         Settings(public_base_url='https://user:password@example.com')
+
+
+def test_landing_stylesheet_url_changes_when_the_stylesheet_does():
+    """Regression: an unversioned /landing.css was served stale by the service worker after a deploy,
+    leaving the new page unstyled until a second reload."""
+    import re as _re
+    from app import public_site
+    version = _re.search(r'/landing\.css\?v=([0-9a-f]{12}|dev)"', client.get('/').text)
+    assert version, 'the stylesheet link must carry a content version'
+    assert version[1] == public_site.stylesheet_version()
