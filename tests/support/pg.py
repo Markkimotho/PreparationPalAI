@@ -4,7 +4,7 @@ import os
 import pytest
 
 URL = os.environ.get('APP_TEST_DATABASE_URL', 'postgresql://app:test@127.0.0.1:15433/app')
-TABLES = 'flashcard_decks, coach_sessions, drawings, ingestion_jobs, workers, usage_events, chunks'
+TABLES = 'flashcard_decks, coach_sessions, drawings, ingestion_jobs, workers, usage_events, chunks, learner_profiles'
 
 
 def available() -> bool:

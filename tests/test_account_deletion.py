@@ -32,7 +32,7 @@ def stores(tmp_path, monkeypatch):
     s = get_base_settings()
     for name, value in dict(flashcards_dir=str(tmp_path / 'cards'), chroma_persist_dir=str(tmp_path / 'vectors'),
                             coach_db=str(tmp_path / 'coach' / 'sessions.sqlite3'), jobs_dir=str(tmp_path / 'jobs'),
-                            usage_db=str(tmp_path / 'usage' / 'usage.sqlite3')).items():
+                            usage_db=str(tmp_path / 'usage' / 'usage.sqlite3'), profiles_dir=str(tmp_path / 'profiles')).items():
         monkeypatch.setattr(s, name, value)
     monkeypatch.setattr(vectorstore, '_vectorstore', None)
     vectorstore._workspace_stores.clear()
@@ -44,8 +44,10 @@ def stores(tmp_path, monkeypatch):
 def fill(workspace: str) -> None:
     """Put a little data for `workspace` into every file-based store."""
     from app import code_assistant, coach, flashcards, jobs, limits, quiz_agent
+    from app import profile
     token = workspace_id.set(workspace)
     try:
+        profile.save(profile.LearnerProfile(display_name='Private name', onboarded=True))
         flashcards.create_deck('Private deck')
         vectorstore.get_vectorstore().add_documents([Document(page_content='private note', metadata=dict(source='n.pdf', page=1, id='x'))])
         with coach.connect():
@@ -84,13 +86,14 @@ def snapshot(workspace: str) -> dict:
             coach_dir=(Path(s.coach_db).parent / 'workspaces' / workspace).exists(),
             jobs=job_rows, job_files=(Path(s.jobs_dir) / 'files' / workspace).exists(), usage=usage,
             history=len(memory.get_chat_history('s1')),
+            profile=(Path(s.profiles_dir) / f'{workspace}.json').exists(),
             checkpoints=sum(f'{workspace}:thread-1' in cp.storage for cp in (code_assistant._checkpointer, quiz_agent._checkpointer)))
     finally:
         workspace_id.reset(token)
 
 
-FULL = dict(decks=1, vectors=1, coach_dir=True, jobs=1, job_files=True, usage=1, history=2, checkpoints=2)
-EMPTY = dict(decks=0, vectors=0, coach_dir=False, jobs=0, job_files=False, usage=0, history=0, checkpoints=0)
+FULL = dict(decks=1, vectors=1, coach_dir=True, jobs=1, job_files=True, usage=1, history=2, checkpoints=2, profile=True)
+EMPTY = dict(decks=0, vectors=0, coach_dir=False, jobs=0, job_files=False, usage=0, history=0, checkpoints=0, profile=False)
 
 
 def test_the_fixture_really_fills_every_store(stores):
@@ -104,7 +107,7 @@ def test_purge_removes_every_store_for_one_workspace_and_leaves_the_neighbour(st
     report = purge.purge_workspace(A)
     assert snapshot(A) == EMPTY
     assert snapshot(B) == FULL
-    assert set(report) >= {'flashcards', 'vectors', 'coach', 'jobs', 'usage', 'chat_memory'} and all(v >= 0 for v in report.values())
+    assert set(report) >= {'flashcards', 'vectors', 'coach', 'jobs', 'usage', 'chat_memory', 'profile'} and all(v >= 0 for v in report.values())
 
 
 def test_purging_twice_is_harmless(stores):

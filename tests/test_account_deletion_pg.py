@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from app import coach, drawings, flashcards, jobs, limits, oidc, purge, vectorstore
+from app import coach, drawings, flashcards, jobs, limits, oidc, profile, purge, vectorstore
 from app.api import app
 from app.config import get_base_settings
 from app.pgvector_store import DIMENSIONS
@@ -15,7 +15,7 @@ from app.workspace import identity_id, workspace_id
 from tests.support.fake_issuer import FakeIssuer
 
 pytestmark = pytest.mark.usefixtures('pg')
-TABLES = ['flashcard_decks', 'coach_sessions', 'drawings', 'ingestion_jobs', 'usage_events', 'chunks']
+TABLES = ['flashcard_decks', 'coach_sessions', 'drawings', 'ingestion_jobs', 'usage_events', 'chunks', 'learner_profiles']
 client = TestClient(app)
 
 
@@ -44,6 +44,7 @@ def postgres_mode(monkeypatch, tmp_path):
 def fill(workspace):
     tokens = workspace_id.set(workspace), identity_id.set(workspace)
     try:
+        profile.save(profile.LearnerProfile(display_name='Private name', onboarded=True))
         flashcards.create_deck('Private deck', [dict(front='a', back='b')])
         vectorstore.get_vectorstore().add_documents([Document(page_content='private note', metadata=dict(source='n.pdf', page=1, id='c1'))])
         with coach.connect() as db:

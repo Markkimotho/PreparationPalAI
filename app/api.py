@@ -34,6 +34,7 @@ from app import code_assistant
 from app import flashcards as fc
 from app import graph as langgraph_module
 from app import metrics
+from app import profile as profile_store
 from app import quiz_agent
 from app.analysis import get_chat_models, get_installed_models, pull_model
 from app.api_models import (
@@ -510,7 +511,7 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
             thread_id=req.session_id,
             model=req.model,
             top_k=req.top_k,
-            profile=req.profile,
+            profile=profile_store.tailor(req.profile),
         )
     else:
         events = lcel_chain.stream(
@@ -518,7 +519,7 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
             session_id=req.session_id,
             model=req.model,
             top_k=req.top_k,
-            profile=req.profile,
+            profile=profile_store.tailor(req.profile),
         )
     return _sse(events, surface="chat")
 
@@ -540,7 +541,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
         thread_id=req.thread_id,
         model=req.model,
         use_kb=req.use_kb,
-        profile=req.profile,
+        profile=profile_store.tailor(req.profile),
     )
     return _sse(events, surface="code")
 
@@ -552,7 +553,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
 def agent_stream(req: AgentRequest) -> StreamingResponse:
     req.model = require_model(req.model)
     events = quiz_agent.stream_agent(
-        message=req.message, thread_id=req.thread_id, model=req.model, profile=req.profile,
+        message=req.message, thread_id=req.thread_id, model=req.model, profile=profile_store.tailor(req.profile),
         allow_web=req.allow_web
     )
     return _sse(events, surface="agent")
@@ -575,7 +576,7 @@ def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
             exam_type=req.exam_type,
             model=req.model,
             top_k=get_settings().quiz_top_k,
-            profile=req.profile,
+            profile=profile_store.tailor(req.profile),
         )
     except Exception:
         status = "error"
@@ -593,7 +594,7 @@ def quiz_validate(req: QuizValidateRequest) -> dict:
         question=req.question,
         correct_answer=req.correct_answer,
         student_answer=req.student_answer,
-        profile=req.profile,
+        profile=profile_store.tailor(req.profile),
         question_type=req.question_type,
         model=req.model,
     )
@@ -605,10 +606,22 @@ def quiz_validate(req: QuizValidateRequest) -> dict:
 @app.post("/api/quiz/explain", response_model=ExplainResponse)
 def quiz_explain(req: ExplainRequest) -> ExplainResponse:
     req.model = require_model(req.model)
-    return ExplainResponse(explanation=explain_concept(req.concept, model=req.model, profile=req.profile))
+    return ExplainResponse(explanation=explain_concept(req.concept, model=req.model, profile=profile_store.tailor(req.profile)))
 
 
 # ── Flashcards ─────────────────────────────────────────────────────────────
+
+
+@app.get("/api/profile", response_model=profile_store.StoredProfile, tags=["Profile"])
+def profile_get() -> profile_store.StoredProfile:
+    """The signed-in learner's profile (defaults with `onboarded: false` before they set it up)."""
+    return profile_store.load()
+
+
+@app.put("/api/profile", response_model=profile_store.StoredProfile, tags=["Profile"])
+def profile_put(req: profile_store.LearnerProfile) -> profile_store.StoredProfile:
+    """Replace the signed-in learner's profile. AI requests without their own profile use it."""
+    return profile_store.save(req)
 
 
 @app.get("/api/flashcards", response_model=DecksResponse)
@@ -627,7 +640,7 @@ def flashcards_generate(req: GenerateDeckRequest) -> Deck:
     start = time.perf_counter()
     status = "success"
     try:
-        return Deck(**fc.generate_deck(req.topic, n=req.n, model=req.model, deck_name=req.deck_name, profile=req.profile))
+        return Deck(**fc.generate_deck(req.topic, n=req.n, model=req.model, deck_name=req.deck_name, profile=profile_store.tailor(req.profile)))
     except Exception:
         status = "error"
         raise

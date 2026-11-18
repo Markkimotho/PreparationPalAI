@@ -8,7 +8,7 @@ from tests.support.pg import URL
 
 pytestmark = pytest.mark.usefixtures('pg_session')
 
-USER_TABLES = ['flashcard_decks', 'coach_sessions', 'drawings', 'ingestion_jobs', 'usage_events', 'chunks']
+USER_TABLES = ['flashcard_decks', 'coach_sessions', 'drawings', 'ingestion_jobs', 'usage_events', 'chunks', 'learner_profiles']
 
 
 def test_migrations_apply_twice_idempotently():

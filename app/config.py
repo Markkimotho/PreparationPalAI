@@ -90,6 +90,7 @@ class Settings(BaseSettings):
     # Flashcards persisted store (mount a volume here in Docker to keep decks).
     flashcards_dir: str = "data/flashcards"
     coach_db: str = "data/coach/sessions.sqlite3"
+    profiles_dir: str = "data/profiles"            # one learner profile per workspace (self-hosted storage)
     glm_model: str = "glm4:9b"
     deepseek_model: str = "deepseek-r1:7b"
     extra_models: list[str] = []

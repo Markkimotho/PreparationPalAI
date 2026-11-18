@@ -200,6 +200,8 @@ def history(learner: str):
 
 @router.post('/sessions')
 def start(req: Start):
+    from app import profile as profile_store
+    req = req.model_copy(update={'profile': profile_store.tailor(req.profile)})   # pitched to the learner's profile
     model = require_model(req.model)
     with connect() as db:
         weak = weak_topics(db, req.learner) if req.mode == 'review' else []
