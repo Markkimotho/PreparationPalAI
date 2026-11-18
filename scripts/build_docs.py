@@ -11,7 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = '/PreparationPalAI/'
+BASE = '/Tayarishe/'
 
 
 class PageLinks(HTMLParser):
@@ -92,7 +92,7 @@ def build(site):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--site-dir', type=Path, default=ROOT / 'site')
-    parser.add_argument('--preview', action='store_true', help='Serve both portals under /PreparationPalAI/ at port 8088')
+    parser.add_argument('--preview', action='store_true', help='Serve both portals under /Tayarishe/ at port 8088')
     parser.add_argument('--port', type=int, default=8088)
     args = parser.parse_args()
     build(args.site_dir)

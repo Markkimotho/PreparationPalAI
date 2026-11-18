@@ -1,7 +1,7 @@
 INHERIT: mkdocs.base.yml
 site_name: PreparationPalAI · Contributor handbook
 site_description: Build, test, extend, and operate PreparationPalAI. Engineering documentation for contributors and maintainers.
-site_url: https://markkimotho.github.io/PreparationPalAI/contribute/
+site_url: https://markkimotho.github.io/Tayarishe/contribute/
 docs_dir: engineering
 site_dir: site/contribute
 edit_uri: edit/main/engineering/
@@ -9,7 +9,7 @@ extra:
   audience: contributor
   portal_label: Contributor handbook
   other_portal_label: Back to the user guide
-  other_portal_url: /PreparationPalAI/
+  other_portal_url: /Tayarishe/
 nav:
   - Contribute: index.md
   - Build:

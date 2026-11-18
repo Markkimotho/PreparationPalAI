@@ -87,7 +87,7 @@ public issue, chat transcript, or screenshot.
 
 ## Report a problem
 
-Use the [GitHub issue tracker](https://github.com/Markkimotho/PreparationPalAI/issues)
+Use the [GitHub issue tracker](https://github.com/Markkimotho/Tayarishe/issues)
 for a reproducible product problem. Include the section, steps, model tag, and
 visible error message. A request ID can help an administrator investigate.
 
