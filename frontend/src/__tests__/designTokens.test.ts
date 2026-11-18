@@ -25,3 +25,11 @@ it.each([
   expect(phone, `missing ${mobileKey} in the phone theme`).toBeTruthy();
   expect(webColour(webToken)).toBe(phone);
 });
+
+it('every section scrolls its own content, because the layout clips (Account once could not scroll)', () => {
+  const layout = readFileSync(resolve(root, 'frontend/src/components/AppLayout.module.css'), 'utf8');
+  const section = readFileSync(resolve(root, 'frontend/src/sections/Section.module.css'), 'utf8');
+  const block = (css: string, selector: string) => css.slice(css.indexOf(`${selector} {`), css.indexOf('}', css.indexOf(`${selector} {`)));
+  expect(block(layout, '.content')).toMatch(/overflow:\s*hidden/);
+  expect(block(section, '.section')).toMatch(/overflow-y:\s*auto/);
+});
