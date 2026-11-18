@@ -46,7 +46,10 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -e 'services/billing[dev]'
-      - run: python -m pytest services/billing/tests -q
+      # Run from the service folder: from the repo root, `tests.helpers` resolves to the app's own
+      # tests package instead of billing's.
+      - run: python -m pytest tests -q
+        working-directory: services/billing
         env:
           BILLING_TEST_DATABASE_URL: postgresql://billing:test@127.0.0.1:15432/billing
   container-smoke:
