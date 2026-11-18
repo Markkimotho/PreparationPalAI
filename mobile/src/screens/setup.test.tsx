@@ -2,14 +2,16 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 const mockSave = jest.fn(async (_changes: Record<string, unknown>) => undefined);
 const mockBack = jest.fn();
-jest.mock('expo-router', () => ({ router: { back: () => mockBack() } }));
+const mockReplace = jest.fn();
+jest.mock('expo-router', () => ({ router: { back: () => mockBack(), replace: (to: string) => mockReplace(to) } }));
+let mockOnboarded = false;
 jest.mock('@/hooks/use-profile', () => {
   const actual = jest.requireActual('@/hooks/use-profile');
-  return { ...actual, useProfile: () => ({ profile: actual.DEFAULT_PROFILE, workspace: 'u-x', status: 'ready', save: mockSave }) };
+  return { ...actual, useProfile: () => ({ profile: { ...actual.DEFAULT_PROFILE, onboarded: mockOnboarded }, workspace: 'u-x', status: 'ready', save: mockSave }) };
 });
 import { Setup } from './setup';
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => { jest.clearAllMocks(); mockOnboarded = false; });
 const next = () => fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
 
 test('a new learner makes the app theirs in five steps, and exactly that is saved', async () => {
@@ -36,7 +38,19 @@ test('a new learner makes the app theirs in five steps, and exactly that is save
   expect(saved).toMatchObject({ display_name: 'Amani', goal: 'exam', subjects: ['Chemistry', 'Statistics'], level: 'advanced',
     exam_context: 'KCSE, November 2027', daily_goal: 20, accent: 'coral', onboarded: true });
   expect(saved.avatar_seed).toMatch(/^[a-z0-9]{8}$/);
-  expect(mockBack).not.toHaveBeenCalled();                                            // first setup: the app opens by itself
+  expect(mockBack).not.toHaveBeenCalled();
+});
+
+test('first-time setup hands over to the app once the profile is set up (here, or already on another device)', async () => {
+  mockOnboarded = true;
+  await render(<Setup />);
+  expect(mockReplace).toHaveBeenCalledWith('/');
+});
+
+test('the editor does not jump away just because the profile is set up', async () => {
+  mockOnboarded = true;
+  await render(<Setup editing />);
+  expect(mockReplace).not.toHaveBeenCalled();
 });
 
 test('Back returns to the previous step with the answer kept', async () => {

@@ -9,7 +9,7 @@
  */
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,13 +59,17 @@ export function Setup({ editing = false }: { editing?: boolean }) {
   const accent = accentColors(colors, draft.accent);
   const set = (changes: Partial<Profile>) => setDraft(d => ({ ...d, ...changes }));
 
+  // First-time setup leaves for the app as soon as the profile is set up: when the learner finishes,
+  // and also if the server says it already was (set up on another device).
+  useEffect(() => { if (!editing && profile.onboarded) router.replace('/'); }, [editing, profile.onboarded]);
+
   const go = (to: number) => { setDirection(to > step ? 1 : -1); setStep(to); haptics.select(); };
   const finish = async (asIs = false) => {
     setBusy(true); setError('');
     try {
       await save({ ...(asIs ? profile : draft), avatar_seed: draft.avatar_seed, onboarded: true });
       haptics.success();
-      if (editing) router.back();                    // a first-time setup leaves by itself: the app opens
+      if (editing) router.back();                    // first-time setup leaves through the effect above
     } catch (e) {
       setError((e as Error).message || 'Could not save. Please retry.');
       setBusy(false);

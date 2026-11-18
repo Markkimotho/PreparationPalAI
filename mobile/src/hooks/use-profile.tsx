@@ -46,14 +46,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let live = true;
     (async () => {
       const cachedRaw = await AsyncStorage.getItem(CACHE).catch(() => null);
-      if (cachedRaw && live) { try { setProfile(only(JSON.parse(cachedRaw))); setStatus('ready'); } catch { /* ignore a damaged cache */ } }
+      // A cached, set-up profile opens the app at once. A cached profile that is not set up yet waits
+      // for the server, which may know better (set up on another device): no setup screen by mistake.
+      let cached: Profile | null = null;
+      try { cached = cachedRaw ? only(JSON.parse(cachedRaw)) : null; } catch { cached = null; }
+      if (cached && live) { setProfile(cached); if (cached.onboarded) setStatus('ready'); }
       try {
         const [fresh, me] = await Promise.all([getJson<Record<string, unknown>>('/api/profile'), getJson<{ workspace: string }>('/api/auth/me')]);
         if (!live) return;
         setProfile(only(fresh)); setWorkspace(me.workspace); setStatus('ready');
         await AsyncStorage.setItem(CACHE, JSON.stringify(only(fresh))).catch(() => undefined);
       } catch {
-        if (live && !cachedRaw) setStatus('unavailable');
+        if (live) setStatus(cached ? 'ready' : 'unavailable');
       }
     })();
     return () => { live = false; };

@@ -121,7 +121,7 @@ export function Study() {
           <Text style={[styles.ideaText, { color: colors.text }]}>{idea}</Text>
         </PressableScale>)}
       </View>
-      {mode === 'notes' && <Button label="Add notes (PDF or photo)" variant="secondary" icon={{ ios: 'plus.circle.fill', android: 'add_circle' }} onPress={() => void upload()} />}
+      {mode === 'notes' && <Button label="Add notes (PDF or photo)" variant="secondary" accent={accent} icon={{ ios: 'plus.circle.fill', android: 'add_circle' }} onPress={() => void upload()} />}
     </Card> : messages.map((m, i) => <Animated.View key={i} entering={ENTER_BUBBLE}>
       {m.role === 'you'
         ? <View style={[styles.mine, { backgroundColor: colors[accent] }]}><Text style={styles.mineText}>{m.text}</Text></View>
@@ -140,7 +140,7 @@ export function Study() {
 
     <Notice text={notice} />
     <Notice text={error} kind="error" />
-    {messages.length > 0 && mode === 'notes' && <Button label="Add notes (PDF or photo)" variant="ghost" compact icon={{ ios: 'plus.circle', android: 'add_circle' }} onPress={() => void upload()} />}
+    {messages.length > 0 && mode === 'notes' && <Button label="Add notes (PDF or photo)" variant="ghost" accent={accent} compact icon={{ ios: 'plus.circle', android: 'add_circle' }} onPress={() => void upload()} />}
 
     <View style={[styles.composer, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
       <View style={styles.flex}>

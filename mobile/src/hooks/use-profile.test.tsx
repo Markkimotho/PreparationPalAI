@@ -32,6 +32,16 @@ test('offline, the saved copy keeps the app personal', async () => {
   await waitFor(() => expect(screen.getByText('ready|Amani|green')).toBeTruthy());
 });
 
+test('a cached profile that is not set up waits for the server instead of showing setup by mistake', async () => {
+  await AsyncStorage.setItem('cache:profile', JSON.stringify({ ...DEFAULT_PROFILE, display_name: 'Old' }));
+  let answer!: (v: object) => void;
+  (getJson as jest.Mock).mockImplementation((path: string) => path === '/api/profile' ? new Promise(r => { answer = r; }) : Promise.resolve({ workspace: 'u-x' }));
+  await render(<ProfileProvider><Probe /></ProfileProvider>);
+  await waitFor(() => expect(screen.getByText('loading|Old|blue')).toBeTruthy());
+  await act(async () => { answer(SERVER); });
+  await waitFor(() => expect(screen.getByText('ready|Amani|green')).toBeTruthy());
+});
+
 test('offline with nothing saved, the app still opens (unavailable, defaults)', async () => {
   (getJson as jest.Mock).mockRejectedValue(new TypeError('Network request failed'));
   await render(<ProfileProvider><Probe /></ProfileProvider>);
