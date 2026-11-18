@@ -1,6 +1,6 @@
 INHERIT: mkdocs.base.yml
-site_name: PreparationPalAI · User guide
-site_description: Learn how to prepare for exams, technical interviews, and deeper understanding with PreparationPalAI.
+site_name: Tayarishe · User guide
+site_description: Learn how to prepare for exams, technical interviews, and deeper understanding with Tayarishe.
 site_url: https://markkimotho.github.io/Tayarishe/
 docs_dir: docs
 site_dir: site
@@ -14,9 +14,9 @@ nav:
   - Welcome: index.md
   - Get started:
       - Your first study session: start/first-session.md
-      - Open or install PreparationPalAI: start/access.md
+      - Open or install Tayarishe: start/access.md
       - Find your way around: start/workspace.md
-  - Use PreparationPalAI:
+  - Use Tayarishe:
       - Preparation Coach: features/coach.md
       - Your study material: features/material.md
       - Quiz Prep: features/quizzes.md

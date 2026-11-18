@@ -1,10 +1,10 @@
 ---
-description: Join an existing PreparationPalAI workspace or start a personal installation with Docker.
+description: Join an existing Tayarishe workspace or start a personal installation with Docker.
 ---
-# Open or install PreparationPalAI
+# Open or install Tayarishe
 
 There are two ways to get started: use a workspace someone has set up for you,
-or run PreparationPalAI on your own computer.
+or run Tayarishe on your own computer.
 
 ## Join an existing workspace
 
@@ -30,7 +30,7 @@ After installing Docker, open a terminal and run:
 
 ```bash
 git clone https://github.com/Markkimotho/Tayarishe.git
-cd PreparationPalAI
+cd Tayarishe
 docker compose up --build
 ```
 

@@ -1,0 +1,13 @@
+# Provider list prices in USD per million tokens (= micro-dollars per token), Nov 2026,
+# matching the ai-gateway aliases. The multiplier turns provider cost into the learner price:
+# 1.5 for open models (covers payment fees, hosting, upkeep), 1.25 for premium models.
+# Billing alerts when the gateway's own prices drift from these; it never reprices silently.
+- {alias: open-default,   tier: open,    input_per_m: 0.40, output_per_m: 1.75,  multiplier: 1.5}
+- {alias: open-fast,      tier: open,    input_per_m: 0.12, output_per_m: 0.24,  multiplier: 1.5}
+- {alias: open-reasoning, tier: open,    input_per_m: 0.45, output_per_m: 3.50,  multiplier: 1.5}
+- {alias: guard,          tier: open,    input_per_m: 0.12, output_per_m: 0.24,  multiplier: 1.5}
+- {alias: vision-open,    tier: open,    input_per_m: 0.30, output_per_m: 0.90,  multiplier: 1.5}
+- {alias: embed-default,  tier: open,    input_per_m: 0.01, output_per_m: 0.00,  multiplier: 1.5}
+- {alias: premium-claude, tier: premium, input_per_m: 2.00, output_per_m: 10.00, multiplier: 1.25}
+- {alias: premium-gpt,    tier: premium, input_per_m: 1.75, output_per_m: 14.00, multiplier: 1.25}
+- {alias: premium-grok,   tier: premium, input_per_m: 1.25, output_per_m: 2.50,  multiplier: 1.25}

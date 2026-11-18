@@ -44,7 +44,7 @@ def test_cards_retry_duplicates_and_keep_requested_count():
     llm.invoke.side_effect = [response([dict(front='Q1', back='A1'), dict(front='Q2', back='A2')], 'cards'),
                               response([dict(front='Q1', back='Repeated')], 'cards'),
                               response([dict(front='Q3', back='A3')], 'cards')]
-    with patch('app.flashcards.ChatOllama', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
+    with patch('app.flashcards.chat_model', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
         retriever.return_value.invoke.return_value = [Document(page_content='Evidence', metadata={'source': 'notes.pdf'})]
         items = generate_cards('topic', n=3)
     assert [card['front'] for card in items] == ['Q1', 'Q2', 'Q3']
@@ -54,7 +54,7 @@ def test_cards_retry_duplicates_and_keep_requested_count():
 def test_truncated_response_is_not_accepted_as_a_partial_card():
     llm = Mock()
     llm.invoke.return_value = SimpleNamespace(content='{"cards":[{"front":"Q"', response_metadata={'done_reason': 'length'})
-    with patch('app.flashcards.ChatOllama', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
+    with patch('app.flashcards.chat_model', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
         retriever.return_value.invoke.return_value = [Document(page_content='Evidence')]
         assert generate_cards('topic', n=3) == []
     assert llm.invoke.call_count == 2
@@ -64,7 +64,7 @@ def test_a_short_batch_continues_until_the_requested_count():
     llm = Mock()
     llm.invoke.side_effect = [response([dict(front='Q1', back='A1')], 'cards'),
                               response([dict(front='Q2', back='A2'), dict(front='Q3', back='A3')], 'cards')]
-    with patch('app.flashcards.ChatOllama', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
+    with patch('app.flashcards.chat_model', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
         retriever.return_value.invoke.return_value = [Document(page_content='Evidence')]
         assert len(generate_cards('topic', n=3)) == 3
 
@@ -74,7 +74,7 @@ def test_a_failed_later_batch_keeps_only_previously_valid_items():
     llm.invoke.side_effect = [response([dict(front='Q1', back='A1'), dict(front='Q2', back='A2')], 'cards'),
                               response([dict(front='Q1', back='Repeated')], 'cards'),
                               response([dict(front='Q1', back='Repeated')], 'cards')]
-    with patch('app.flashcards.ChatOllama', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
+    with patch('app.flashcards.chat_model', return_value=llm), patch('app.flashcards.get_retriever') as retriever:
         retriever.return_value.invoke.return_value = [Document(page_content='Evidence')]
         assert len(generate_cards('topic', n=3)) == 2
     repair = llm.invoke.call_args.args[0][0].content

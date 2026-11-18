@@ -44,7 +44,7 @@ def test_answer_key_separate_and_has_no_response_fields():
 
 
 def test_export_endpoint_checks_content_and_returns_attachment():
-    with patch('app.exports.moderate') as moderation, patch('app.exports.require_model', return_value='test'):
+    with patch('app.exports.moderate') as moderation, patch('app.exports.guard_model', return_value='test'):
         response = TestClient(app).post('/api/exports/study', json={'questions': [sample().model_dump()]})
     assert response.status_code == 200
     assert response.content.startswith(b'%PDF')

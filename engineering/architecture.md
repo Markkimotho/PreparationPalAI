@@ -3,7 +3,7 @@ description: Map the frontend, API, model engines, workspace boundaries, and per
 ---
 # Architecture and project map
 
-PreparationPalAI has a React workspace, a FastAPI adapter, and specialised study
+Tayarishe has a React workspace, a FastAPI adapter, and specialised study
 engines backed by Ollama. The API translates requests and streaming events; it
 delegates learning behaviour to modules under `app/`.
 
@@ -36,6 +36,10 @@ monitoring/              Prometheus rules and Grafana/Loki configuration
 The UI parses POST-based streams rather than using `EventSource`, since requests
 carry JSON bodies and bearer authentication.
 
+The API and engines run on either backend: Ollama (self-hosted) or an OpenAI-compatible
+gateway (hosted). Only `app/llm.py`, `app/embeddings.py`, and `app/safety.py` know which.
+See [AI gateway inference](runbooks/gateway.md).
+
 ## Engine modules
 
 | Area | Entry points |
@@ -47,7 +51,10 @@ carry JSON bodies and bearer authentication.
 | Quiz generation and grading | `app/quiz.py` |
 | Flashcard store and generation | `app/flashcards.py` |
 | Model catalogue and preflight | `app/model_catalog.py` |
-| Bounded model construction | `app/llm.py` and `app/embeddings.py` |
+| Bounded model construction | `app/llm.py` (`chat_model`, guards, vision) and `app/embeddings.py` |
+| Usage metering | `app/metering.py` records tokens per model call inside a metering scope |
+| Billing | `app/metered.py` reserves and settles credits around every model route; `services/billing` owns balances ([runbook](runbooks/billing.md)) |
+| Gateway model list | `app/gateway_models.py` (aliases served to learners, cached) |
 
 The older Streamlit UI and multi-model analysis remain operator/development tools.
 Do not publish them as substitutes for the authenticated API.

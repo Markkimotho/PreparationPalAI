@@ -52,8 +52,8 @@ normal `/app/data` paths in a one-shot container, and mount a writable backup
 directory outside `/app/data`. Run:
 
 ```
-python -m scripts.backup backup --data-dir /app/data --archive /backups/preppal.tar.gz --quiesced
-python -m scripts.backup verify --archive /backups/preppal.tar.gz
+python -m scripts.backup backup --data-dir /app/data --archive /backups/tayarishe.tar.gz --quiesced
+python -m scripts.backup verify --archive /backups/tayarishe.tar.gz
 ```
 
 The manifest hashes every file. Archive creation verifies its own manifest before
@@ -66,7 +66,7 @@ consistent backup; quiescing both writers is required.
 Restore only into a new empty data tree:
 
 ```
-python -m scripts.backup restore --archive /backups/preppal.tar.gz --data-dir /recovery/data
+python -m scripts.backup restore --archive /backups/tayarishe.tar.gz --data-dir /recovery/data
 ```
 
 Restore validates all hashes and rejects traversal, duplicate entries and links

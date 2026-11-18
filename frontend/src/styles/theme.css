@@ -1,40 +1,50 @@
-/* Hallmark principles: academic workbench; paper surfaces, ink blue, locally hosted type.
-   Critique: remove route colour changes and promotional chrome; keep study controls clear. */
+/* Design tokens, shared with the phone app (mobile/src/constants/theme.ts):
+   warm paper pages with white cards, the brand family brightened (navy → blue, gold → amber,
+   the logo's green, the web's red → coral), one accent per study area, generous rounding,
+   soft shadows, and the motion curves from mobile/src/constants/motion.ts.
+   Every accent comes as four shades: text-safe (4.5:1 on white), vivid (fills, gradients),
+   deep (gradient ends, text on soft) and soft (washes, selected states). */
 
 :root {
-  /* Surfaces (light) */
-  --bg: #ffffff;
-  --surface: #f5f4f0;
-  --surface-2: #eeede8;
-  --surface-3: #e3e2dc;
+  /* Surfaces */
+  --page: #fbfaf6;            /* the app's background (paper) */
+  --bg: #ffffff;              /* cards, inputs, panels */
+  --surface: #f6f4ee;
+  --surface-2: #f0ede5;
+  --surface-3: #e6e2d8;
 
   /* Text */
-  --text: #252b30;
-  --text-dim: #626a70;
-  --text-faint: #71787d;
+  --text: #1f262b;
+  --text-dim: #5d666c;
+  --text-faint: #737b81;
 
   /* Lines */
-  --border: #e3e2dc;
-  --border-strong: #c6c9c8;
-  --overlay: #17233166;
+  --border: #ebe8df;
+  --border-strong: #d6d2c6;
+  --overlay: #1f262b66;
 
   /* Status */
-  --success: #35715b;
-  --error: #b63e36;
-  --warning: #9a6325;
-  --info: #2d4e70;
+  --success: #16794c;
+  --success-soft: #ddf5ea;
+  --error: #c0362a;
+  --error-soft: #fdebe9;
+  --warning: #a35a04;
+  --info: #1d5fc4;
 
-  /* Per-section accents (overridden per route on the layout root) */
-  --accent-quiz: var(--info);
-  --accent-agent: var(--info);
-  --accent-code: var(--info);
-  --accent-chat: var(--info);
-  --accent-cards: var(--info);
-  --accent-guide: var(--info);
+  /* Area accents (the phone app's): Study blue, Quiz amber, Cards green, Coach coral. */
+  --blue: #1d5fc4;  --blue-vivid: #2f6fe4;  --blue-deep: #163f80;  --blue-soft: #e3edff;
+  --amber: #a35a04; --amber-vivid: #f29d16; --amber-deep: #7a4303; --amber-soft: #fff1d6;
+  --green: #14775a; --green-vivid: #1fa774; --green-deep: #0f523e; --green-soft: #dbf4e8;
+  --coral: #b83a2a; --coral-vivid: #f8624d; --coral-deep: #8a2b1f; --coral-soft: #ffe6e1;
+  --brand: #194f3c; --mint: #c9e6bc;
 
-  /* Active accent — set by AppLayout from the current route. */
-  --accent: var(--info);
-  --accent-soft: color-mix(in srgb, var(--accent) 12%, white);
+  /* The active accent. Pages set it via [data-section]; personal pages use the learner's own
+     colour (set inline by AppLayout). Every shade is set together: a color-mix defined here
+     would be computed once at :root and never follow a page's accent. */
+  --accent: var(--blue);
+  --accent-vivid: var(--blue-vivid);
+  --accent-deep: var(--blue-deep);
+  --accent-soft: var(--blue-soft);
   --accent-border: color-mix(in srgb, var(--accent) 35%, white);
   --focus: color-mix(in srgb, var(--accent) 45%, transparent);
   --on-accent: #ffffff;
@@ -49,10 +59,11 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 12px;
+  /* Radius (phone: 10 / 14 / 20 / 28) */
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
   --radius-pill: 999px;
 
   /* Typography */
@@ -62,49 +73,43 @@
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   --fs-xs: 0.8125rem;
-  --fs-sm: 0.875rem;
-  --fs-md: 1rem;
-  --fs-lg: 1.1rem;
+  --fs-sm: 0.9375rem;
+  --fs-md: 1.0625rem;
+  --fs-lg: 1.15rem;
   --fs-xl: 1.4rem;
-  --fs-2xl: 2rem;
+  --fs-2xl: 2.1rem;
 
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow: 0 4px 16px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.14);
+  /* Elevation: soft and wide, like the phone's cards */
+  --shadow-sm: 0 1px 2px rgba(31, 38, 43, 0.05);
+  --shadow: 0 6px 18px rgba(31, 38, 43, 0.06);
+  --shadow-lg: 0 16px 40px rgba(31, 38, 43, 0.12);
 
-  /* Motion */
+  /* Motion (Emil Kowalski's curves; never ease-in on UI) */
   --dur-fast: 120ms;
   --dur: 180ms;
   --dur-slow: 240ms;
-  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 
   /* Layout */
-  --sidebar-w: 248px;
-  --sidebar-w-rail: 64px;
+  --sidebar-w: 256px;
+  --sidebar-w-rail: 68px;
   --topbar-h: 60px;
   --bp-tablet: 768px;
   --bp-desktop: 1024px;
 }
 
-/* Accent recoloring is driven by a data attribute on the layout root. */
+[data-section="prepare"] {
+  --accent: var(--coral); --accent-vivid: var(--coral-vivid); --accent-deep: var(--coral-deep); --accent-soft: var(--coral-soft);
+  --accent-border: color-mix(in srgb, var(--coral) 35%, white); --focus: color-mix(in srgb, var(--coral) 45%, transparent);
+}
 [data-section="quiz"] {
-  --accent: var(--accent-quiz);
-}
-[data-section="agent"] {
-  --accent: var(--accent-agent);
-}
-[data-section="code"] {
-  --accent: var(--accent-code);
-}
-[data-section="chat"] {
-  --accent: var(--accent-chat);
+  --accent: var(--amber); --accent-vivid: var(--amber-vivid); --accent-deep: var(--amber-deep); --accent-soft: var(--amber-soft);
+  --accent-border: color-mix(in srgb, var(--amber) 35%, white); --focus: color-mix(in srgb, var(--amber) 45%, transparent);
 }
 [data-section="cards"] {
-  --accent: var(--accent-cards);
-}
-[data-section="guide"] {
-  --accent: var(--accent-guide);
+  --accent: var(--green); --accent-vivid: var(--green-vivid); --accent-deep: var(--green-deep); --accent-soft: var(--green-soft);
+  --accent-border: color-mix(in srgb, var(--green) 35%, white); --focus: color-mix(in srgb, var(--green) 45%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

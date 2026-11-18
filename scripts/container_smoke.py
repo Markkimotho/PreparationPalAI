@@ -21,7 +21,7 @@ def main():
             if attempt == 44:
                 raise
             time.sleep(2)
-    assert 'Practise the questions' in call('/')
+    assert 'Study deeply.' in call('/')
     assert 'id="root"' in call('/prepare')
     # Construct a real, minimal PDF using the runtime's actual parser dependency.
     import fitz
@@ -30,7 +30,7 @@ def main():
     page.insert_text((72, 72), 'Newton second law: force equals mass times acceleration. ' * 8)
     pdf = document.tobytes()
     document.close()
-    boundary = 'preppal-smoke-boundary'
+    boundary = 'tayarishe-smoke-boundary'
     multipart = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="smoke.pdf"\r\nContent-Type: application/pdf\r\n\r\n'.encode()
                  + pdf + f'\r\n--{boundary}--\r\n'.encode())
     queued = json.loads(call('/api/kb/jobs/upload', multipart, f'multipart/form-data; boundary={boundary}'))

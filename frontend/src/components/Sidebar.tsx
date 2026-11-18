@@ -3,6 +3,12 @@ import { NavLink } from "react-router-dom";
 import { SECTIONS } from "../sections/registry";
 import styles from "./Sidebar.module.css";
 
+/** Sections shown at the bottom of the sidebar instead of in the main list. */
+const FOOTER_SECTIONS = ["guide"];
+import { Avatar } from '../profile/Avatar';
+import { ACCENT_COLOURS } from '../api/profile';
+import { useProfile } from '../profile/ProfileContext';
+
 interface Props {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -52,6 +58,12 @@ export function Sidebar({
 
   const isRail = !isMobile && collapsed;
 
+  const { profile, status, workspace } = useProfile();
+  const name = profile.display_name.trim();
+  // Personal items (study modes, account, guide) always show the learner's colour, whatever page is
+  // open; Coach, Quiz and Flashcards items carry their own colours (data-section in theme.css).
+  const own = ACCENT_COLOURS[status === 'ready' && profile.onboarded ? profile.accent : 'blue'];
+  const personalVars = { '--accent': own.main, '--accent-vivid': own.vivid, '--accent-deep': own.deep, '--accent-soft': own.soft } as React.CSSProperties;
   const aside = (
     <aside
       ref={navRef}
@@ -59,18 +71,17 @@ export function Sidebar({
         isMobile ? styles.mobile : ""
       } ${isMobile && mobileOpen ? styles.open : ""}`}
       aria-label="Sections"
+      style={personalVars}
       aria-hidden={isMobile && !mobileOpen ? true : undefined}
     >
       <div className={styles.brand}>
-        <span className={styles.logo} aria-hidden>
-          ◆
-        </span>
-        {!isRail && <span className={styles.brandName}>PreparationPalAI</span>}
+        <span className={styles.logo} aria-hidden />
+        {!isRail && <span className={styles.brandName}>Tayarishe</span>}
       </div>
       {isMobile && <button type="button" onClick={onCloseMobile} aria-label="Close menu">Close menu</button>}
 
       <nav className={styles.nav}>
-        {SECTIONS.map((s) => (
+        {SECTIONS.filter((s) => !FOOTER_SECTIONS.includes(s.id)).map((s) => (
           <NavLink
             key={s.id}
             to={s.path}
@@ -87,6 +98,22 @@ export function Sidebar({
           </NavLink>
         ))}
       </nav>
+
+      {/* Help lives at the bottom, out of the way of the study tools. */}
+      {SECTIONS.filter((s) => FOOTER_SECTIONS.includes(s.id)).map((s) => (
+        <NavLink key={s.id} to={s.path} aria-label={s.label} data-section={s.id} title={isRail ? s.label : undefined}
+          className={({ isActive }) => `${styles.footerLink} ${isActive ? styles.footerActive : ""}`}
+          onClick={() => isMobile && onCloseMobile()}>
+          <span className={styles.footerIcon}>{s.icon}</span>
+          {!isRail && <span>{s.label}</span>}
+        </NavLink>
+      ))}
+
+      {status === 'ready' && profile.onboarded && <NavLink to="/account" className={styles.me} title={isRail ? (name || 'Your profile') : undefined}
+        aria-label={`${name || 'Your profile'}: account`} onClick={() => isMobile && onCloseMobile()}>
+        <Avatar seed={`${workspace}:${profile.avatar_seed}`} name={name} size={34} />
+        {!isRail && <span className={styles.meText}><strong>{name || 'Your profile'}</strong><span>{profile.subjects[0] ?? 'Account'}</span></span>}
+      </NavLink>}
 
       {!isMobile && (
         <button

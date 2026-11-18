@@ -3,8 +3,9 @@
 Server configuration reference for maintainers. Model selection in the app is
 covered in the [product guide](https://markkimotho.github.io/Tayarishe/features/models/).
 
-Runtime inference and embeddings use Ollama only. Optional cloud dependencies in
-the package metadata do not activate a cloud fallback. Configure `OLLAMA_BASE_URL`,
+Runtime inference and embeddings use Ollama by default. Setting `INFERENCE_BACKEND=gateway`
+switches to the shared AI gateway; see [AI gateway inference](gateway.md). Optional cloud
+dependencies in the package metadata do not activate a cloud fallback. Configure `OLLAMA_BASE_URL`,
 `OLLAMA_MODEL`, and `OLLAMA_EMBEDDING_MODEL` on the server. URLs with embedded
 credentials and empty model names fail configuration validation. Keep secrets in
 server environment files outside version control; no provider settings contain

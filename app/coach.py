@@ -12,7 +12,9 @@ from fastapi import APIRouter, HTTPException
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field, model_validator
 
+from app import db as pgdb
 from app.config import get_settings
+from app.session_stores import PgSessions, SqliteSessions, open_postgres, open_sqlite, sqlite_sessions
 from app.model_catalog import require_model
 from app.quiz import _build_context, _extract_json, _get_llm, validate_answer
 from app.retriever import get_retriever
@@ -125,28 +127,24 @@ def generate_questions(req: Start, model: str, context: str, focus: str) -> list
 
 @contextmanager
 def connect():
-    path = Path(get_settings().coach_db)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(path, timeout=30)
-    db.execute('CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, learner TEXT, body TEXT)')
-    try:
-        with db:
-            yield db
-    finally:
-        db.close()
+    """A session store for the current workspace: SQLite file (self-hosted) or Postgres (hosted)."""
+    if pgdb.enabled():
+        with open_postgres(PgSessions) as store:
+            yield store
+        return
+    with open_sqlite(sqlite_sessions, Path(get_settings().coach_db), SqliteSessions) as store:
+        yield store
 
 
-def load(db, session_id: str, learner: str) -> dict:
-    row = db.execute('SELECT body FROM sessions WHERE id=? AND learner=?',
-                     (session_id, learner)).fetchone()
-    if not row:
+def load(db, session_id: str, learner: str, for_update: bool = False) -> dict:
+    session = db.get(session_id, learner, for_update=for_update)
+    if session is None:
         raise HTTPException(404, 'Session not found')
-    return json.loads(row[0])
+    return session
 
 
 def save(db, session: dict):
-    db.execute('INSERT OR REPLACE INTO sessions VALUES (?, ?, ?)',
-               (session['id'], session['learner'], json.dumps(session)))
+    db.put(session)
 
 
 def summary(session: dict) -> dict:
@@ -183,8 +181,8 @@ def public(session: dict) -> dict:
 
 def weak_topics(db, learner: str) -> list[str]:
     totals = {}
-    for (body,) in db.execute('SELECT body FROM sessions WHERE learner=?', (learner,)):
-        for a in json.loads(body)['answers']:
+    for session in db.all_for(learner):
+        for a in session['answers']:
             scores = totals.setdefault(a['topic'], [])
             scores.append(a['result']['score'])
     return sorted((t for t, scores in totals.items() if sum(scores) / len(scores) < 70),
@@ -194,8 +192,7 @@ def weak_topics(db, learner: str) -> list[str]:
 @router.get('/history')
 def history(learner: str):
     with connect() as db:
-        sessions = [json.loads(row[0]) for row in db.execute(
-            'SELECT body FROM sessions WHERE learner=? ORDER BY rowid DESC LIMIT 30', (learner,))]
+        sessions = db.recent(learner, 30)
         return dict(sessions=[dict(id=s['id'], topic=s['topic'], mode=s['mode'],
                                    completed=public(s)['done']) for s in sessions],
                     weak_topics=weak_topics(db, learner))
@@ -203,6 +200,8 @@ def history(learner: str):
 
 @router.post('/sessions')
 def start(req: Start):
+    from app import profile as profile_store
+    req = req.model_copy(update={'profile': profile_store.tailor(req.profile)})   # pitched to the learner's profile
     model = require_model(req.model)
     with connect() as db:
         weak = weak_topics(db, req.learner) if req.mode == 'review' else []
@@ -303,8 +302,7 @@ def answer(session_id: str, req: Answer):
             pass
     session['last_answer'] = time.time()
     with connect() as db:
-        db.execute('BEGIN IMMEDIATE')
-        latest = load(db, session_id, req.learner)
+        latest = load(db, session_id, req.learner, for_update=True)
         if len(latest['answers']) != index:
             raise HTTPException(409, 'Answer already recorded; refresh this session.')
         save(db, session)

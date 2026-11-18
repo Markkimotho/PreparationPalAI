@@ -18,7 +18,7 @@ body {
   font-family: var(--font-sans);
   font-size: var(--fs-md);
   color: var(--text);
-  background: var(--bg);
+  background: var(--page);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -141,12 +141,63 @@ input, textarea { max-width: 100%; }
 .md pre, .md table { max-width: 100%; overflow-x: auto; }
 .md table { display: block; }
 .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding-bottom: 4px; }
-.access-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
-.access-card { width: min(100%, 440px); display: grid; gap: 16px; padding: 28px; border: 1px solid var(--border); border-radius: 16px; }
-.access-card input, .access-card button { padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; }
+/* Sign-in: the phone's welcome, on the web. Soft colour fields from the four area accents. */
+.access-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px;
+  background: radial-gradient(circle at 92% 6%, var(--blue-soft) 0 220px, transparent 221px),
+    radial-gradient(circle at 4% 96%, var(--green-soft) 0 180px, transparent 181px), var(--page); }
+.access-card { width: min(100%, 460px); display: grid; gap: 16px; padding: 32px; border: 1px solid var(--border);
+  border-radius: var(--radius-xl); background: var(--bg); box-shadow: var(--shadow-lg); }
+.access-card h1 { font-size: clamp(1.9rem, 4vw, 2.3rem); line-height: 1.12; }
+.access-card p { color: var(--text-dim); line-height: 1.5; }
+.access-card input { min-height: 52px; padding: 0 16px; border: 1.5px solid var(--border-strong); }
+.access-card button { min-height: 54px; border: none; border-radius: var(--radius); color: #fff; font-family: var(--font-heading);
+  font-weight: 700; font-size: var(--fs-md); background: linear-gradient(135deg, var(--blue-vivid), var(--blue-deep));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--blue-deep) 28%, transparent); }
+.access-card button:disabled { opacity: 0.55; }
+.access-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.02em; }
+.access-logo { width: 26px; height: 26px; border-radius: 8px; background: var(--brand); transform: rotate(45deg); display: grid; place-items: center; }
+.access-logo::after { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--mint); }
+.access-promises { list-style: none; padding: 0; margin: 4px 0; display: grid; gap: 8px; }
+.access-promises li { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: var(--fs-sm); }
+.access-promises span { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+.access-promises [data-tone="blue"] span { background: var(--blue-soft); color: var(--blue); }
+.access-promises [data-tone="amber"] span { background: var(--amber-soft); color: var(--amber); }
+.access-promises [data-tone="green"] span { background: var(--green-soft); color: var(--green); }
+.access-promises [data-tone="coral"] span { background: var(--coral-soft); color: var(--coral); }
+.access-card [role="alert"] { color: var(--error); }
 @media (max-width: 767px) {
   input, textarea, select { font-size: 16px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ---- Shared with the phone app: the feel every page inherits ------------------------------ */
+
+/* Headings: Manrope, heavy and tight, as on the phone. */
+h1 { font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-weight: 700; letter-spacing: -0.02em; }
+
+/* Press feedback on everything pressable: scale to 0.97 in 120ms, strong ease-out (feedback on
+   press-in, commit on release). Colour changes ride the same transition. */
+button, [role="button"], a[class] {
+  transition: transform var(--dur-fast) var(--ease), background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+button:active:not(:disabled), [role="button"]:active, a[class]:active { transform: scale(0.97); }
+button:disabled { cursor: not-allowed; }
+
+/* Fields: taller, rounder, with the page accent's focus ring. Module styles may refine them. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select {
+  border-radius: var(--radius);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled), [role="button"]:active, a[class]:active { transform: none; }
 }

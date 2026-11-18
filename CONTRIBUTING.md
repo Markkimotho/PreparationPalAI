@@ -1,8 +1,8 @@
-# Contributing to PreparationPalAI
+# Contributing to Tayarishe
 
 Thank you for helping make study and preparation more useful.
 
-The [contributor handbook](https://markkimotho.github.io/PreparationPalAI/contribute/)
+The [contributor handbook](https://markkimotho.github.io/Tayarishe/contribute/)
 is the starting point for engineering work:
 
 - [Run the project](engineering/development.md)
@@ -20,5 +20,5 @@ Learner-facing instructions belong under `docs/`. Engineering references belong
 under `engineering/`. Build both with `python scripts/build_docs.py` after installing
 `requirements-docs.txt`.
 
-If you are looking for help **using** PreparationPalAI, visit the
-[user guide](https://markkimotho.github.io/PreparationPalAI/) instead.
+If you are looking for help **using** Tayarishe, visit the
+[user guide](https://markkimotho.github.io/Tayarishe/) instead.

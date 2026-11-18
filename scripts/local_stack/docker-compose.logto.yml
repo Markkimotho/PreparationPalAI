@@ -1,0 +1,34 @@
+# Local sign-in for trying the phone app: Logto behind HTTPS at https://localhost:8443.
+# Expo's sign-in library only accepts an HTTPS issuer, so Caddy terminates TLS with its local CA;
+# scripts/local_stack/up.sh adds that CA to the iOS simulator. Not for production.
+name: tayarishe-local-auth
+services:
+  logto-db:
+    image: postgres:16-alpine
+    environment: {POSTGRES_USER: logto, POSTGRES_PASSWORD: local-only, POSTGRES_DB: logto}
+    ports: ["127.0.0.1:15434:5432"]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U logto -d logto"], interval: 3s, timeout: 3s, retries: 30}
+    volumes: [logto_pg:/var/lib/postgresql/data]
+  logto:
+    image: svhd/logto:1.46.0
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm start"]
+    environment:
+      TRUST_PROXY_HEADER: "1"
+      DB_URL: postgres://logto:local-only@logto-db:5432/logto
+      ENDPOINT: https://localhost:8443
+      ADMIN_ENDPOINT: http://localhost:3002
+    ports: ["127.0.0.1:3001:3001", "127.0.0.1:3002:3002"]
+    depends_on: {logto-db: {condition: service_healthy}}
+  https:
+    image: caddy:2-alpine
+    command: ["caddy", "reverse-proxy", "--from", "https://localhost:8443", "--to", "logto:3001", "--internal-certs"]
+    ports: ["127.0.0.1:8443:8443"]
+    volumes: [caddy_data:/data]
+    depends_on: [logto]
+# Pinned to the volumes created before the rename: they hold the local accounts and the local
+# certificate authority that the Mac and the simulator trust. New names would start both from scratch.
+volumes:
+  logto_pg:
+    name: preparationpal-local-auth_logto_pg
+  caddy_data:
+    name: preparationpal-local-auth_caddy_data

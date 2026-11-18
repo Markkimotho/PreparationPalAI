@@ -21,11 +21,14 @@
   transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 .primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent-vivid), var(--accent-deep));
   color: var(--on-accent);
+  border-color: transparent;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-deep) 28%, transparent);
+  font-weight: 700;
 }
 .primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 85%, black);
+  filter: brightness(1.05);
 }
 .primary:disabled {
   opacity: 0.5;
@@ -117,7 +120,8 @@
   font-weight: 600;
   line-height: 1.45;
   padding: var(--space-4);
-  background: var(--surface);
+  background: var(--bg);
+  box-shadow: var(--shadow);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -203,7 +207,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
-  background: var(--surface);
+  background: var(--bg);
 }
 .explain summary {
   cursor: pointer;
@@ -231,7 +235,8 @@
   padding: var(--space-6);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--accent-soft);
+  border-color: transparent;
 }
 .scorePct {
   font-size: 3rem;
@@ -265,7 +270,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
-  background: var(--surface);
+  background: var(--bg);
 }
 .breakItem summary {
   cursor: pointer;
@@ -298,7 +303,7 @@
 .review {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
   font-size: var(--fs-sm);
   color: var(--text-dim);

@@ -5,6 +5,8 @@ import { sectionForPath } from "../sections/registry";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import styles from "./AppLayout.module.css";
+import { ACCENT_COLOURS } from '../api/profile';
+import { useProfile } from '../profile/ProfileContext';
 
 const COLLAPSE_KEY = "exam-prep.sidebar-collapsed";
 
@@ -12,7 +14,12 @@ export function AppLayout() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const section = sectionForPath(location.pathname);
-  useEffect(() => { document.title = `${section.label} · PreparationPalAI`; }, [section.label]);
+  const { profile, status } = useProfile();
+  // As on the phone: Coach, Quiz and Flashcards keep their own colours (theme.css); the learner's
+  // own colour fills the personal pages (study modes, account, guide, drawings).
+  const personal = !['prepare', 'quiz', 'cards'].includes(section.id);
+  const accent = personal && status === 'ready' && profile.onboarded ? ACCENT_COLOURS[profile.accent] : null;
+  useEffect(() => { document.title = `${section.label} · Tayarishe`; }, [section.label]);
 
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(COLLAPSE_KEY) === "1",
@@ -32,7 +39,9 @@ export function AppLayout() {
     });
 
   return (
-    <div className={styles.app} data-section={section.id}>
+    <div className={styles.app} data-section={section.id}
+      style={accent ? { '--accent': accent.main, '--accent-vivid': accent.vivid, '--accent-deep': accent.deep, '--accent-soft': accent.soft,
+        '--accent-border': `color-mix(in srgb, ${accent.main} 35%, white)`, '--focus': `color-mix(in srgb, ${accent.main} 45%, transparent)` } as React.CSSProperties : undefined}>
       <Sidebar
         collapsed={collapsed}
         onToggleCollapse={toggleCollapse}

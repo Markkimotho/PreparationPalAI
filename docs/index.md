@@ -1,6 +1,6 @@
 ---
 title: User guide
-description: How to use PreparationPalAI for exam practice, technical interviews, and revision with local models.
+description: How to use Tayarishe for exam practice, technical interviews, and revision with local models.
 template: home.html
 hide:
   - navigation
@@ -43,7 +43,7 @@ For connection, upload, or generation failures, see [troubleshooting](help/troub
 Read [privacy and workspaces](help/privacy.md) for storage and access details.
 
 This guide describes the latest development version. Older installations may have
-fewer options. Study sessions run in your own PreparationPalAI workspace; this site
+fewer options. Study sessions run in your own Tayarishe workspace; this site
 contains the instructions.
 
 ---

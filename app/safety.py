@@ -40,22 +40,32 @@ def check_language(text: str) -> None:
 
 
 def judge(text: str, policy: str, *, model: str, base_url: str, timeout: float = 180) -> bool:
-    from langchain_ollama import ChatOllama
     import httpx
     # Never truncate: unsafe instructions could otherwise hide beyond the limit.
     if len(text) > 60_000:
         raise SafetyError('This request is too large to check safely. Split it into smaller sections.')
     from app.config import get_settings
-    context_tokens = min(16384, get_settings().llm_context_tokens)
-    classifier = ChatOllama(model=model, base_url=base_url, temperature=0,
-                           format={'type': 'object', 'properties': {'safe': {'type': 'boolean'}},
-                                   'required': ['safe'], 'additionalProperties': False},
-                           num_ctx=context_tokens, num_predict=40,
-                           client_kwargs={'timeout': httpx.Timeout(timeout, connect=5)})
+    settings = get_settings()
+    context_tokens = min(16384, settings.llm_context_tokens)
+    schema = {'type': 'object', 'properties': {'safe': {'type': 'boolean'}},
+              'required': ['safe'], 'additionalProperties': False}
+    prompt = [SystemMessage(content=policy), HumanMessage(content=json.dumps({'content': text}, ensure_ascii=False))]
+    gateway = settings.inference_backend == 'gateway'
+    # In gateway mode the guard always runs on the cheap guard alias, never the user's model.
+    alias = settings.guard_alias if gateway else model
     try:
-        response = classifier.invoke([SystemMessage(content=policy),
-                                      HumanMessage(content=json.dumps({'content': text}, ensure_ascii=False))],
-                                     config={'callbacks': []})
+        if gateway:
+            from app.llm import raw_chat_model
+            classifier = raw_chat_model(alias, temperature=0, format=schema, num_predict=40)
+        else:
+            from langchain_ollama import ChatOllama
+            classifier = ChatOllama(model=model, base_url=base_url, temperature=0, format=schema,
+                                    num_ctx=context_tokens, num_predict=40,
+                                    client_kwargs={'timeout': httpx.Timeout(timeout, connect=5)})
+        response = classifier.invoke(prompt, config={'callbacks': []})
+        if gateway:
+            from app.llm import record_response
+            record_response(response, alias, 'guard', prompt)
         result = json.loads(response.content)
         if (response.usage_metadata or {}).get('input_tokens', 0) >= context_tokens - 256:
             raise ValueError('Moderation input may have been truncated')
@@ -65,6 +75,10 @@ def judge(text: str, policy: str, *, model: str, base_url: str, timeout: float =
     except SafetyError:
         raise
     except Exception as exc:
+        from app.llm import ModelServiceUnavailable
+        from app.metering import ActionLimitExceeded
+        if isinstance(exc, (ModelServiceUnavailable, ActionLimitExceeded)):
+            raise  # fail closed, with the clearer message
         raise SafetyError('Safety checking is unavailable. Please retry; no unchecked response was released.') from exc
 
 

@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   padding: var(--space-4) var(--space-5);
+  overflow-y: auto;          /* the layout clips; each section scrolls its own content */
 }
 @media (max-width: 767px) {
   .section {

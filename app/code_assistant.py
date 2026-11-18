@@ -12,7 +12,8 @@ import logging
 from collections.abc import Iterator
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from app.llm import ChatOllama
+from langchain_core.language_models import BaseChatModel
+from app.llm import chat_model
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 
@@ -32,13 +33,11 @@ SYSTEM_PROMPT = render_prompt('code_assistant')
 _graph = None
 
 
-def _get_llm(model: str | None = None) -> ChatOllama:
+def _get_llm(model: str | None = None) -> BaseChatModel:
     settings = get_settings()
-    return ChatOllama(
+    return chat_model(
         model=model or settings.ollama_model,
-        base_url=settings.ollama_base_url,
         temperature=0.2,
-        keep_alive=settings.ollama_keep_alive,
     )
 
 

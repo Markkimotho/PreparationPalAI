@@ -3,12 +3,12 @@ description: Maintain the separate learner and contributor portals, preview both
 ---
 # Maintain this documentation
 
-PreparationPalAI has two MkDocs portals in one GitHub Pages site:
+Tayarishe has two MkDocs portals in one GitHub Pages site:
 
 | Audience | Source | Configuration | Published path |
 | --- | --- | --- | --- |
-| Learners | `docs/` | `mkdocs.yml` | `/PreparationPalAI/` |
-| Contributors and operators | `engineering/` | `mkdocs-contributors.yml` | `/PreparationPalAI/contribute/` |
+| Learners | `docs/` | `mkdocs.yml` | `/Tayarishe/` |
+| Contributors and operators | `engineering/` | `mkdocs-contributors.yml` | `/Tayarishe/contribute/` |
 
 They share branding through `mkdocs.base.yml` and `docs_theme/`, but each has its
 own navigation and search index. The learner search must not turn into an API or

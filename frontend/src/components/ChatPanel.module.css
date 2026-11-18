@@ -68,8 +68,11 @@
   transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 .send {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent-vivid), var(--accent-deep));
   color: var(--on-accent);
+  border-color: transparent;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-deep) 28%, transparent);
+  border-radius: var(--radius-pill);
 }
 .send:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 85%, black);

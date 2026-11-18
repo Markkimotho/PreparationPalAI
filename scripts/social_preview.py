@@ -14,7 +14,7 @@ def generate():
     except OSError:
         font = ImageFont.load_default(size=66)
         small = ImageFont.load_default(size=28)
-    draw.text((70, 80), 'PreparationPalAI', font=small, fill='#194f3c')
+    draw.text((70, 80), 'Tayarishe', font=small, fill='#194f3c')
     draw.text((65, 200), 'Study deeply.\nPrepare confidently.', font=font, fill='#152b26', spacing=18)
     draw.text((70, 450), 'Exams · Interviews · Local AI', font=small, fill='#53645d')
     target = Path(__file__).resolve().parents[1] / 'frontend/public/social-preview.png'

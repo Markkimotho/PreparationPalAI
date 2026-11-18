@@ -12,7 +12,8 @@ from app.drawing_requirements import normalize_requirement
 
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
-from app.llm import ChatOllama
+from langchain_core.language_models import BaseChatModel
+from app.llm import chat_model
 
 from app.config import get_settings
 from app.retriever import get_retriever
@@ -104,13 +105,11 @@ def _build_context(docs: list[Document]) -> str:
     )
 
 
-def _get_llm(model: str | None = None, temperature: float = 0.3, response_format=None) -> ChatOllama:
+def _get_llm(model: str | None = None, temperature: float = 0.3, response_format=None) -> BaseChatModel:
     settings = get_settings()
-    return ChatOllama(
+    return chat_model(
         model=model or settings.ollama_model,
-        base_url=settings.ollama_base_url,
         temperature=temperature,
-        keep_alive=settings.ollama_keep_alive,
         **({'format': response_format} if response_format else {}),
     )
 

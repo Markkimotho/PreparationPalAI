@@ -1,4 +1,4 @@
-"""FastAPI backend for the PreparationPalAI React frontend.
+"""FastAPI backend for the Tayarishe React frontend.
 
 This is a thin adapter: every route delegates to an existing engine module in
 `app/` and shapes the result for HTTP. Conversational endpoints stream tokens
@@ -21,7 +21,8 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -33,6 +34,7 @@ from app import code_assistant
 from app import flashcards as fc
 from app import graph as langgraph_module
 from app import metrics
+from app import profile as profile_store
 from app import quiz_agent
 from app.analysis import get_chat_models, get_installed_models, pull_model
 from app.api_models import (
@@ -70,6 +72,10 @@ from fastapi import Request
 from app.ingestion import IMAGE_EXTENSIONS
 from app.exports import router as exports_router
 from app.drawings import router as drawings_router
+from app.llm import ModelServiceUnavailable
+from app.metering import ActionLimitExceeded
+from app.metered import BillingMiddleware
+from app.workspace import workspace_id
 from app.safety import SafetyError
 from fastapi.responses import JSONResponse
 from app.extraction import extract as load_and_chunk_image, extract as load_and_chunk_pdf
@@ -104,10 +110,12 @@ async def lifespan(app):
         thread.join(timeout=5)
 
 
-app = FastAPI(title="PreparationPalAI", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="Tayarishe", version="1.1.0", lifespan=lifespan)
 app.include_router(coach_router)
 app.include_router(public_router)
 app.include_router(auth_router)
+from app.account import router as account_router  # noqa: E402
+app.include_router(account_router)
 app.include_router(diagnostics_router)
 app.include_router(jobs_router)
 app.include_router(exports_router)
@@ -117,6 +125,20 @@ app.include_router(drawings_router)
 @app.exception_handler(SafetyError)
 async def safety_error_handler(request, exc):
     return JSONResponse(status_code=422, content={'detail': str(exc)})
+
+
+@app.exception_handler(ActionLimitExceeded)
+async def action_limit_handler(request, exc):
+    return JSONResponse(status_code=422, content={'detail': str(exc)})
+
+
+@app.exception_handler(ModelServiceUnavailable)
+async def model_unavailable_handler(request, exc):
+    return JSONResponse(status_code=503, content={'detail': str(exc)}, headers={'Retry-After': '10'})
+
+
+# Innermost: rate-limited requests (429) never reserve credits. Runs inside workspace auth.
+app.add_middleware(BillingMiddleware)
 
 
 @app.middleware('http')
@@ -183,7 +205,7 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
                 else:
                     continue
                 yield f"data: {json.dumps(frame)}\n\n"
-        except SafetyError as exc:
+        except (SafetyError, ModelServiceUnavailable, ActionLimitExceeded) as exc:
             status = 'error'
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
         except Exception as exc:  # noqa: BLE001 — surface any engine failure to client
@@ -202,6 +224,126 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
     )
 
 
+# ── Billing (hosted mode) ───────────────────────────────────────────────────
+
+TYPICAL_TOKENS = (2500, 600)   # a typical model call, for "about N credits" estimates
+
+
+@app.get('/api/billing/balance')
+def billing_balance():
+    from app import metered
+    from app.billing_client import BillingUnavailable
+    settings = get_settings()
+    if not settings.billing_enabled:
+        raise HTTPException(404, 'Billing is not enabled.')
+    try:
+        client = metered.get_client()
+        metered._ensure_started(client, workspace_id.get())      # show the free allowance before the first study action
+        b = client.balance(workspace_id.get())
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    return {'available_credits': b['available_micros'] // 1000, 'reserved_credits': b['reserved_micros'] // 1000,
+            'starter_credits': b['starter_micros'] // 1000, 'top_up_url': settings.top_up_url}
+
+
+LEDGER_LABELS = {'grant': 'Free starter credits', 'topup': 'Credits purchased', 'settle': 'Study activity',
+                 'refund': 'Refund', 'adjust': 'Adjustment'}
+
+
+def _require_billing():
+    if not get_settings().billing_enabled:
+        raise HTTPException(404, 'Billing is not enabled.')
+    from app import metered
+    return metered.get_client()
+
+
+@app.get('/api/billing/packs')
+def billing_packs(channel: str = Query('web', pattern='^(web|store)$')):
+    """Credit packs: `web` (Paddle) or `store` (Apple/Google, with the store product id the phone app buys)."""
+    from app.billing_client import BillingUnavailable
+    client = _require_billing()
+    try:
+        packs = client.packs(channel)
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    shown = []
+    for p in packs:
+        entry = {'id': p['id'], 'price': f"${p['usd_cents'] / 100:g}", 'credits': p['credits'], 'available': p['available']}
+        if channel == 'store':
+            entry['product_id'] = p.get('product_id')
+        shown.append(entry)
+    return {'packs': shown}
+
+
+class CheckoutRequest(BaseModel):
+    pack: str = Field(min_length=1, max_length=40)
+
+
+CHECKOUT_ERRORS = {403: 'This account has been closed.', 422: 'That credit pack is not available.',
+                   503: 'Buying credits is not available yet.', 502: 'The payment provider could not start a checkout. Please retry.'}
+
+
+@app.post('/api/billing/checkout')
+def billing_checkout(req: CheckoutRequest):
+    """Start a payment for the signed-in learner. The account is never taken from the request."""
+    from app.billing_client import BillingUnavailable
+    client = _require_billing()
+    try:
+        status, body = client.checkout(workspace_id.get(), req.pack)
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    if status != 200:
+        raise HTTPException(status if status in CHECKOUT_ERRORS else 503, CHECKOUT_ERRORS.get(status, CHECKOUT_ERRORS[503]))
+    return {k: body[k] for k in ('transaction_id', 'client_token', 'environment')}
+
+
+@app.get('/api/billing/history')
+def billing_history(before_id: int | None = Query(None, ge=1), limit: int = Query(50, ge=1, le=200)):
+    """Purchases, refunds and study charges in plain words. Credit holds are internal and hidden."""
+    from app.billing_client import BillingUnavailable
+    client = _require_billing()
+    try:
+        page = client.history(workspace_id.get(), before_id, limit)
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    entries = []
+    for row in page['entries']:
+        if row['kind'] in ('reserve', 'release'):
+            continue
+        label = LEDGER_LABELS.get(row['kind'], 'Adjustment')
+        if row['kind'] == 'adjust' and row['ref'].startswith('starter-expiry:'):
+            label = 'Free starter credits expired'
+        elif row['kind'] == 'adjust' and row['ref'].startswith('reconcile:'):
+            label = 'Usage correction'
+        entries.append({'id': row['id'], 'when': row['created_at'], 'label': label, 'credits': row['amount_micros'] / 1000})
+    return {'entries': entries, 'next_before_id': page['next_before_id']}
+
+
+@app.get('/api/billing/estimate')
+def billing_estimate(action: str, model: str):
+    from app import metered
+    from app.billing_client import BillingUnavailable, UnpricedModel
+    settings = get_settings()
+    if not settings.billing_enabled:
+        raise HTTPException(404, 'Billing is not enabled.')
+    spec = next((s for _, _, s in metered.ROUTES if s.action == action), None)
+    if spec is None:
+        raise HTTPException(404, 'Unknown action.')
+    alias, lines, _ = metered.reservation(spec, {}, model)
+    client = metered.get_client()
+    try:
+        micros = 0
+        for line in lines:       # one typical call per reserved line, not the worst case
+            tokens_in = min(line['max_input_tokens'], TYPICAL_TOKENS[0])
+            tokens_out = min(line['max_output_tokens'], TYPICAL_TOKENS[1])
+            micros += client.estimate(line['alias'], tokens_in, tokens_out) * (1 if line['alias'] != alias else max(1, line['calls'] // 2))
+    except UnpricedModel:
+        raise HTTPException(409, f"Model '{model}' is not available.") from None
+    except BillingUnavailable:
+        raise HTTPException(503, 'Billing is temporarily unavailable. Please retry.') from None
+    return {'credits': max(1, -(-micros // 1000))}
+
+
 # ── Health / models ─────────────────────────────────────────────────────────
 
 
@@ -209,6 +351,11 @@ def _sse(events: Iterator[tuple[str, object]], surface: str) -> StreamingRespons
 def health() -> HealthResponse:
     settings = get_settings()
     _set_kb_gauge()
+    if settings.inference_backend == 'gateway':
+        from app.gateway_models import healthy, selectable
+        up = healthy()
+        metrics.OLLAMA_UP.set(1 if up else 0)
+        return HealthResponse(online=up, model_count=len(selectable()) if up else 0)
     try:
         r = httpx.get(f"{settings.ollama_base_url}/api/tags", timeout=3)
         r.raise_for_status()
@@ -231,14 +378,21 @@ def models() -> ModelsResponse:
     )
 
 
+def _require_self_hosted_pulls() -> None:
+    if get_settings().inference_backend == 'gateway':
+        raise HTTPException(404, 'Model downloads are managed by the hosting provider.')
+
+
 @app.post("/api/models/pull", response_model=PullResponse)
 def models_pull(req: PullRequest) -> PullResponse:
+    _require_self_hosted_pulls()
     ok, message = pull_model(req.model)
     return PullResponse(ok=ok, message=message)
 
 
 @app.post('/api/models/pull/stream')
 def models_pull_stream(req: PullRequest):
+    _require_self_hosted_pulls()
     def frames():
         try:
             with httpx.stream('POST', f'{get_settings().ollama_base_url}/api/pull',
@@ -357,7 +511,7 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
             thread_id=req.session_id,
             model=req.model,
             top_k=req.top_k,
-            profile=req.profile,
+            profile=profile_store.tailor(req.profile),
         )
     else:
         events = lcel_chain.stream(
@@ -365,7 +519,7 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
             session_id=req.session_id,
             model=req.model,
             top_k=req.top_k,
-            profile=req.profile,
+            profile=profile_store.tailor(req.profile),
         )
     return _sse(events, surface="chat")
 
@@ -387,7 +541,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
         thread_id=req.thread_id,
         model=req.model,
         use_kb=req.use_kb,
-        profile=req.profile,
+        profile=profile_store.tailor(req.profile),
     )
     return _sse(events, surface="code")
 
@@ -399,7 +553,7 @@ def code_chat_stream(req: CodeChatRequest) -> StreamingResponse:
 def agent_stream(req: AgentRequest) -> StreamingResponse:
     req.model = require_model(req.model)
     events = quiz_agent.stream_agent(
-        message=req.message, thread_id=req.thread_id, model=req.model, profile=req.profile,
+        message=req.message, thread_id=req.thread_id, model=req.model, profile=profile_store.tailor(req.profile),
         allow_web=req.allow_web
     )
     return _sse(events, surface="agent")
@@ -422,7 +576,7 @@ def quiz_generate(req: QuizGenerateRequest) -> list[dict]:
             exam_type=req.exam_type,
             model=req.model,
             top_k=get_settings().quiz_top_k,
-            profile=req.profile,
+            profile=profile_store.tailor(req.profile),
         )
     except Exception:
         status = "error"
@@ -440,7 +594,7 @@ def quiz_validate(req: QuizValidateRequest) -> dict:
         question=req.question,
         correct_answer=req.correct_answer,
         student_answer=req.student_answer,
-        profile=req.profile,
+        profile=profile_store.tailor(req.profile),
         question_type=req.question_type,
         model=req.model,
     )
@@ -452,10 +606,22 @@ def quiz_validate(req: QuizValidateRequest) -> dict:
 @app.post("/api/quiz/explain", response_model=ExplainResponse)
 def quiz_explain(req: ExplainRequest) -> ExplainResponse:
     req.model = require_model(req.model)
-    return ExplainResponse(explanation=explain_concept(req.concept, model=req.model, profile=req.profile))
+    return ExplainResponse(explanation=explain_concept(req.concept, model=req.model, profile=profile_store.tailor(req.profile)))
 
 
 # ── Flashcards ─────────────────────────────────────────────────────────────
+
+
+@app.get("/api/profile", response_model=profile_store.StoredProfile, tags=["Profile"])
+def profile_get() -> profile_store.StoredProfile:
+    """The signed-in learner's profile (defaults with `onboarded: false` before they set it up)."""
+    return profile_store.load()
+
+
+@app.put("/api/profile", response_model=profile_store.StoredProfile, tags=["Profile"])
+def profile_put(req: profile_store.LearnerProfile) -> profile_store.StoredProfile:
+    """Replace the signed-in learner's profile. AI requests without their own profile use it."""
+    return profile_store.save(req)
 
 
 @app.get("/api/flashcards", response_model=DecksResponse)
@@ -474,7 +640,7 @@ def flashcards_generate(req: GenerateDeckRequest) -> Deck:
     start = time.perf_counter()
     status = "success"
     try:
-        return Deck(**fc.generate_deck(req.topic, n=req.n, model=req.model, deck_name=req.deck_name, profile=req.profile))
+        return Deck(**fc.generate_deck(req.topic, n=req.n, model=req.model, deck_name=req.deck_name, profile=profile_store.tailor(req.profile)))
     except Exception:
         status = "error"
         raise
@@ -528,18 +694,34 @@ def flashcards_delete_card(deck_id: str, card_id: str) -> Deck:
 _DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
+import mimetypes  # noqa: E402
+
+mimetypes.add_type('application/manifest+json', '.webmanifest')
+
+# Client-side routes: a reload or a sign-in redirect to these must load the app, not 404.
+CLIENT_ROUTES = {'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide', 'drawings', 'account', 'auth', 'setup'}
+NO_CACHE = {'index.html', 'sw.js', 'sw-strategy.js', 'manifest.webmanifest'}
+
+
 class SPAStaticFiles(StaticFiles):
-    """StaticFiles that serves index.html for unknown (non-file) routes."""
+    """Serves the built web app: index.html for client routes, correct headers for the PWA files."""
 
     async def get_response(self, path: str, scope):
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
+            name = path.strip('/') or 'index.html'
         except StarletteHTTPException as exc:
-            if exc.status_code == 404 and path.strip('/').split('/')[0] in {
-                'prepare', 'quiz', 'agent', 'code', 'chat', 'flashcards', 'guide', 'drawings'
-            }:
-                return await super().get_response("index.html", scope)
-            raise
+            if exc.status_code == 404 and path.strip('/').split('/')[0] in CLIENT_ROUTES:
+                response, name = await super().get_response("index.html", scope), 'index.html'
+            else:
+                raise
+        if name in NO_CACHE or name.endswith('/index.html'):
+            response.headers['Cache-Control'] = 'no-cache'        # always revalidate the shell and the worker
+        elif name.startswith('assets/'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'   # content-hashed by Vite
+        if name == 'sw.js':
+            response.headers['Service-Worker-Allowed'] = '/'
+        return response
 
 
 if _DIST.is_dir():

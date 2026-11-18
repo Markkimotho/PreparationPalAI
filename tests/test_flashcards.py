@@ -74,7 +74,7 @@ def test_generate_cards_from_kb():
         content='[{"front":"Time complexity of binary search?","back":"O(log n)"}]'
     )
     with patch("app.flashcards.get_retriever") as mock_ret, patch(
-        "app.flashcards.ChatOllama", return_value=fake_llm
+        "app.flashcards.chat_model", return_value=fake_llm
     ):
         mock_ret.return_value.invoke.return_value = fake_docs
         cards = fc.generate_cards("binary search", n=5)

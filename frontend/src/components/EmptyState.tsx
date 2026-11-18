@@ -11,7 +11,7 @@ interface Props {
 export function EmptyState({ icon, title, description, children }: Props) {
   return (
     <div className={styles.wrap}>
-      {icon && <div className={styles.icon}>{icon}</div>}
+      <div className={styles.icon} aria-hidden>{icon ?? '✦'}</div>
       <div className={styles.title}>{title}</div>
       {description && <div className={styles.desc}>{description}</div>}
       {children && <div className={styles.actions}>{children}</div>}

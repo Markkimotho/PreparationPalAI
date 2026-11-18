@@ -6,7 +6,7 @@ description: Draw diagrams for practice questions and submit them for AI feedbac
 Some answers need more than a paragraph: a force diagram, a circuit, a molecular
 structure, a labelled cell, a graph, or a geometric construction.
 
-When a generated question asks for visual work, PreparationPalAI opens a drawing
+When a generated question asks for visual work, Tayarishe opens a drawing
 workspace beside the question. You can also choose **Add a drawing** on a Coach
 or Quiz Prep question to use it as scratch paper. Study Agent quizzes and diagram
 instructions in chat can open the same tools.
@@ -15,7 +15,7 @@ instructions in chat can open the same tools.
 
 Use shapes, arrows, text labels and freehand drawing. The embedded editor is
 [Excalidraw](https://github.com/excalidraw/excalidraw), a free open-source drawing
-tool. It runs inside PreparationPalAI, with fonts served by your installation;
+tool. It runs inside Tayarishe, with fonts served by your installation;
 you do not need an Excalidraw account.
 
 1. Read the drawing brief and create your diagram.

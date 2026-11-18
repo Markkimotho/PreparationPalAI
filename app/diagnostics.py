@@ -14,11 +14,11 @@ from app.config import get_settings
 from app.workspace import request_id, workspace_id
 
 router = APIRouter(tags=['Operations'])
-HTTP_REQUESTS = Counter('preparationpalai_requests_total', 'Requests by route, workspace and outcome', ['route', 'workspace', 'status'])
-HTTP_SECONDS = Histogram('preparationpalai_request_seconds', 'Complete HTTP/SSE latency', ['route'])
-DEPENDENCY_UP = Counter('preparationpalai_readiness_failures_total', 'Readiness dependency failures', ['dependency'])
-RETRIEVAL_FAILURES = Counter('preparationpalai_retrieval_failures_total', 'Retrieval failures')
-FRONTEND_ERRORS = Counter('preparationpalai_frontend_errors_total', 'Sanitized frontend errors', ['kind'])
+HTTP_REQUESTS = Counter('tayarishe_requests_total', 'Requests by route, workspace and outcome', ['route', 'workspace', 'status'])
+HTTP_SECONDS = Histogram('tayarishe_request_seconds', 'Complete HTTP/SSE latency', ['route'])
+DEPENDENCY_UP = Counter('tayarishe_readiness_failures_total', 'Readiness dependency failures', ['dependency'])
+RETRIEVAL_FAILURES = Counter('tayarishe_retrieval_failures_total', 'Retrieval failures')
+FRONTEND_ERRORS = Counter('tayarishe_frontend_errors_total', 'Sanitized frontend errors', ['kind'])
 
 
 class SafeFormatter(logging.Formatter):
@@ -96,8 +96,18 @@ def live():
 @router.get('/health/ready', include_in_schema=False)
 def ready():
     settings = get_settings()
-    dependencies = {'ollama': False, 'chat_model': False, 'embedding_model': False, 'vectorstore': False}
+    gateway = settings.inference_backend == 'gateway'
+    dependencies = ({'gateway': False, 'chat_model': False, 'embedding_model': False, 'vectorstore': False} if gateway
+                    else {'ollama': False, 'chat_model': False, 'embedding_model': False, 'vectorstore': False})
+    if gateway:
+        from app.gateway_models import all_ids, healthy
+        ids = all_ids()
+        dependencies['gateway'] = healthy() and bool(ids)
+        dependencies['chat_model'] = settings.ollama_model in ids
+        dependencies['embedding_model'] = settings.embedding_alias in ids
     try:
+        if gateway:
+            raise ConnectionError  # skip the Ollama probe
         result = httpx.get(f'{settings.ollama_base_url}/api/tags', timeout=3)
         result.raise_for_status()
         names = {m['name'] for m in result.json()['models']}
@@ -107,8 +117,8 @@ def ready():
     except Exception:
         pass
     try:
-        from app.vectorstore import get_vectorstore
-        get_vectorstore()._collection.count()
+        from app.vectorstore import count_chunks
+        count_chunks()
         dependencies['vectorstore'] = True
     except Exception:
         pass
@@ -124,7 +134,7 @@ def ready():
         dependencies['worker'] = False
     success = all(dependencies.values())
     from app.metrics import OLLAMA_UP
-    OLLAMA_UP.set(dependencies['ollama'])
+    OLLAMA_UP.set(dependencies.get('ollama', dependencies.get('gateway')))
     return JSONResponse({'ready': success, 'dependencies': dependencies}, 200 if success else 503)
 
 

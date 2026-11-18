@@ -2,24 +2,36 @@
 import hashlib
 import hmac
 
+import anyio
+
 from fastapi import APIRouter
 from starlette.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from app.config import get_base_settings
-from app.workspace import workspace_id, identity_id, role
+from app.oidc import TokenRejected, verify_token
+from app.workspace import account_email, account_subject, email_verified, workspace_id, identity_id, role
 
 router = APIRouter(prefix='/api/auth', tags=['Access'])
 
 
 @router.get('/status')
 def status():
-    return {'enabled': get_base_settings().auth_enabled}
+    settings = get_base_settings()
+    body = {'enabled': settings.auth_enabled, 'mode': settings.auth_mode,
+            'issuer': settings.oidc_issuer if settings.auth_mode == 'oidc' else None}
+    if settings.auth_mode == 'oidc':
+        # Public sign-in configuration for the web client. Nothing here is a secret.
+        endpoint = settings.oidc_issuer.rstrip('/').removesuffix('/oidc')
+        body['web'] = {'endpoint': endpoint, 'client_id': settings.oidc_web_client_id, 'resource': settings.oidc_audience}
+        body['native'] = {'endpoint': endpoint, 'client_id': settings.oidc_native_client_id, 'resource': settings.oidc_audience}
+    return body
 
 
 @router.get('/me')
 def me():
-    return {'workspace': workspace_id.get(), 'identity': identity_id.get()}
+    return {'workspace': workspace_id.get(), 'identity': identity_id.get(), 'mode': get_base_settings().auth_mode,
+            'email_verified': email_verified.get()}
 
 
 def mutation(path: str, method: str) -> bool:
@@ -57,26 +69,49 @@ class WorkspaceAuth:
             return message
         protected = (path.startswith('/api/') and path != '/api/auth/status') or path == '/metrics'
         workspace, identity = 'local', 'local'
+        email, verified, subject = None, False, None
         if settings.auth_enabled and protected and scope['method'] != 'OPTIONS':
             header = headers.get(b'authorization', b'').decode('latin-1')
             raw = header[7:] if header.startswith('Bearer ') else ''
-            digest = hashlib.sha256(raw.encode()).hexdigest()
-            principal = next((v for key, v in settings.auth_tokens.items()
-                              if raw and hmac.compare_digest(key, digest)), None)
-            if not principal:
-                response = JSONResponse({'detail': 'Sign in with a valid workspace access key.'}, 401,
-                                        headers={'WWW-Authenticate': 'Bearer'})
-                return await response(scope, receive, send)
+            if settings.auth_mode == 'oidc':
+                principal, digest = None, ''
+                try:
+                    if raw:
+                        # Key fetches can block, so verification runs off the event loop.
+                        who = await anyio.to_thread.run_sync(verify_token, raw)
+                        principal, digest = {'workspace': who.workspace, 'role': who.role}, who.identity
+                        email, verified, subject = who.email, who.email_verified, who.subject
+                except TokenRejected:
+                    response = JSONResponse({'detail': 'Sign in to continue.'}, 401,
+                                            headers={'WWW-Authenticate': 'Bearer error="invalid_token"'})
+                    return await response(scope, receive, send)
+                if not principal:
+                    response = JSONResponse({'detail': 'Sign in to continue.'}, 401, headers={'WWW-Authenticate': 'Bearer'})
+                    return await response(scope, receive, send)
+            else:
+                digest = hashlib.sha256(raw.encode()).hexdigest()
+                principal = next((v for key, v in settings.auth_tokens.items()
+                                  if raw and hmac.compare_digest(key, digest)), None)
+                if not principal:
+                    response = JSONResponse({'detail': 'Sign in with a valid workspace access key.'}, 401,
+                                            headers={'WWW-Authenticate': 'Bearer'})
+                    return await response(scope, receive, send)
             if ((mutation(path, scope['method']) and principal['role'] == 'reader') or
                 ((path.startswith('/api/models/pull') or path == '/metrics') and principal['role'] != 'admin')):
                 return await JSONResponse({'detail': 'Your role cannot perform this operation.'}, 403)(scope, receive, send)
             workspace, identity = principal['workspace'], digest[:16]
+            if settings.auth_mode == 'oidc':
+                identity = digest
         wtoken = workspace_id.set(workspace)
         itoken = identity_id.set(identity)
+        etoken, vtoken, stoken = account_email.set(email), email_verified.set(verified), account_subject.set(subject)
         rtoken = role.set(principal['role'] if settings.auth_enabled and protected and scope['method'] != 'OPTIONS' else 'admin')
         try:
             await self.app(scope, bounded_receive, send)
         finally:
             workspace_id.reset(wtoken)
             identity_id.reset(itoken)
+            account_email.reset(etoken)
+            email_verified.reset(vtoken)
+            account_subject.reset(stoken)
             role.reset(rtoken)

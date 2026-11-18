@@ -36,3 +36,20 @@ it('opens model details in a labelled dialog and closes without expanding the to
   await userEvent.click(screen.getByRole('button', { name: 'Close model info' }));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
+
+it('hides Pull for hosted models and describes them as available', async () => {
+  mocks.catalogue = [{ id: 'glm4:9b', installed: true, availability: 'installed', tools: null, structured_output: null,
+    recommended_use: 'Everyday study.', resources: 'Balanced speed and cost', tier: 'open', pullable: false }];
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+  render(<ModelPicker />);
+  expect(screen.queryByRole('button', { name: 'Pull' })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Model info' }));
+  expect(screen.getByText('Available')).toBeInTheDocument();
+});
+
+it('keeps Pull for self-hosted models that are not installed', () => {
+  mocks.catalogue = [{ id: 'glm4:9b', installed: false, availability: 'downloadable', tools: null, structured_output: null,
+    recommended_use: 'Study.', resources: 'Local memory', tier: null, pullable: true }];
+  render(<ModelPicker />);
+  expect(screen.getByRole('button', { name: 'Pull' })).toBeInTheDocument();
+});

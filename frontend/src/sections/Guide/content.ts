@@ -1,6 +1,6 @@
 // Compact product help. Long-form learner docs and engineering references live
 // in separate MkDocs portals; implementation detail does not belong in this view.
-export const USER_GUIDE_URL = 'https://markkimotho.github.io/PreparationPalAI/';
+export const USER_GUIDE_URL = 'https://markkimotho.github.io/Tayarishe/';
 export const CONTRIBUTOR_GUIDE_URL = `${USER_GUIDE_URL}contribute/`;
 
 export interface GuideSection {
@@ -13,7 +13,7 @@ export interface GuideSection {
 export const GUIDE: GuideSection[] = [
   {
     id: 'overview', title: 'Overview', group: 'Getting started',
-    body: `# PreparationPalAI
+    body: `# Tayarishe
 
 Turn a topic or your notes into deliberate practice for exams, interviews, and
 everyday learning. Start small: one topic, a handful of questions, and one idea

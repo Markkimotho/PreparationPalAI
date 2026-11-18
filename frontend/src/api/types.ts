@@ -15,6 +15,7 @@ export interface ModelInfo {
   id: string; installed: boolean; availability: string;
   recommended_use: string; tools: boolean | null;
   structured_output: boolean | null; resources: string;
+  tier?: 'open' | 'premium' | null; pullable?: boolean;
 }
 
 export interface PullResponse {

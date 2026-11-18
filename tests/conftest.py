@@ -1,4 +1,6 @@
 import pytest
+
+from tests.support.pg import pg, pg_session  # noqa: F401  (shared Postgres fixtures)
 from app.config import get_base_settings
 
 

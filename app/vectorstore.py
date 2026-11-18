@@ -1,4 +1,5 @@
 import concurrent.futures
+import contextvars
 import logging
 import time
 
@@ -7,7 +8,8 @@ from langchain_core.documents import Document
 from chromadb.config import Settings as ChromaSettings
 
 from app.config import get_settings
-from app.embeddings import get_embeddings
+from app import db
+from app.embeddings import collection_name, get_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -15,26 +17,29 @@ _vectorstore: Chroma | None = None
 _workspace_stores: dict[str, Chroma] = {}
 
 
-def get_vectorstore() -> Chroma:
+def _build_store(name: str) -> Chroma:
+    settings = get_settings()
+    return Chroma(collection_name=name, embedding_function=get_embeddings(),
+                  persist_directory=settings.chroma_persist_dir,
+                  client_settings=ChromaSettings(anonymized_telemetry=False))
+
+
+def get_vectorstore():
+    """Workspace-scoped store for the active embedding model; rebuilt if that model changes."""
     global _vectorstore
+    if db.enabled():
+        from app.pgvector_store import for_current_workspace
+        return for_current_workspace()
     from app.workspace import workspace_id
+    name = collection_name()
     workspace = workspace_id.get()
     if workspace != 'local':
-        if workspace not in _workspace_stores:
-            settings = get_settings()
-            _workspace_stores[workspace] = Chroma(
-                collection_name=settings.chroma_collection_name,
-                embedding_function=get_embeddings(), persist_directory=settings.chroma_persist_dir,
-                client_settings=ChromaSettings(anonymized_telemetry=False))
+        cached = _workspace_stores.get(workspace)
+        if cached is None or cached._collection.name != name:
+            _workspace_stores[workspace] = _build_store(name)
         return _workspace_stores[workspace]
-    if _vectorstore is None:
-        settings = get_settings()
-        _vectorstore = Chroma(
-            collection_name=settings.chroma_collection_name,
-            embedding_function=get_embeddings(),
-            persist_directory=settings.chroma_persist_dir,
-            client_settings=ChromaSettings(anonymized_telemetry=False),
-        )
+    if _vectorstore is None or _vectorstore._collection.name != name:
+        _vectorstore = _build_store(name)
     return _vectorstore
 
 
@@ -70,11 +75,12 @@ def ingest_documents(
     max_workers = max_workers or settings.ingest_workers
 
     vectorstore = get_vectorstore()
-    collection = vectorstore._collection
+    postgres = db.enabled()
+    collection = None if postgres else vectorstore._collection
     embedder = get_embeddings()
 
     ids = [doc.metadata["id"] for doc in documents]
-    existing = _existing_ids(collection, ids)
+    existing = vectorstore.existing_ids(ids) if postgres else _existing_ids(collection, ids)
     new_docs = [d for d in documents if d.metadata["id"] not in existing]
     skipped = len(documents) - len(new_docs)
     if not new_docs:
@@ -88,10 +94,16 @@ def ingest_documents(
 
     t0 = time.perf_counter()
     workers = max(1, min(max_workers, len(batches)))
+    # Worker threads do not inherit context variables; copy one per task so usage
+    # metering and workspace identity follow the request into the pool.
+    contexts = [contextvars.copy_context() for _ in batches]
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        vectors_per_batch = list(pool.map(_embed, batches))
+        vectors_per_batch = list(pool.map(lambda pair: pair[0].run(_embed, pair[1]), zip(contexts, batches)))
 
     for batch, vectors in zip(batches, vectors_per_batch):
+        if postgres:
+            vectorstore.upsert([d.metadata["id"] for d in batch], vectors, [d.metadata for d in batch], [d.page_content for d in batch])
+            continue
         collection.upsert(
             ids=[d.metadata["id"] for d in batch],
             embeddings=vectors,
@@ -115,6 +127,10 @@ def clear_vectorstore() -> None:
     """Delete all documents from the ChromaDB collection."""
     global _vectorstore
     vs = get_vectorstore()
+    if db.enabled():
+        vs.clear()
+        logger.info("Cleared knowledge base")
+        return
     collection = vs._collection
     if collection.count() > 0:
         all_ids = collection.get()["ids"]
@@ -125,9 +141,15 @@ def clear_vectorstore() -> None:
 def get_doc_count() -> int:
     """Return the number of chunks currently indexed in ChromaDB."""
     try:
-        return get_vectorstore()._collection.count()
+        return count_chunks()
     except Exception:
         return 0
+
+
+def count_chunks() -> int:
+    """Number of indexed chunks for this workspace. Raises if the store is unavailable (readiness uses this)."""
+    store = get_vectorstore()
+    return store.count() if db.enabled() else store._collection.count()
 
 
 def list_sources() -> list[dict]:
@@ -137,6 +159,8 @@ def list_sources() -> list[dict]:
     Used by the UI to show what's in the knowledge base.
     """
     try:
+        if db.enabled():
+            return get_vectorstore().sources()
         collection = get_vectorstore()._collection
         if collection.count() == 0:
             return []

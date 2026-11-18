@@ -27,7 +27,7 @@ def auth(monkeypatch, tmp_path):
 
 def test_protected_routes_and_public_surface(auth):
     assert client.get('/api/kb/sources').status_code == 401
-    assert client.get('/api/auth/status').json() == {'enabled': True}
+    assert client.get('/api/auth/status').json() == {'enabled': True, 'mode': 'tokens', 'issuer': None}
     assert client.get('/').status_code == 200
     assert client.get('/api/auth/me', headers=auth('alice')).json()['workspace'] == 'alice'
 

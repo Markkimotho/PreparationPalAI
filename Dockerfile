@@ -7,6 +7,8 @@ COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
 
 COPY frontend/ ./
+# Shared contracts the web app's type check reads (avatar vectors shared with the phone app).
+COPY contracts/ /contracts/
 RUN npm run build   # emits /frontend/dist
 
 # ── Stage 2: FastAPI backend serving the built SPA ───────────────────────────

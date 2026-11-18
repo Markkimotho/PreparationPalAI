@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 parser=argparse.ArgumentParser()
 parser.add_argument('--base-url', default='http://127.0.0.1:8011')
-parser.add_argument('--screenshots', type=Path, default=Path('/tmp/preparationpal-app-ui'))
+parser.add_argument('--screenshots', type=Path, default=Path('/tmp/tayarishe-app-ui'))
 parser.add_argument('--capture-preview', action='store_true')
 args=parser.parse_args()
 base=args.base_url.rstrip('/')
@@ -57,7 +57,7 @@ with sync_playwright() as p:
   page.set_viewport_size({'width':width,'height':1000})
   page.goto(base+'/')
   page.evaluate('document.fonts.ready')
-  expect(page.get_by_role('heading',level=1)).to_contain_text('Practise the questions')
+  expect(page.get_by_role('heading',level=1)).to_contain_text('Study deeply.')
   assert page.locator('.workspace img').evaluate('(img) => img.complete && img.naturalWidth > 0')
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),width
   page.screenshot(path=str(out/f'landing-{width}.png'),full_page=True)

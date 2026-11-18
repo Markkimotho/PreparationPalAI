@@ -2,7 +2,9 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, model_validator
+from typing import Literal
+
+from pydantic import Field, SecretStr, model_validator
 from app.workspace import workspace_id
 
 # Curated list of supported Ollama chat models, shown in this order in the UI.
@@ -29,6 +31,43 @@ class Settings(BaseSettings):
     # latency. "30m" keeps it warm for 30 min after the last call; "-1" = forever.
     ollama_keep_alive: str = "30m"
 
+    # Inference backend: "ollama" (self-hosted, default) or "gateway" (OpenAI-compatible
+    # LiteLLM gateway, see specs/2026-11-17-hosted-product-design.md).
+    inference_backend: Literal["ollama", "gateway"] = "ollama"
+    gateway_base_url: str = ""
+    gateway_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+    guard_alias: str = "guard"          # moderation + verification model alias
+    vision_alias: str = "vision-open"
+    embedding_alias: str = "embed-default"
+    embedding_dimensions: int | None = Field(default=None, ge=32, le=8192)  # Matryoshka size; None = provider default
+
+    # Storage: "files" (SQLite, JSON and embedded Chroma, single host) or "postgres" (hosted, multi-user).
+    storage_backend: Literal["files", "postgres"] = "files"
+    database_url: SecretStr = Field(default=SecretStr(""), repr=False)
+
+    # Accounts: "tokens" = static workspace keys (self-hosted); "oidc" = signed-in learners (hosted).
+    auth_mode: Literal["tokens", "oidc"] = "tokens"
+    oidc_issuer: str = ""
+    oidc_audience: str = ""
+    oidc_jwks_url: str = ""
+    oidc_web_client_id: str = ""          # public: the Logto application id the web app signs in with
+    oidc_native_client_id: str = ""       # public: the Logto native application id the phone apps sign in with
+
+    # Logto management API: lets account deletion also remove the sign-in. Optional.
+    logto_endpoint: str = ""
+    logto_management_app_id: str = ""
+    logto_management_app_secret: SecretStr = Field(default=SecretStr(""), repr=False)
+
+    # Billing (hosted mode): reserve before each model action, settle the real usage after.
+    billing_enabled: bool = False
+    billing_base_url: str = ""
+    billing_service_token: SecretStr = Field(default=SecretStr(""), repr=False)
+    billing_outbox_db: str = "data/usage/billing_outbox.sqlite3"
+    top_up_url: str = ""
+    billing_reserve_input_tokens: int = Field(default=3000, ge=256, le=65536)   # per reserved model call
+    billing_reserve_output_tokens: int = Field(default=800, ge=64, le=8192)
+    ingest_reserve_tokens: int = Field(default=500_000, ge=1000)
+
     # ChromaDB (local, free)
     chroma_persist_dir: str = "data/chroma"
     chroma_collection_name: str = "rag-chatbot"
@@ -51,6 +90,7 @@ class Settings(BaseSettings):
     # Flashcards persisted store (mount a volume here in Docker to keep decks).
     flashcards_dir: str = "data/flashcards"
     coach_db: str = "data/coach/sessions.sqlite3"
+    profiles_dir: str = "data/profiles"            # one learner profile per workspace (self-hosted storage)
     glm_model: str = "glm4:9b"
     deepseek_model: str = "deepseek-r1:7b"
     extra_models: list[str] = []
@@ -79,12 +119,39 @@ class Settings(BaseSettings):
     @model_validator(mode='after')
     def validate_security(self):
         import re
-        if self.production and not self.auth_enabled:
+        if self.production and not (self.auth_enabled or self.auth_mode == 'oidc'):
             raise ValueError('PRODUCTION requires AUTH_ENABLED=true')
         from urllib.parse import urlsplit
         endpoint = urlsplit(self.ollama_base_url)
         if endpoint.scheme not in ('http', 'https') or not endpoint.hostname or endpoint.username or endpoint.password:
             raise ValueError('OLLAMA_BASE_URL must be an HTTP(S) origin without credentials')
+        if self.inference_backend == 'gateway':
+            gateway = urlsplit(self.gateway_base_url)
+            if gateway.scheme not in ('http', 'https') or not gateway.hostname or gateway.username or gateway.password:
+                raise ValueError('GATEWAY_BASE_URL must be an HTTP(S) origin without credentials')
+            if not self.gateway_api_key.get_secret_value():
+                raise ValueError('GATEWAY_API_KEY is required when INFERENCE_BACKEND=gateway')
+            if 'ollama_model' not in self.model_fields_set:
+                self.ollama_model = 'open-default'
+        if self.storage_backend == 'postgres' and not self.database_url.get_secret_value():
+            raise ValueError('DATABASE_URL is required when STORAGE_BACKEND=postgres')
+        if self.auth_mode == 'oidc':
+            issuer = urlsplit(self.oidc_issuer)
+            if not self.oidc_issuer:
+                raise ValueError('OIDC_ISSUER is required when AUTH_MODE=oidc')
+            if issuer.scheme not in ('http', 'https') or not issuer.hostname or issuer.username or issuer.password:
+                raise ValueError('OIDC_ISSUER must be an HTTP(S) URL without credentials')
+            if not self.oidc_audience:
+                raise ValueError('OIDC_AUDIENCE is required when AUTH_MODE=oidc')
+            self.auth_enabled = True            # signed-in learners replace static keys
+        if self.billing_enabled:
+            if self.inference_backend != 'gateway':
+                raise ValueError('BILLING_ENABLED requires INFERENCE_BACKEND=gateway (usage is priced by gateway alias)')
+            billing = urlsplit(self.billing_base_url)
+            if billing.scheme not in ('http', 'https') or not billing.hostname or billing.username or billing.password:
+                raise ValueError('BILLING_BASE_URL must be an HTTP(S) origin without credentials')
+            if not self.billing_service_token.get_secret_value():
+                raise ValueError('BILLING_SERVICE_TOKEN is required when BILLING_ENABLED=true')
         if not self.ollama_model.strip() or not self.ollama_embedding_model.strip():
             raise ValueError('Set OLLAMA_MODEL and OLLAMA_EMBEDDING_MODEL to non-empty installed tags')
         if self.production and '*' in self.cors_origins:
@@ -94,7 +161,7 @@ class Settings(BaseSettings):
             if (public.scheme not in ('http', 'https') or not public.hostname or public.username or
                 public.password or public.path not in ('', '/') or public.query or public.fragment):
                 raise ValueError('PUBLIC_BASE_URL must be an HTTP(S) origin without path or credentials')
-        if self.auth_enabled and not self.auth_tokens:
+        if self.auth_enabled and self.auth_mode == 'tokens' and not self.auth_tokens:
             raise ValueError('AUTH_TOKENS must contain at least one token digest')
         for digest, principal in self.auth_tokens.items():
             if not re.fullmatch(r'[0-9a-f]{64}', digest):

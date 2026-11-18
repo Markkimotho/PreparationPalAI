@@ -3,7 +3,7 @@ description: A practical revision routine using your syllabus, focused practice,
 ---
 # Prepare for an exam
 
-Use PreparationPalAI to turn revision into a cycle of recall, feedback, and targeted
+Use Tayarishe to turn revision into a cycle of recall, feedback, and targeted
 practice. Start from the material your actual course expects you to know.
 
 ## Before the session: choose a slice of the syllabus

@@ -1,4 +1,4 @@
-# PreparationPalAI
+# Tayarishe
 
 Study deeply. Prepare confidently.
 
@@ -6,8 +6,8 @@ Turn your notes and difficult questions into focused practice for exams, technic
 interviews, and everyday learning. Use local AI to test your reasoning, review
 mistakes, and decide what to revisit.
 
-**[Read the user guide](https://markkimotho.github.io/PreparationPalAI/)** ·
-**[Contributor handbook](https://markkimotho.github.io/PreparationPalAI/contribute/)**
+**[Read the user guide](https://markkimotho.github.io/Tayarishe/)** ·
+**[Contributor handbook](https://markkimotho.github.io/Tayarishe/contribute/)**
 
 ## Choose your next study step
 
@@ -34,8 +34,8 @@ administrator if asked. Follow [your first study session](docs/start/first-sessi
 For a personal installation, install Docker with Compose, then run:
 
 ```bash
-git clone https://github.com/Markkimotho/PreparationPalAI.git
-cd PreparationPalAI
+git clone https://github.com/Markkimotho/Tayarishe.git
+cd Tayarishe
 docker compose up --build
 ```
 
@@ -43,7 +43,7 @@ Open **http://localhost:8000** when startup finishes. The first start builds the
 and downloads the default chat and document-reading models, so allow time and
 several gigabytes of free storage. Later starts reuse the downloaded files.
 
-Read [open or install PreparationPalAI](docs/start/access.md) for the full walkthrough.
+Read [open or install Tayarishe](docs/start/access.md) for the full walkthrough.
 The documentation website is a guide; it does not host your study workspace.
 
 ## Build understanding, not just a score
@@ -68,7 +68,7 @@ controls determine who can use the stored material.
 ## Improve the project
 
 The engineering documentation lives separately in the
-**[contributor handbook](https://markkimotho.github.io/PreparationPalAI/contribute/)**.
+**[contributor handbook](https://markkimotho.github.io/Tayarishe/contribute/)**.
 Start with [development setup](engineering/development.md),
 [architecture](engineering/architecture.md), or the
 [contribution workflow](CONTRIBUTING.md). Security, configuration, tests, deployment,

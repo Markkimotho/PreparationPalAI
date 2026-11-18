@@ -1,30 +1,76 @@
 groups:
-  - name: preparationpalai
+  - name: tayarishe
     rules:
       - alert: ProviderUnavailable
-        expr: preparationpalai_ollama_up == 0
+        expr: tayarishe_ollama_up == 0
         for: 2m
         labels:
           severity: warning
         annotations:
           summary: Ollama is unavailable; check readiness and installed models
       - alert: HighApiErrorRate
-        expr: sum(rate(preparationpalai_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(preparationpalai_requests_total[5m])), 0.01) > 0.05
+        expr: sum(rate(tayarishe_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(tayarishe_requests_total[5m])), 0.01) > 0.05
         for: 5m
         annotations:
           summary: API server errors exceed five percent
       - alert: SlowInference
-        expr: histogram_quantile(0.95, sum by (le) (rate(preparationpalai_llm_request_duration_seconds_bucket[10m]))) > 120
+        expr: histogram_quantile(0.95, sum by (le) (rate(tayarishe_llm_request_duration_seconds_bucket[10m]))) > 120
         for: 10m
         annotations:
           summary: Inference p95 exceeds two minutes
       - alert: IngestionBacklog
-        expr: preparationpalai_ingestion_jobs{state="pending"} > 10
+        expr: tayarishe_ingestion_jobs{state="pending"} > 10
         for: 5m
         annotations:
           summary: Ingestion backlog exceeds ten jobs
       - alert: IngestionWorkerUnavailable
-        expr: time() - preparationpalai_worker_heartbeat_timestamp > 60
+        expr: time() - tayarishe_worker_heartbeat_timestamp > 60
         for: 2m
         annotations:
           summary: Ingestion worker heartbeat is stale
+  - name: billing
+    rules:
+      - alert: BillingUnavailable
+        expr: up{job="billing"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Billing is down; model actions fail closed until it returns
+      - alert: BillingWriteOffs
+        expr: increase(billing_written_off_micros_total[1d]) > 1000000
+        labels:
+          severity: warning
+        annotations:
+          summary: More than one dollar of usage a day could not be charged; check reservation sizing and balances
+      - alert: BillingHoldsStuck
+        expr: billing_reservations_open > 50
+        for: 15m
+        annotations:
+          summary: Many credit holds are open; the sweeper may not be running
+      - alert: BillingReconcileDrift
+        expr: billing_job_problem{job="reconcile"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Gateway spend and the ledger disagree; usage was missed at settle time
+      - alert: BillingPriceDrift
+        expr: billing_job_problem{job="check-prices"} == 1
+        for: 5m
+        annotations:
+          summary: A gateway model price changed; publish new prices before margins erode
+      - alert: BillingJobsStale
+        expr: time() - billing_job_last_run_timestamp{job="reconcile"} > 100800
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: The nightly reconcile has not run for over a day
+      - alert: BillingMarginNegative
+        expr: sum(increase(billing_margin_micros_total[1d])) < 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: Charges are below provider cost; check prices and multipliers

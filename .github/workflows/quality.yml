@@ -12,21 +12,70 @@ concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm test -- --ci
+      - run: npm run typecheck
+      - run: npx expo-doctor
+      - run: npx expo export --platform ios --platform android --output-dir dist
+  billing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: {POSTGRES_USER: billing, POSTGRES_PASSWORD: test, POSTGRES_DB: billing}
+        ports: ['15432:5432']
+        options: >-
+          --health-cmd "pg_isready -U billing -d billing" --health-interval 3s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e 'services/billing[dev]'
+      # Run from the service folder: from the repo root, `tests.helpers` resolves to the app's own
+      # tests package instead of billing's.
+      - run: python -m pytest tests -q
+        working-directory: services/billing
+        env:
+          BILLING_TEST_DATABASE_URL: postgresql://billing:test@127.0.0.1:15432/billing
   container-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t preparationpalai-smoke .
+      - run: docker build -t tayarishe-smoke .
       - run: |
-          docker network create preparationpalai-smoke
-          docker run -d --name fake-ollama --network preparationpalai-smoke -v "$PWD/tests/support/fake_ollama.py:/fake.py:ro" python:3.12-slim python /fake.py
-          docker run -d --name prep-smoke --network preparationpalai-smoke -e OLLAMA_BASE_URL=http://fake-ollama:11434 --read-only --tmpfs /tmp:rw,size=512m --tmpfs /app/data:rw,uid=10001,gid=10001,size=256m preparationpalai-smoke
+          docker network create tayarishe-smoke
+          docker run -d --name fake-ollama --network tayarishe-smoke -v "$PWD/tests/support/fake_ollama.py:/fake.py:ro" python:3.12-slim python /fake.py
+          docker run -d --name prep-smoke --network tayarishe-smoke -e OLLAMA_BASE_URL=http://fake-ollama:11434 --read-only --tmpfs /tmp:rw,size=512m --tmpfs /app/data:rw,uid=10001,gid=10001,size=256m tayarishe-smoke
           docker exec prep-smoke python -m scripts.container_smoke
       - run: docker logs prep-smoke
         if: failure()
   deterministic:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg16
+        env: {POSTGRES_USER: app, POSTGRES_PASSWORD: test, POSTGRES_DB: app}
+        ports: ['15433:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d app" --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      APP_TEST_DATABASE_URL: postgresql://app:test@127.0.0.1:15433/app
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

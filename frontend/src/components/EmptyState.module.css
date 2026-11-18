@@ -1,36 +1,42 @@
+/* As on the phone's empty states: a soft card in the page's colour with a tilted icon tile. */
 .wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: var(--space-7) var(--space-4);
+  padding: var(--space-7) var(--space-5);
   gap: var(--space-2);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+  border-radius: var(--radius-xl);
+  background: var(--accent-soft);
 }
 .icon {
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius);
-  background: var(--accent-soft);
-  color: var(--accent);
-  margin-bottom: var(--space-1);
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--accent-vivid), var(--accent-deep));
+  color: #fff;
+  font-size: 1.4rem;
+  transform: rotate(-6deg);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--accent-deep) 25%, transparent);
+  margin-bottom: var(--space-3);
 }
 .title {
-  font-size: var(--fs-lg);
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 .desc {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-md);
   color: var(--text-dim);
-  max-width: 420px;
+  max-width: 440px;
+  line-height: 1.5;
 }
 .actions {
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;

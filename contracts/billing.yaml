@@ -1,0 +1,1019 @@
+openapi: 3.1.0
+info:
+  title: Tayarishe billing
+  version: 1.0.0
+paths:
+  /v1/accounts/{account_id}:
+    post:
+      summary: Ensure Account
+      operationId: ensure_account_v1_accounts__account_id__post
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/accounts/{account_id}/close:
+    post:
+      summary: Close Account
+      description: 'Account deletion: release holds, refuse new work, keep the anonymous
+        ledger.'
+      operationId: close_account_v1_accounts__account_id__close_post
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/accounts/{account_id}/grants/starter:
+    post:
+      summary: Starter Grant
+      operationId: starter_grant_v1_accounts__account_id__grants_starter_post
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/StarterIn'
+              - type: 'null'
+              title: Body
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/accounts/{account_id}/balance:
+    get:
+      summary: Get Balance
+      operationId: get_balance_v1_accounts__account_id__balance_get
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/accounts/{account_id}/history:
+    get:
+      summary: Get History
+      operationId: get_history_v1_accounts__account_id__history_get
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: before_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+          title: Before Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reservations:
+    post:
+      summary: Reserve
+      operationId: reserve_v1_reservations_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReserveIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReserveOut'
+        '402':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientOut'
+          description: Payment Required
+        '403':
+          description: The account was closed
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reservations/{request_id}/settle:
+    post:
+      summary: Settle
+      operationId: settle_v1_reservations__request_id__settle_post
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Request Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettleIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettleOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reservations/{request_id}/release:
+    post:
+      summary: Release
+      operationId: release_v1_reservations__request_id__release_post
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Request Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/estimate:
+    post:
+      summary: Estimate
+      operationId: estimate_v1_estimate_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstimateIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstimateOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/prices:
+    get:
+      summary: Prices
+      operationId: prices_v1_prices_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricesOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/payments/topup:
+    post:
+      summary: Topup
+      operationId: topup_v1_payments_topup_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopupIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/payments/refund:
+    post:
+      summary: Refund
+      operationId: refund_v1_payments_refund_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/packs:
+    get:
+      summary: Packs
+      operationId: packs_v1_packs_get
+      parameters:
+      - name: channel
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(web|store)$
+          default: web
+          title: Channel
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PacksOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/checkout:
+    post:
+      summary: Checkout
+      description: Create a Paddle transaction for one pack, tagged with the account,
+        for the browser to pay.
+      operationId: checkout_v1_checkout_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutOut'
+        '403':
+          description: The account was closed
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    BalanceOut:
+      properties:
+        available_micros:
+          type: integer
+          title: Available Micros
+        reserved_micros:
+          type: integer
+          title: Reserved Micros
+        starter_micros:
+          type: integer
+          title: Starter Micros
+      additionalProperties: false
+      type: object
+      required:
+      - available_micros
+      - reserved_micros
+      - starter_micros
+      title: BalanceOut
+    CheckoutIn:
+      properties:
+        account_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Account Id
+        pack:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Pack
+      additionalProperties: false
+      type: object
+      required:
+      - account_id
+      - pack
+      title: CheckoutIn
+    CheckoutOut:
+      properties:
+        transaction_id:
+          type: string
+          title: Transaction Id
+        client_token:
+          type: string
+          title: Client Token
+        environment:
+          type: string
+          title: Environment
+      additionalProperties: false
+      type: object
+      required:
+      - transaction_id
+      - client_token
+      - environment
+      title: CheckoutOut
+    EstimateIn:
+      properties:
+        alias:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Alias
+        input_tokens:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Input Tokens
+        output_tokens:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Output Tokens
+      additionalProperties: false
+      type: object
+      required:
+      - alias
+      - input_tokens
+      - output_tokens
+      title: EstimateIn
+    EstimateOut:
+      properties:
+        micros:
+          type: integer
+          title: Micros
+      additionalProperties: false
+      type: object
+      required:
+      - micros
+      title: EstimateOut
+    GrantOut:
+      properties:
+        granted:
+          type: boolean
+          title: Granted
+        reason:
+          type: string
+          title: Reason
+      additionalProperties: false
+      type: object
+      required:
+      - granted
+      - reason
+      title: GrantOut
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HistoryEntry:
+      properties:
+        id:
+          type: integer
+          title: Id
+        amount_micros:
+          type: integer
+          title: Amount Micros
+        hold_micros:
+          type: integer
+          title: Hold Micros
+        kind:
+          type: string
+          title: Kind
+        ref:
+          type: string
+          title: Ref
+        price_version:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Price Version
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - amount_micros
+      - hold_micros
+      - kind
+      - ref
+      - price_version
+      - created_at
+      title: HistoryEntry
+    HistoryOut:
+      properties:
+        entries:
+          items:
+            $ref: '#/components/schemas/HistoryEntry'
+          type: array
+          title: Entries
+        next_before_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Next Before Id
+      additionalProperties: false
+      type: object
+      required:
+      - entries
+      - next_before_id
+      title: HistoryOut
+    InsufficientOut:
+      properties:
+        detail:
+          type: string
+          title: Detail
+        balance_micros:
+          type: integer
+          title: Balance Micros
+        required_micros:
+          type: integer
+          title: Required Micros
+        premium_requires_purchase:
+          type: boolean
+          title: Premium Requires Purchase
+      additionalProperties: false
+      type: object
+      required:
+      - detail
+      - balance_micros
+      - required_micros
+      - premium_requires_purchase
+      title: InsufficientOut
+    Line:
+      properties:
+        alias:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Alias
+        max_input_tokens:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Max Input Tokens
+        max_output_tokens:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Max Output Tokens
+        calls:
+          type: integer
+          maximum: 100.0
+          minimum: 1.0
+          title: Calls
+      additionalProperties: false
+      type: object
+      required:
+      - alias
+      - max_input_tokens
+      - max_output_tokens
+      - calls
+      title: Line
+    PackOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        usd_cents:
+          type: integer
+          title: Usd Cents
+        credits:
+          type: integer
+          title: Credits
+        available:
+          type: boolean
+          title: Available
+        product_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product Id
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - usd_cents
+      - credits
+      - available
+      title: PackOut
+    PacksOut:
+      properties:
+        packs:
+          items:
+            $ref: '#/components/schemas/PackOut'
+          type: array
+          title: Packs
+      additionalProperties: false
+      type: object
+      required:
+      - packs
+      title: PacksOut
+    PriceOut:
+      properties:
+        alias:
+          type: string
+          title: Alias
+        tier:
+          type: string
+          title: Tier
+        input_per_m:
+          type: string
+          title: Input Per M
+        output_per_m:
+          type: string
+          title: Output Per M
+        cache_read_per_m:
+          type: string
+          title: Cache Read Per M
+        multiplier:
+          type: string
+          title: Multiplier
+      additionalProperties: false
+      type: object
+      required:
+      - alias
+      - tier
+      - input_per_m
+      - output_per_m
+      - cache_read_per_m
+      - multiplier
+      title: PriceOut
+    PricesOut:
+      properties:
+        version:
+          type: integer
+          title: Version
+        prices:
+          items:
+            $ref: '#/components/schemas/PriceOut'
+          type: array
+          title: Prices
+      additionalProperties: false
+      type: object
+      required:
+      - version
+      - prices
+      title: PricesOut
+    RefundIn:
+      properties:
+        provider:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Provider
+        provider_ref:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Provider Ref
+        credits_micros:
+          type: integer
+          maximum: 1000000000000.0
+          exclusiveMinimum: 0.0
+          title: Credits Micros
+      additionalProperties: false
+      type: object
+      required:
+      - provider
+      - provider_ref
+      - credits_micros
+      title: RefundIn
+    RefundOut:
+      properties:
+        clawed_back_micros:
+          type: integer
+          title: Clawed Back Micros
+        shortfall_micros:
+          type: integer
+          title: Shortfall Micros
+        available_micros:
+          type: integer
+          title: Available Micros
+      additionalProperties: false
+      type: object
+      required:
+      - clawed_back_micros
+      - shortfall_micros
+      - available_micros
+      title: RefundOut
+    ReserveIn:
+      properties:
+        account_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Account Id
+        request_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Request Id
+        action:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Action
+        alias:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Alias
+        lines:
+          items:
+            $ref: '#/components/schemas/Line'
+          type: array
+          maxItems: 20
+          minItems: 1
+          title: Lines
+      additionalProperties: false
+      type: object
+      required:
+      - account_id
+      - request_id
+      - action
+      - alias
+      - lines
+      title: ReserveIn
+    ReserveOut:
+      properties:
+        request_id:
+          type: string
+          title: Request Id
+        reserved_micros:
+          type: integer
+          title: Reserved Micros
+        available_micros:
+          type: integer
+          title: Available Micros
+      additionalProperties: false
+      type: object
+      required:
+      - request_id
+      - reserved_micros
+      - available_micros
+      title: ReserveOut
+    SettleIn:
+      properties:
+        usage:
+          items:
+            $ref: '#/components/schemas/UsageIn'
+          type: array
+          maxItems: 200
+          title: Usage
+      additionalProperties: false
+      type: object
+      required:
+      - usage
+      title: SettleIn
+    SettleOut:
+      properties:
+        charged_micros:
+          type: integer
+          title: Charged Micros
+        written_off_micros:
+          type: integer
+          title: Written Off Micros
+        available_micros:
+          type: integer
+          title: Available Micros
+      additionalProperties: false
+      type: object
+      required:
+      - charged_micros
+      - written_off_micros
+      - available_micros
+      title: SettleOut
+    StarterIn:
+      properties:
+        email:
+          anyOf:
+          - type: string
+            maxLength: 320
+          - type: 'null'
+          title: Email
+        email_verified:
+          type: boolean
+          title: Email Verified
+          default: false
+      additionalProperties: false
+      type: object
+      title: StarterIn
+    TopupIn:
+      properties:
+        provider:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Provider
+        provider_ref:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Provider Ref
+        account_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Account Id
+        gross_minor:
+          type: integer
+          minimum: 0.0
+          title: Gross Minor
+        currency:
+          type: string
+          maxLength: 3
+          minLength: 3
+          title: Currency
+        credits_micros:
+          type: integer
+          maximum: 1000000000000.0
+          exclusiveMinimum: 0.0
+          title: Credits Micros
+      additionalProperties: false
+      type: object
+      required:
+      - provider
+      - provider_ref
+      - account_id
+      - gross_minor
+      - currency
+      - credits_micros
+      title: TopupIn
+    UsageIn:
+      properties:
+        alias:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Alias
+        input_tokens:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Input Tokens
+        output_tokens:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Output Tokens
+        cache_read_tokens:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Cache Read Tokens
+          default: 0
+      additionalProperties: false
+      type: object
+      required:
+      - alias
+      - input_tokens
+      - output_tokens
+      title: UsageIn
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
