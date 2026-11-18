@@ -45,6 +45,7 @@ export function Setup() {
     if (first.current) { first.current = false; return; }
     heading.current?.focus();
   }, [step]);
+  useEffect(() => { document.title = `${editing ? 'Edit profile' : 'Make it yours'} · PreparationPalAI`; }, [editing]);
   useEffect(() => {                                 // first-time setup hands over once the profile is set up
     if (!editing && profile.onboarded) navigate('/prepare', { replace: true });
   }, [editing, profile.onboarded, navigate]);
@@ -127,7 +128,8 @@ export function Setup() {
               onChange={e => setCustom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }} />
             <button type="button" className={styles.secondary} onClick={addCustom} disabled={!custom.trim()}>Add</button>
           </div>
-          <div role="radiogroup" aria-label="Your level" className={styles.segmented}>
+          <span className={styles.label} id="setup-level">Your level</span>
+          <div role="radiogroup" aria-labelledby="setup-level" className={styles.segmented}>
             {LEVELS.map(l => <button key={l} type="button" role="radio" aria-checked={draft.level === l} onClick={() => set({ level: l })}>
               {l[0].toUpperCase() + l.slice(1)}</button>)}
           </div>

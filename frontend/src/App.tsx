@@ -34,6 +34,8 @@ export function App() {
           <Route path="/setup" element={<Setup />} />
           <Route element={<AppLayout />}>
             <Route index element={<Navigate to="/prepare" replace />} />
+            {/* After sign-in the router still holds /auth/callback; land on the coach, not the catch-all. */}
+            <Route path="/auth/*" element={<Navigate to="/prepare" replace />} />
             <Route path="/prepare" element={<Coach />} />
             <Route path="/quiz" element={<QuizPrep />} />
             <Route path="/agent" element={<StudyAgent />} />

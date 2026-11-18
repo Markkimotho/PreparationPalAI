@@ -1,8 +1,8 @@
 .page {
-  min-height: 100dvh; display: flex; justify-content: center; padding: var(--space-5) var(--space-4);
+  min-height: 100dvh; display: flex; justify-content: center; box-sizing: border-box; padding: var(--space-5) var(--space-4);
   background: linear-gradient(180deg, var(--setup-soft) 0%, var(--bg) 340px); transition: background 240ms var(--ease);
 }
-.shell { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: var(--space-5); }
+.shell { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: var(--space-5); margin: auto 0; }   /* centred in tall windows */
 .top { display: grid; grid-template-columns: 110px 1fr 110px; align-items: center; gap: var(--space-3); }
 .top > :last-child { justify-self: end; }
 .ghost { min-height: 44px; background: none; border: none; color: var(--text-dim); font: inherit; font-weight: 600; cursor: pointer; padding: 0 var(--space-2); }
