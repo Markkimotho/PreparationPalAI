@@ -43,7 +43,7 @@ success rate.
 `study-v1-qwen2.5-7b.json` is the unedited output of:
 
 ```bash
-python -m scripts.quality_gate --live --model qwen2.5:7b --report /tmp/preparationpal-prompt-quality-final-v3.json
+python -m scripts.quality_gate --live --model qwen2.5:7b --report /tmp/tayarishe-prompt-quality-final-v3.json
 ```
 
 It records the prompt registry hash, dataset hash, model/embedding digests and
