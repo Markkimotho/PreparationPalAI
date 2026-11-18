@@ -2,7 +2,7 @@
 
 Registers (or signs in) a username/password account through Logto's Experience API, completes the
 authorization-code + PKCE flow for the native app with the API resource, exchanges the code for an
-access token, then calls the PreparationPalAI server with it. Passes only if the server accepts the
+access token, then calls the Tayarishe server with it. Passes only if the server accepts the
 token and reports the account's balance (500 free credits for a new account).
 
     .venv/bin/python scripts/local_stack/check_signin.py [--username demo --password '...']
@@ -23,8 +23,8 @@ STATE = Path(__file__).with_name('.state')
 LOGTO = 'https://localhost:8443'
 API = 'http://localhost:18000'
 CLIENT_ID = 'ppal-native-local'
-REDIRECT = 'preparationpal://auth/callback'
-RESOURCE = 'https://api.preparationpal.local'
+REDIRECT = 'tayarishe://auth/callback'
+RESOURCE = 'https://api.tayarishe.local'
 
 
 def fail(step: str, response: httpx.Response | None = None) -> None:

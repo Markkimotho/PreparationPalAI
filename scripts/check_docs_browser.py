@@ -26,8 +26,8 @@ def check_button_contrast(page):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--base-url', default='http://127.0.0.1:8088/PreparationPalAI/')
-    parser.add_argument('--screenshots', type=Path, default=Path('/tmp/preparationpal-docs'))
+    parser.add_argument('--base-url', default='http://127.0.0.1:8088/Tayarishe/')
+    parser.add_argument('--screenshots', type=Path, default=Path('/tmp/tayarishe-docs'))
     args = parser.parse_args()
     args.screenshots.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:

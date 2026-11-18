@@ -55,7 +55,7 @@ def run(live=False, model=None):
                   embedding_digest=next((t.get('digest') for t in tags if t['name'] in (
                       settings.ollama_embedding_model, settings.ollama_embedding_model + ':latest')), None),
                   ollama_version=httpx.get(f'{settings.ollama_base_url}/api/version', timeout=5).json())
-    with tempfile.TemporaryDirectory(prefix='preppal-eval-') as temp:
+    with tempfile.TemporaryDirectory(prefix='tayarishe-eval-') as temp:
         store = Chroma(collection_name='quality-golden', persist_directory=temp, embedding_function=get_embeddings())
         store.add_documents(docs)
         retriever = store.as_retriever(search_kwargs={'k': 2})

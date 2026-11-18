@@ -1,4 +1,4 @@
-"""Smoke-check a running PreparationPalAI instance that uses the AI gateway.
+"""Smoke-check a running Tayarishe instance that uses the AI gateway.
 
     python scripts/smoke_gateway.py http://localhost:8000 [--token WORKSPACE_KEY]
 

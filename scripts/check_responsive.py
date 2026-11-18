@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright
 
 def main():
     base = os.environ.get('CHECK_BASE_URL', 'http://127.0.0.1:8018')
-    output = Path(os.environ.get('CHECK_OUTPUT', '/tmp/preparationpal-screenshots'))
+    output = Path(os.environ.get('CHECK_OUTPUT', '/tmp/tayarishe-screenshots'))
     output.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
         browser = p.chromium.launch(channel=os.environ.get('CHECK_BROWSER') or None)

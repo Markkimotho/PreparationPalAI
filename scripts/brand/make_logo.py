@@ -1,5 +1,5 @@
 """Draw the brand logo as PNGs: the diamond mark (deep green with a mint square, as in the apps)
-beside "PreparationPalAI" in Manrope ExtraBold. Used where SVG text cannot load our font, such as
+beside "Tayarishe" in Manrope ExtraBold. Used where SVG text cannot load our font, such as
 the sign-in page (Logto). Deterministic: same inputs, same pixels.
 
     .venv/bin/python scripts/brand/make_logo.py
@@ -31,7 +31,7 @@ def mark(size: int) -> Image.Image:
 def logo(text_colour: tuple[int, int, int, int]) -> Image.Image:
     height = 48 * SCALE
     font = ImageFont.truetype(str(FONT), int(26 * SCALE))
-    label = 'PreparationPalAI'
+    label = 'Tayarishe'
     left, top, right, bottom = font.getbbox(label)
     m = mark(height)
     width = height + int(12 * SCALE) + (right - left) + int(4 * SCALE)

@@ -97,8 +97,8 @@ def main():
     args = parser.parse_args()
     build(args.site_dir)
     if args.preview:
-        with tempfile.TemporaryDirectory(prefix='preppal-docs-preview-') as temp:
-            (Path(temp) / 'PreparationPalAI').symlink_to(args.site_dir.resolve(), target_is_directory=True)
+        with tempfile.TemporaryDirectory(prefix='tayarishe-docs-preview-') as temp:
+            (Path(temp) / 'Tayarishe').symlink_to(args.site_dir.resolve(), target_is_directory=True)
             handler = functools.partial(SimpleHTTPRequestHandler, directory=temp)
             print(f'Preview: http://127.0.0.1:{args.port}{BASE}', flush=True)
             ThreadingHTTPServer(('127.0.0.1', args.port), handler).serve_forever()

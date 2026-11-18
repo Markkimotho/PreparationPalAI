@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restart only the PreparationPalAI server and worker (after a code or migration change), by
+# Restart only the Tayarishe server and worker (after a code or migration change), by
 # their recorded pids; gateway, databases, billing and sign-in keep running.
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 STATE="$ROOT/scripts/local_stack/.state"
