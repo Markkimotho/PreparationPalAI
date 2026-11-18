@@ -57,7 +57,7 @@ with sync_playwright() as p:
   page.set_viewport_size({'width':width,'height':1000})
   page.goto(base+'/')
   page.evaluate('document.fonts.ready')
-  expect(page.get_by_role('heading',level=1)).to_contain_text('Practise the questions')
+  expect(page.get_by_role('heading',level=1)).to_contain_text('Study deeply.')
   assert page.locator('.workspace img').evaluate('(img) => img.complete && img.naturalWidth > 0')
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),width
   page.screenshot(path=str(out/f'landing-{width}.png'),full_page=True)

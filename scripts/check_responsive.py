@@ -3,6 +3,7 @@
 Install test tooling: pip install playwright && playwright install chromium
 Uses mocked AI/KB responses; never downloads or invokes a model.
 """
+import re
 import json
 import os
 from pathlib import Path
@@ -51,7 +52,7 @@ def main():
                 page.keyboard.press('Escape')
                 assert trigger.evaluate('(el) => el === document.activeElement')
         page.goto(base)
-        page.get_by_role('heading', name='Practise the questions you need to answer.').wait_for()
+        page.get_by_role('heading', name=re.compile('Study deeply')).wait_for()
         page.screenshot(path=str(output / 'landing.png'), full_page=True)
         assert not errors, errors
         browser.close()
