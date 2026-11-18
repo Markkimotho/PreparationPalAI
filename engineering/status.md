@@ -1,7 +1,7 @@
 # Issue implementation progress
 
 Development status, not a promise of validated learning outcomes. The
-[user guide](https://markkimotho.github.io/PreparationPalAI/) describes how to use the product.
+[user guide](https://markkimotho.github.io/Tayarishe/) describes how to use the product.
 
 Work is on `feat/preparation-coach`, tracked by draft PR #11. Each row describes
 implemented behavior and the remaining verification needed before closing issues.

@@ -1,7 +1,7 @@
 # Ingestion boundaries
 
 Implementation and deployment reference. Learners should start with
-[your study material](https://markkimotho.github.io/PreparationPalAI/features/material/).
+[your study material](https://markkimotho.github.io/Tayarishe/features/material/).
 
 Uploads accept PDF and supported image extensions, matching content types, and
 matching file signatures. `UPLOAD_MAX_BYTES` defaults to 20 MiB per file and

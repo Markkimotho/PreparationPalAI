@@ -129,4 +129,4 @@ science gate is a small grounding/formatting benchmark, not a lab-grade comparis
 comprehensive subject evaluation or resistance-to-injection certification.
 
 Recorded results and their limits are kept in the repository’s
-[evaluation reports](https://github.com/Markkimotho/PreparationPalAI/tree/main/evals/reports).
+[evaluation reports](https://github.com/Markkimotho/Tayarishe/tree/main/evals/reports).

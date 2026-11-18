@@ -58,7 +58,7 @@ schedule spaced-repetition reminders. Choose your own review routine.
 
 ## Where should I go to improve the project?
 
-The [contributor handbook](/PreparationPalAI/contribute/) covers development,
+The [contributor handbook](/Tayarishe/contribute/) covers development,
 architecture, tests, security, and deployment separately from this user guide.
 
 ## Why was a request or response withheld?

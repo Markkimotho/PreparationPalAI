@@ -38,4 +38,4 @@ Deployment and operational references are maintained here too.
 
 See [implementation status](status.md) for work that still needs release validation.
 If you are looking for help studying rather than changing the project,
-[return to the user guide](/PreparationPalAI/).
+[return to the user guide](/Tayarishe/).
