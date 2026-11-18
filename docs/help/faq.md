@@ -49,7 +49,7 @@ and downloading additional models need an internet connection.
 ## Is this website the app?
 
 No. This is the product guide. Use the address provided by your workspace
-administrator, or [install PreparationPalAI](../start/access.md) on your computer.
+administrator, or [install Tayarishe](../start/access.md) on your computer.
 
 ## Are flashcards automatically scheduled?
 

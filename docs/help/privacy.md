@@ -6,7 +6,7 @@ description: Understand personal and shared workspaces, what is saved, and when 
 ## Personal versus shared
 
 On a personal installation, your app data is stored on the machine running
-PreparationPalAI. On an installation managed by someone else, that administrator
+Tayarishe. On an installation managed by someone else, that administrator
 controls the server and its stored data.
 
 A **workspace** is a boundary for indexed material, decks, conversations, and study

@@ -1,4 +1,4 @@
-# PreparationPalAI
+# Tayarishe
 
 Study deeply. Prepare confidently.
 
@@ -35,7 +35,7 @@ For a personal installation, install Docker with Compose, then run:
 
 ```bash
 git clone https://github.com/Markkimotho/PreparationPalAI.git
-cd PreparationPalAI
+cd Tayarishe
 docker compose up --build
 ```
 
@@ -43,7 +43,7 @@ Open **http://localhost:8000** when startup finishes. The first start builds the
 and downloads the default chat and document-reading models, so allow time and
 several gigabytes of free storage. Later starts reuse the downloaded files.
 
-Read [open or install PreparationPalAI](docs/start/access.md) for the full walkthrough.
+Read [open or install Tayarishe](docs/start/access.md) for the full walkthrough.
 The documentation website is a guide; it does not host your study workspace.
 
 ## Build understanding, not just a score

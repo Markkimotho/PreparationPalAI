@@ -20,7 +20,7 @@ entries do not save. The answer key is a separate file and is never embedded in
 the exam or worksheet.
 
 Choose **Markdown** to edit or reuse the text in another application. Exported
-answers are not submitted back to PreparationPalAI and do not change your score.
+answers are not submitted back to Tayarishe and do not change your score.
 
 Coach packs contain the session’s question set. Finish the session before
 downloading its answer key. Flashcard fronts become questions and backs become

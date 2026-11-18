@@ -1,4 +1,4 @@
-# Contributing to PreparationPalAI
+# Contributing to Tayarishe
 
 Thank you for helping make study and preparation more useful.
 
@@ -20,5 +20,5 @@ Learner-facing instructions belong under `docs/`. Engineering references belong
 under `engineering/`. Build both with `python scripts/build_docs.py` after installing
 `requirements-docs.txt`.
 
-If you are looking for help **using** PreparationPalAI, visit the
+If you are looking for help **using** Tayarishe, visit the
 [user guide](https://markkimotho.github.io/PreparationPalAI/) instead.

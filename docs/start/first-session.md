@@ -6,7 +6,7 @@ description: Run a focused first study session, review feedback, and choose what
 Start with one question you want to be able to answer confidently. You can practise
 from uploaded notes or begin with a topic alone.
 
-**You’ll need:** an open PreparationPalAI workspace and an available model.
+**You’ll need:** an open Tayarishe workspace and an available model.
 If you don’t have those yet, [get access first](access.md).
 
 ## 1. Choose a small topic

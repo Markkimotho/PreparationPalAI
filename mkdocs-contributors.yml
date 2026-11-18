@@ -1,6 +1,6 @@
 INHERIT: mkdocs.base.yml
-site_name: PreparationPalAI · Contributor handbook
-site_description: Build, test, extend, and operate PreparationPalAI. Engineering documentation for contributors and maintainers.
+site_name: Tayarishe · Contributor handbook
+site_description: Build, test, extend, and operate Tayarishe. Engineering documentation for contributors and maintainers.
 site_url: https://markkimotho.github.io/PreparationPalAI/contribute/
 docs_dir: engineering
 site_dir: site/contribute

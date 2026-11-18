@@ -20,8 +20,8 @@ Caddy routes `/webhooks/revenuecat` (and `/webhooks/paddle`) to billing; nothing
 
 ## Logto
 
-Create a **Native** application. Redirect URI: `preparationpal://auth/callback`. Post sign-out redirect:
-`preparationpal://`. Enable the API resource (`OIDC_AUDIENCE`) and the same access-token claims as the web
+Create a **Native** application. Redirect URI: `tayarishe://auth/callback`. Post sign-out redirect:
+`tayarishe://`. Enable the API resource (`OIDC_AUDIENCE`) and the same access-token claims as the web
 (see [Accounts and storage](accounts.md)). Turn on refresh tokens; the app asks for `offline_access`.
 Apple sign-in is required on iOS because other social sign-ins are offered.
 
@@ -57,7 +57,7 @@ npx eas-cli@latest submit --platform ios   # and android
 ```
 
 Set `EXPO_PUBLIC_API_URL` per profile in `eas.json`. Bundle id and package are
-`app.preparationpal.mobile` until the domain is chosen (issue #29). Store submission needs the selling
+`app.tayarishe` until the domain is chosen (issue #29). Store submission needs the selling
 entity (Apple organisation account, D-U-N-S) and the domain (issue #29).
 
 ## App Review notes

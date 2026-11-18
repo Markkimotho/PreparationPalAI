@@ -3,7 +3,7 @@ description: Map the frontend, API, model engines, workspace boundaries, and per
 ---
 # Architecture and project map
 
-PreparationPalAI has a React workspace, a FastAPI adapter, and specialised study
+Tayarishe has a React workspace, a FastAPI adapter, and specialised study
 engines backed by Ollama. The API translates requests and streaming events; it
 delegates learning behaviour to modules under `app/`.
 

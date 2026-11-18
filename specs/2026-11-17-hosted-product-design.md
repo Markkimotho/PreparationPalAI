@@ -1,4 +1,4 @@
-# PreparationPalAI as a hosted, pay-per-use product
+# Tayarishe as a hosted, pay-per-use product
 
 Status: approved 2026-11-17 · Owner: Mark
 
@@ -12,7 +12,7 @@ MkDocs sites, and pricing and business plans should not go public.
 
 ## 1. Intent
 
-PreparationPalAI today is a self-hosted study and interview-prep workspace: React SPA,
+Tayarishe today is a self-hosted study and interview-prep workspace: React SPA,
 FastAPI, Ollama, Chroma, SQLite, static bearer keys. Mark wants it to become a product
 anyone in the world can use:
 
@@ -121,7 +121,7 @@ Payments: merchant of record webhooks, RevenueCat webhooks (stores), Paystack (l
 Repository layout (services-first, per CLAUDE.md):
 
 ```text
-PreparationPalAI/
+Tayarishe/
   app/                  existing API + engines (gains a gateway model factory)
   frontend/             existing web app (gains PWA manifest, billing screens)
   mobile/               NEW Expo app
@@ -138,7 +138,7 @@ ai-gateway/             NEW separate repo: LiteLLM config, Compose, key admin sc
 - LiteLLM proxy with its own Postgres for keys and spend logs. Deployed as its own
   Compose project on the same VPS at first, reachable only on a private Docker network
   plus an authenticated admin route. It can move to its own host later without app changes.
-- One virtual key per app (`preparationpal-prod`, `preparationpal-staging`, later
+- One virtual key per app (`tayarishe-prod`, `tayarishe-staging`, later
   other apps), each with a monthly hard budget as a circuit breaker.
 - Model aliases decouple apps from providers: `open-default` (GLM), `open-fast` (Qwen
   small), `open-reasoning`, `guard` (small Qwen for moderation and verification),

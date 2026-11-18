@@ -1,6 +1,6 @@
 ---
 title: Contributor handbook
-description: Development setup, architecture, testing, and operations for PreparationPalAI contributors.
+description: Development setup, architecture, testing, and operations for Tayarishe contributors.
 hide:
   - toc
 ---
@@ -9,7 +9,7 @@ hide:
 
 # Contributor handbook
 
-Set up PreparationPalAI locally, understand the project, and test your changes.
+Set up Tayarishe locally, understand the project, and test your changes.
 Deployment and operational references are maintained here too.
 
 [Run the project](development.md){ .md-button .md-button--primary }

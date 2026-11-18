@@ -1,5 +1,5 @@
 ---
-description: Run PreparationPalAI on the shared AI gateway, check it, and diagnose model-service failures.
+description: Run Tayarishe on the shared AI gateway, check it, and diagnose model-service failures.
 ---
 # AI gateway inference
 
@@ -13,7 +13,7 @@ Ollama. One setting chooses: `INFERENCE_BACKEND=ollama` (default) or `gateway`.
 | --- | --- |
 | `INFERENCE_BACKEND` | `gateway` turns on the gateway for chat, structured output, moderation, vision, and embeddings. |
 | `GATEWAY_BASE_URL` | Gateway origin on the private network, for example `http://litellm:4000`. No credentials in the URL. |
-| `GATEWAY_API_KEY` | The app's virtual key. Create with `ai-gateway/scripts/new_app_key.sh preparationpal-prod <monthly-usd>`. Server-side only. |
+| `GATEWAY_API_KEY` | The app's virtual key. Create with `ai-gateway/scripts/new_app_key.sh tayarishe-prod <monthly-usd>`. Server-side only. |
 | `OLLAMA_MODEL` | Default alias in gateway mode. Defaults to `open-default` when unset. |
 | `GUARD_ALIAS`, `VISION_ALIAS`, `EMBEDDING_ALIAS` | Aliases for moderation, drawing review, and embeddings. Defaults: `guard`, `vision-open`, `embed-default`. |
 | `EMBEDDING_DIMENSIONS` | Optional Matryoshka size. Leave unset until the provider is verified to honour it. |

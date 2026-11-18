@@ -1,5 +1,5 @@
 ---
-description: Resolve common sign-in, model, upload, quiz, and saved-session problems in PreparationPalAI.
+description: Resolve common sign-in, model, upload, quiz, and saved-session problems in Tayarishe.
 ---
 # Troubleshooting
 

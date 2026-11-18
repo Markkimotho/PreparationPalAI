@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up Mark's shared LiteLLM gateway as its own repo and move every PreparationPalAI model call (chat, structured output, moderation, vision, embeddings, catalogue) onto it behind `INFERENCE_BACKEND=gateway`, recording token usage for every call, while `INFERENCE_BACKEND=ollama` keeps self-hosting unchanged.
+**Goal:** Stand up Mark's shared LiteLLM gateway as its own repo and move every Tayarishe model call (chat, structured output, moderation, vision, embeddings, catalogue) onto it behind `INFERENCE_BACKEND=gateway`, recording token usage for every call, while `INFERENCE_BACKEND=ollama` keeps self-hosting unchanged.
 
 **Architecture:** `ai-gateway` is a separate repo (LiteLLM proxy + its own Postgres, Compose). In this repo one factory in `app/llm.py` builds either the existing Ollama model or an OpenAI-compatible model pointed at the gateway; both share the guard logic. A context-scoped meter (`app/metering.py`) collects a `UsageRecord` per model call, which Plan 2 turns into charges.
 

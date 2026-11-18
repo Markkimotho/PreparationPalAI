@@ -17,7 +17,7 @@ Ollama. The documentation build is independent of all three.
 
 ```bash
 git clone https://github.com/Markkimotho/PreparationPalAI.git
-cd PreparationPalAI
+cd Tayarishe
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -35,7 +35,7 @@ Install and start Ollama before using its commands.
 In another terminal:
 
 ```bash
-cd PreparationPalAI/frontend
+cd Tayarishe/frontend
 npm ci
 npm run dev
 ```
