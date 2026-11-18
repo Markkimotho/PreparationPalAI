@@ -1,9 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/avatar';
 import { Body, Button, Card, Field, Icon, Notice, PressableScale, Screen } from '@/components/ui';
 import { Fonts, Radius } from '@/constants/theme';
+import { useProfile, type Profile } from '@/hooks/use-profile';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteRequest, getJson } from '@/utils/api';
@@ -19,6 +22,8 @@ const number = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits:
 export function Account() {
   const colors = useTheme();
   const { signOut } = useSession();
+  const { profile, workspace } = useProfile();
+  const accent = profile.accent;
   const [balance, setBalance] = useState<Balance | null>(null);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [prices, setPrices] = useState<Record<string, string>>({});
@@ -81,12 +86,13 @@ export function Account() {
     }
   };
 
-  return <Screen title="Account" accent="blue">
+  return <Screen title="Account" accent={accent}>
+    <ProfileCard profile={profile} seed={`${workspace}:${profile.avatar_seed}`} />
     <Notice text={notice} />
     <Notice text={error} kind="error" />
 
-    <View style={[styles.heroShadow, { shadowColor: colors.blueDeep, backgroundColor: colors.blueDeep }]}>
-      <LinearGradient colors={[colors.blue, colors.blueDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+    <View style={[styles.heroShadow, { shadowColor: colors[`${accent}Deep`], backgroundColor: colors[`${accent}Deep`] }]}>
+      <LinearGradient colors={[colors[accent], colors[`${accent}Deep`]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
         <View style={[styles.ring, styles.ringBig]} /><View style={[styles.ring, styles.ringSmall]} />
         <View style={styles.heroLabel}>
           <Icon name={{ ios: 'bolt.fill', android: 'bolt' }} size={16} color="#ffffff" />
@@ -150,7 +156,38 @@ export function Account() {
   </Screen>;
 }
 
+const GOAL_LINE: Record<Profile['goal'], string> = { exam: 'Preparing for an exam', interview: 'Preparing for interviews', understand: 'Learning to understand deeply' };
+
+function ProfileCard({ profile, seed }: { profile: Profile; seed: string }) {
+  const colors = useTheme();
+  const name = profile.display_name.trim();
+  const goal = profile.goal === 'exam' && profile.exam_context.trim() ? `Preparing for ${profile.exam_context.trim()}` : GOAL_LINE[profile.goal];
+  return <Card style={styles.profile}>
+    <View style={styles.profileTop}>
+      <Avatar seed={seed} name={name} size={64} label={name ? `${name}'s avatar` : 'Your avatar'} />
+      <View style={styles.flex}>
+        <Text accessibilityRole="header" style={[styles.profileName, { color: colors.text }]}>{name || 'Your profile'}</Text>
+        <Text style={[styles.profileGoal, { color: colors.textSecondary }]}>{`${goal} · ${profile.level[0].toUpperCase()}${profile.level.slice(1)}`}</Text>
+      </View>
+    </View>
+    {profile.subjects.length > 0 && <View style={styles.subjects}>
+      {profile.subjects.map(s => <View key={s} style={[styles.subject, { backgroundColor: colors[`${profile.accent}Soft`] }]}>
+        <Text style={[styles.subjectText, { color: colors[`${profile.accent}Deep`] }]}>{s}</Text></View>)}
+    </View>}
+    <Button label="Edit profile" variant="secondary" accent={profile.accent} compact icon={{ ios: 'pencil', android: 'edit' }}
+      onPress={() => router.push({ pathname: '/setup', params: { edit: '1' } })} />
+  </Card>;
+}
+
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  profile: { gap: 12 },
+  profileTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  profileName: { fontFamily: Fonts.display, fontSize: 22, letterSpacing: -0.5 },
+  profileGoal: { fontFamily: Fonts.body, fontSize: 15, marginTop: 2 },
+  subjects: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  subject: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  subjectText: { fontFamily: Fonts.bodyBold, fontSize: 13 },
   heroShadow: { borderRadius: Radius.xl, shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 5 },
   hero: { borderRadius: Radius.xl, padding: 22, gap: 6, overflow: 'hidden' },
   ring: { position: 'absolute', borderRadius: 999, borderWidth: 18, borderColor: 'rgba(255,255,255,0.08)' },

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { currentStreak, dayOf, recordStudy, streakLength } from './streak';
+import { currentStreak, dayOf, recordStudy, streakLength, todayCount } from './streak';
 
 const at = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h);
 beforeEach(() => AsyncStorage.clear());
@@ -35,4 +35,18 @@ test('recording is idempotent per day and persisted under the cleared-on-sign-ou
 test('corrupt storage reads as no streak instead of crashing', async () => {
   await AsyncStorage.setItem('cache:streak-days', '{not json');
   expect(await currentStreak(at(2026, 11, 18))).toEqual({ days: 0, studiedToday: false });
+});
+
+test('each study action counts toward today, and a new day starts from zero', async () => {
+  await recordStudy(at(2026, 11, 18, 9));
+  await recordStudy(at(2026, 11, 18, 10));
+  await recordStudy(at(2026, 11, 18, 23));
+  expect(await todayCount(at(2026, 11, 18, 23))).toBe(3);
+  expect(await todayCount(at(2026, 11, 19, 8))).toBe(0);
+});
+
+test('only the last month of daily counts is kept', async () => {
+  await recordStudy(at(2026, 9, 1));
+  await recordStudy(at(2026, 11, 18));
+  expect(Object.keys(JSON.parse((await AsyncStorage.getItem('cache:study-counts'))!))).toEqual(['2026-11-18']);
 });

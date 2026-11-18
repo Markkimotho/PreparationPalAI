@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Celebration } from '@/components/celebration';
+import { TopicChips } from '@/components/topic-chips';
 import { Body, Button, Card, Field, Icon, Notice, OptionButton, ProgressBar, Screen, Segmented, type OptionState } from '@/components/ui';
 import { EASE_OUT } from '@/constants/motion';
 import { Fonts } from '@/constants/theme';
@@ -58,6 +59,7 @@ export function Quiz() {
   return <Screen title="Quiz" subtitle="Test yourself in a few minutes." accent="amber">
     <Card>
       <Field label="Topic" accent="amber" value={topic} onChangeText={setTopic} placeholder="Photosynthesis, SQL joins, …" />
+      <TopicChips value={topic} onPick={setTopic} accent="amber" />
       <Segmented accent="amber" options={[{ value: '5', label: '5 questions' }, { value: '10', label: '10 questions' }]} value={count} onChange={setCount} />
       <Button label={busy ? 'Writing your quiz…' : 'Make a quiz'} accent="amber" icon={{ ios: 'wand.and.stars', android: 'auto_fix_high' }}
         busy={busy} disabled={!topic.trim()} onPress={() => void generate()} />

@@ -3,13 +3,16 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Celebration } from '@/components/celebration';
+import { TopicChips } from '@/components/topic-chips';
 import { Body, Button, Card, Field, Icon, Notice, OptionButton, ProgressBar, Screen, Segmented, type IconName } from '@/components/ui';
 import { EASE_OUT } from '@/constants/motion';
 import { Fonts } from '@/constants/theme';
+import { useProfile } from '@/hooks/use-profile';
 import { useTheme } from '@/hooks/use-theme';
 import { postJson } from '@/utils/api';
 import { haptics } from '@/utils/haptics';
 import { recordStudy } from '@/utils/streak';
+import { coachModeFor } from '@/utils/suggestions';
 
 type Mode = 'recap' | 'exam' | 'interview';
 interface Question { type: string; question: string; options?: Record<string, string> }
@@ -30,7 +33,8 @@ const ENTER = FadeInDown.duration(220).easing(EASE_OUT).withInitialValues({ opac
 export function Coach() {
   const colors = useTheme();
   const [topic, setTopic] = useState('');
-  const [mode, setMode] = useState<Mode>('recap');
+  const { profile } = useProfile();
+  const [mode, setMode] = useState<Mode>(() => coachModeFor(profile.goal));   // starts on the learner's goal
   const [session, setSession] = useState<Session | null>(null);
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
@@ -56,6 +60,7 @@ export function Coach() {
   return <Screen title="Coach" subtitle="Practise for the real thing." accent="coral">
     {!session && <Card>
       <Field label="What are you preparing for?" accent="coral" value={topic} onChangeText={setTopic} placeholder="Data structures interview" />
+      <TopicChips value={topic} onPick={setTopic} accent="coral" />
       <Segmented accent="coral" options={MODES.map(m => ({ value: m.value, label: m.label, icon: m.icon }))} value={mode} onChange={setMode} />
       <View style={[styles.about, { backgroundColor: colors.coralSoft }]}>
         <Icon name={about.icon} size={18} color={colors.coralDeep} />

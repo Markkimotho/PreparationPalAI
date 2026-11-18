@@ -2,30 +2,31 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } 
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
+import { Avatar } from '@/components/avatar';
+import { MasteryDial } from '@/components/illustrations';
 import Markdown from '@/components/markdown';
 import { Body, Button, Card, Field, Icon, Notice, Pill, PressableScale, Screen, Segmented, type IconName } from '@/components/ui';
 import { EASE_IN_OUT, EASE_OUT } from '@/constants/motion';
 import { Fonts, Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useProfile } from '@/hooks/use-profile';
 import { useTheme } from '@/hooks/use-theme';
 import { stream } from '@/utils/api';
 import { haptics } from '@/utils/haptics';
-import { currentStreak, recordStudy } from '@/utils/streak';
+import { currentStreak, recordStudy, todayCount } from '@/utils/streak';
+import { studyIdeas } from '@/utils/suggestions';
 import { pickAndUpload } from '@/utils/upload';
 
 type Mode = 'notes' | 'tutor' | 'code';
 interface Message { role: 'you' | 'pal'; text: string; sources?: string[] }
 
-const MODES: Record<Mode, { label: string; icon: IconName; path: string; body: (text: string, thread: string) => object; hint: string; ideas: string[] }> = {
+const MODES: Record<Mode, { label: string; icon: IconName; path: string; body: (text: string, thread: string) => object; hint: string }> = {
   notes: { label: 'My notes', icon: { ios: 'doc.text.fill', android: 'description' }, path: '/api/chat/stream',
-    body: (q, t) => ({ question: q, session_id: t }), hint: 'Ask about the notes you added.',
-    ideas: ['Summarise my notes in five points', 'What are the key terms I should know?', 'Explain the hardest idea simply'] },
+    body: (q, t) => ({ question: q, session_id: t }), hint: 'Ask about the notes you added.' },
   tutor: { label: 'Tutor', icon: { ios: 'graduationcap.fill', android: 'school' }, path: '/api/agent/stream',
-    body: (m, t) => ({ message: m, thread_id: t }), hint: 'A tutor that can quiz you and explain.',
-    ideas: ['Quiz me on photosynthesis', 'Teach me derivatives step by step', 'Check my understanding of supply and demand'] },
+    body: (m, t) => ({ message: m, thread_id: t }), hint: 'A tutor that can quiz you and explain.' },
   code: { label: 'Code', icon: { ios: 'chevron.left.forwardslash.chevron.right', android: 'code' }, path: '/api/code-chat/stream',
-    body: (m, t) => ({ message: m, thread_id: t }), hint: 'Debugging, design and trade-offs.',
-    ideas: ['When should I use a hash map?', 'Explain Big O with examples', 'Review my approach to a REST API'] },
+    body: (m, t) => ({ message: m, thread_id: t }), hint: 'Debugging, design and trade-offs.' },
 };
 const newThread = () => Math.random().toString(36).slice(2, 12);
 const greeting = (hour: number) => hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -34,6 +35,9 @@ const ENTER_BUBBLE = FadeInDown.duration(150).easing(EASE_OUT).withInitialValues
 export function Study() {
   const colors = useTheme();
   const dark = useColorScheme() === 'dark';
+  const { profile, workspace } = useProfile();
+  const accent = profile.accent;
+  const name = profile.display_name.trim();
   const [mode, setMode] = useState<Mode>('notes');
   const [threads] = useState<Record<Mode, string>>({ notes: newThread(), tutor: newThread(), code: newThread() });
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,10 +46,15 @@ export function Study() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [streak, setStreak] = useState(0);
+  const [today, setToday] = useState(0);
   const abort = useRef<AbortController | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
 
-  useEffect(() => { currentStreak().then(s => setStreak(s.days)).catch(() => undefined); }, []);
+  const refreshProgress = useCallback(() => {
+    currentStreak().then(s => setStreak(s.days)).catch(() => undefined);
+    todayCount().then(setToday).catch(() => undefined);
+  }, []);
+  useEffect(() => { refreshProgress(); }, [refreshProgress]);
   const hello = useMemo(() => greeting(new Date().getHours()), []);
 
   const send = async (override?: string) => {
@@ -53,7 +62,7 @@ export function Study() {
     if (!text || busy) return;
     setInput(''); setError(''); setBusy(true);
     setMessages(m => [...m, { role: 'you', text }, { role: 'pal', text: '' }]);
-    recordStudy().then(setStreak).catch(() => undefined);
+    recordStudy().then(refreshProgress).catch(() => undefined);
     const appendToLast = (change: (m: Message) => Message) => setMessages(all => [...all.slice(0, -1), change(all[all.length - 1])]);
     abort.current = new AbortController();
     try {
@@ -82,33 +91,45 @@ export function Study() {
 
   const followAnswer = useCallback(() => { if (messages.length) scroll.current?.scrollToEnd({ animated: true }); }, [messages.length]);
   const current = MODES[mode];
+  const ideas = studyIdeas(mode, profile);
+  const goalDone = today >= profile.daily_goal;
 
-  return <Screen title="Study" accent="blue" scrollRef={scroll} onContentSizeChange={followAnswer}
-    eyebrow={<Text style={[styles.eyebrow, { color: colors.textSecondary }]}>{hello}</Text>}
-    right={<Pill accent={streak > 0 ? 'amber' : 'blue'} icon={{ ios: 'flame.fill', android: 'local_fire_department' }}
-      label={streak > 0 ? `${streak}-day streak` : 'Start a streak'} />}>
-    <Segmented accent="blue" options={(Object.keys(MODES) as Mode[]).map(m => ({ value: m, label: MODES[m].label, icon: MODES[m].icon }))} value={mode}
+  return <Screen title="Study" accent={accent} scrollRef={scroll} onContentSizeChange={followAnswer}
+    eyebrow={<Text style={[styles.eyebrow, { color: colors.textSecondary }]}>{name ? `${hello}, ${name}` : hello}</Text>}
+    right={<Avatar seed={`${workspace}:${profile.avatar_seed}`} name={name} size={46} label={name ? `${name}'s avatar` : 'Your avatar'} />}>
+    {messages.length === 0 && <Card style={styles.today}>
+      <MasteryDial value={Math.min(1, today / Math.max(1, profile.daily_goal))} size={84} color={colors[accent]} track={colors.backgroundSelected}>
+        <Text style={[styles.todayCount, { color: colors.text }]}>{today}</Text>
+      </MasteryDial>
+      <View style={styles.flex}>
+        <Text style={[styles.todayTitle, { color: colors.text }]}>{goalDone ? 'Daily goal reached' : `${Math.max(0, profile.daily_goal - today)} to go today`}</Text>
+        <Text style={[styles.todayDetail, { color: colors.textSecondary }]}>{`${today} of ${profile.daily_goal} today`}</Text>
+        <Pill accent={streak > 0 ? 'amber' : accent} icon={{ ios: 'flame.fill', android: 'local_fire_department' }}
+          label={streak > 0 ? `${streak}-day streak` : 'Start a streak today'} />
+      </View>
+    </Card>}
+    <Segmented accent={accent} options={(Object.keys(MODES) as Mode[]).map(m => ({ value: m, label: MODES[m].label, icon: MODES[m].icon }))} value={mode}
       onChange={m => { setMode(m); setMessages([]); setError(''); }} />
 
-    {messages.length === 0 ? <Card tone="soft" accent="blue" style={styles.empty}>
-      <View style={[styles.emptyIcon, { backgroundColor: colors.blue }]}><Icon name={current.icon} size={26} color="#ffffff" /></View>
+    {messages.length === 0 ? <Card tone="soft" accent={accent} style={styles.empty}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors[accent] }]}><Icon name={current.icon} size={26} color="#ffffff" /></View>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>{current.hint}</Text>
       <View style={styles.ideas}>
-        {current.ideas.map(idea => <PressableScale key={idea} onPress={() => setInput(idea)} accessibilityLabel={`Use suggestion: ${idea}`}
+        {ideas.map(idea => <PressableScale key={idea} onPress={() => setInput(idea)} accessibilityLabel={`Use suggestion: ${idea}`}
           style={[styles.idea, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Icon name={{ ios: 'sparkle', android: 'auto_awesome' }} size={14} color={colors.blue} />
+          <Icon name={{ ios: 'sparkle', android: 'auto_awesome' }} size={14} color={colors[accent]} />
           <Text style={[styles.ideaText, { color: colors.text }]}>{idea}</Text>
         </PressableScale>)}
       </View>
       {mode === 'notes' && <Button label="Add notes (PDF or photo)" variant="secondary" icon={{ ios: 'plus.circle.fill', android: 'add_circle' }} onPress={() => void upload()} />}
     </Card> : messages.map((m, i) => <Animated.View key={i} entering={ENTER_BUBBLE}>
       {m.role === 'you'
-        ? <View style={[styles.mine, { backgroundColor: colors.blue }]}><Text style={styles.mineText}>{m.text}</Text></View>
+        ? <View style={[styles.mine, { backgroundColor: colors[accent] }]}><Text style={styles.mineText}>{m.text}</Text></View>
         : <View style={styles.palRow}>
           <View style={[styles.avatar, { backgroundColor: colors.brand }]}><View style={[styles.avatarInner, { backgroundColor: colors.mint }]} /></View>
           <View style={[styles.theirs, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {m.text ? <Markdown text={m.text} dark={dark} dom={{ matchContents: true, scrollEnabled: false }} />
-              : busy && i === messages.length - 1 ? <Typing color={colors.blue} /> : <Body muted>…</Body>}
+              : busy && i === messages.length - 1 ? <Typing color={colors[accent]} /> : <Body muted>…</Body>}
             {!!m.sources?.length && <View style={styles.sources}>
               <Icon name={{ ios: 'doc.text', android: 'description' }} size={13} color={colors.textSecondary} />
               <Text style={[styles.sourcesText, { color: colors.textSecondary }]}>Sources: {m.sources.join(', ')}</Text>
@@ -128,7 +149,7 @@ export function Study() {
       </View>
       {busy
         ? <SendButton label="Stop" icon={{ ios: 'stop.fill', android: 'stop' }} color={colors.coral} onPress={() => abort.current?.abort()} />
-        : <SendButton label="Send" icon={{ ios: 'arrow.up', android: 'arrow_upward' }} color={colors.blue} disabled={!input.trim()} onPress={() => void send()} />}
+        : <SendButton label="Send" icon={{ ios: 'arrow.up', android: 'arrow_upward' }} color={colors[accent]} disabled={!input.trim()} onPress={() => void send()} />}
     </View>
   </Screen>;
 }
@@ -158,6 +179,10 @@ function Dot({ index, color }: { index: number; color: string }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   eyebrow: { fontFamily: Fonts.bodySemi, fontSize: 15 },
+  today: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  todayCount: { fontFamily: Fonts.display, fontSize: 24, letterSpacing: -0.6 },
+  todayTitle: { fontFamily: Fonts.heading, fontSize: 18 },
+  todayDetail: { fontFamily: Fonts.body, fontSize: 15, marginBottom: 6 },
   empty: { alignItems: 'center', gap: 14, paddingVertical: 24 },
   emptyIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', transform: [{ rotateZ: '-6deg' }] },
   emptyTitle: { fontFamily: Fonts.heading, fontSize: 18, textAlign: 'center' },

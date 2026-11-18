@@ -44,6 +44,8 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 export const getJson = <T>(path: string) => request<T>(path);
 export const postJson = <T>(path: string, body: unknown) =>
   request<T>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+export const putJson = <T>(path: string, body: unknown) =>
+  request<T>(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 export const deleteRequest = (path: string) => request<void>(path, { method: 'DELETE' });
 
 export type StreamEvent = { type: 'token'; text: string } | { type: 'sources'; sources: { source: string; page?: number | string }[] }

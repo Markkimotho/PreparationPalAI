@@ -7,6 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = 'cache:streak-days';
+const COUNTS = 'cache:study-counts';      // day -> study actions that day (for the daily goal)
 const KEEP = 120;
 
 /** The local calendar day, YYYY-MM-DD (not UTC: a learner in Nairobi studying at 1am is on today). */
@@ -43,10 +44,29 @@ export async function currentStreak(now = new Date()): Promise<{ days: number; s
   return { days: streakLength(days, now), studiedToday: days.includes(dayOf(now)) };
 }
 
-/** Mark today as a study day. Returns the streak after marking. */
+async function counts(): Promise<Record<string, number>> {
+  try {
+    const raw = JSON.parse((await AsyncStorage.getItem(COUNTS)) ?? '{}');
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+/** How many study actions (questions, answers, cards) the learner did today. */
+export async function todayCount(now = new Date()): Promise<number> {
+  const value = (await counts())[dayOf(now)];
+  return typeof value === 'number' && value > 0 ? value : 0;
+}
+
+/** Mark today as a study day and count one action. Returns the streak after marking. */
 export async function recordStudy(now = new Date()): Promise<number> {
-  const days = await load();
   const today = dayOf(now);
+  const all = await counts();
+  const kept = Object.fromEntries(Object.entries(all).filter(([day]) => day >= dayOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30))));
+  kept[today] = (typeof kept[today] === 'number' ? kept[today] : 0) + 1;
+  await AsyncStorage.setItem(COUNTS, JSON.stringify(kept));
+  const days = await load();
   if (!days.includes(today)) {
     days.push(today);
     days.sort();

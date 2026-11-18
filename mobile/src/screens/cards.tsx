@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { TopicChips } from '@/components/topic-chips';
 import { Body, Button, Card, Field, Icon, Notice, PressableScale, ProgressBar, Screen } from '@/components/ui';
 import { accentColors, Fonts, Radius, type Accent } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -54,6 +55,7 @@ export function Cards() {
     {offline && <Notice text="You're offline. Showing the cards saved on this phone." />}
     <Card>
       <Field label="Make a deck from your notes about…" accent="green" value={topic} onChangeText={setTopic} placeholder="Cell biology" />
+      <TopicChips value={topic} onPick={setTopic} accent="green" />
       <Button label="Make 10 cards" accent="green" icon={{ ios: 'rectangle.stack.badge.plus', android: 'library_add' }}
         busy={busy} disabled={!topic.trim() || offline} onPress={() => void generate()} />
     </Card>

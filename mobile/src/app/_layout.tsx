@@ -9,21 +9,36 @@ import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { ProfileProvider, useProfile } from '@/hooks/use-profile';
 import { SessionProvider, useSession } from '@/hooks/use-session';
 
 SplashScreen.preventAutoHideAsync();
 
 function Navigator({ fontsReady }: { fontsReady: boolean }) {
   const { state } = useSession();
-  const ready = state !== 'loading' && fontsReady;
+  // The profile is per account: load it only inside a signed-in session.
+  return state === 'signed-in'
+    ? <ProfileProvider><Routes signedIn fontsReady={fontsReady} /></ProfileProvider>
+    : <Routes signedIn={false} fontsReady={fontsReady} loading={state === 'loading'} />;
+}
+
+function Routes({ signedIn, fontsReady, loading = false }: { signedIn: boolean; fontsReady: boolean; loading?: boolean }) {
+  const { profile, status } = useProfile();
+  const ready = fontsReady && !loading && (!signedIn || status !== 'loading');
   useEffect(() => { if (ready) void SplashScreen.hideAsync(); }, [ready]);
   if (!ready) return null;
+  // A learner who has not made the app theirs yet starts there (if the profile could not be loaded,
+  // offline on a first launch, they get the app with defaults rather than a blocked screen).
+  const needsSetup = signedIn && status === 'ready' && !profile.onboarded;
   return <Stack screenOptions={{ headerShown: false }}>
-    <Stack.Protected guard={state === 'signed-in'}>
+    <Stack.Protected guard={signedIn && !needsSetup}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="deck/[id]" options={{ headerShown: true, title: '', headerTransparent: true, headerBackTitle: 'Decks', headerTintColor: '#ffffff' }} />
     </Stack.Protected>
-    <Stack.Protected guard={state === 'signed-out'}>
+    <Stack.Protected guard={signedIn}>
+      <Stack.Screen name="setup" options={{ presentation: needsSetup ? 'card' : 'modal', gestureEnabled: !needsSetup }} />
+    </Stack.Protected>
+    <Stack.Protected guard={!signedIn}>
       <Stack.Screen name="sign-in" />
     </Stack.Protected>
   </Stack>;

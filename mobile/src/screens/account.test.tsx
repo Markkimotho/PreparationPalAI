@@ -3,6 +3,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 const mockSignOut = jest.fn(async () => undefined);
 jest.mock('@/hooks/use-session', () => ({ useSession: () => ({ signOut: mockSignOut }) }));
 jest.mock('@/utils/api', () => ({ getJson: jest.fn(), deleteRequest: jest.fn() }));
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
+let mockProfile: Record<string, unknown> | null = null;
+jest.mock('@/hooks/use-profile', () => {
+  const actual = jest.requireActual('@/hooks/use-profile');
+  return { ...actual, useProfile: () => ({ ...actual.useProfile(), ...(mockProfile ? { profile: mockProfile, workspace: 'u-x' } : {}) }) };
+});
 jest.mock('@/utils/purchases', () => ({
   purchasesAvailable: jest.fn(() => true), startPurchases: jest.fn(async () => true),
   storePrices: jest.fn(async () => ({ credits_5000: 'KES 650.00' })), buy: jest.fn(),
@@ -72,4 +79,18 @@ test('a failed deletion keeps the learner signed in and explains why', async () 
   await fireEvent.press(screen.getByRole('button', { name: 'Permanently delete my account' }));
   expect(await screen.findByRole('alert')).toHaveTextContent(/Nothing was deleted/);
   expect(mockSignOut).not.toHaveBeenCalled();
+});
+
+test('the profile card shows who the learner is and opens the editor', async () => {
+  const { DEFAULT_PROFILE } = jest.requireActual('@/hooks/use-profile');
+  mockProfile = { ...DEFAULT_PROFILE, display_name: 'Amani', goal: 'exam', exam_context: 'KCSE 2027', level: 'advanced',
+    subjects: ['Organic chemistry', 'Statistics'], accent: 'coral', onboarded: true };
+  await render(<Account />);
+  expect(screen.getByText('Amani')).toBeTruthy();
+  expect(screen.getByText('Preparing for KCSE 2027 · Advanced')).toBeTruthy();
+  expect(screen.getByText('Organic chemistry')).toBeTruthy();
+  expect(screen.getByLabelText("Amani's avatar")).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit profile' }));
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/setup', params: { edit: '1' } });
+  mockProfile = null;
 });
