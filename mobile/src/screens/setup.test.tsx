@@ -92,3 +92,19 @@ test('a refused save is explained and nothing closes', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach the server. Please retry.');
   expect(mockBack).not.toHaveBeenCalled();
 });
+
+// Regression: the daily-goal tiles took a percentage width on the pressable's inner view, which
+// resolved against an unsized wrapper and squeezed each tile's text to one letter per line.
+test('daily-goal tiles sit in half-width slots, two per row', async () => {
+  const { StyleSheet } = require('react-native');
+  await render(<Setup />);
+  await fireEvent.changeText(screen.getByLabelText('Your name'), 'Amani');
+  await next();
+  await next();
+  await fireEvent.press(screen.getByRole('button', { name: 'Biology' }));
+  await next();
+  const tile = screen.getByRole('button', { name: 'Steady, 10 a day' });
+  let slot = tile.parent;
+  while (slot && StyleSheet.flatten(slot.props.style)?.width === undefined) slot = slot.parent;
+  expect(StyleSheet.flatten(slot!.props.style).width).toBe('50%');
+});

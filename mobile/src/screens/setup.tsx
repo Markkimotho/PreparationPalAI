@@ -128,13 +128,17 @@ export function Setup({ editing = false }: { editing?: boolean }) {
       case 3: return <>
         <Title text="How much each day?" sub="Answers, cards and questions all count. You can change this any time." />
         <View style={styles.paces}>
-          {PACES.map(p => <PressableScale key={p.value} onPress={() => set({ daily_goal: p.value })} accessibilityLabel={`${p.title}, ${p.value} a day`}
-            accessibilityState={{ selected: draft.daily_goal === p.value }}
-            style={[styles.pace, { backgroundColor: draft.daily_goal === p.value ? accent.soft : colors.surface, borderColor: draft.daily_goal === p.value ? accent.main : colors.border }]}>
-            <Text style={[styles.paceValue, { color: draft.daily_goal === p.value ? accent.deep : colors.text }]}>{p.value}</Text>
-            <Text style={[styles.paceTitle, { color: colors.text }]}>{p.title}</Text>
-            <Text style={[styles.paceDetail, { color: colors.textSecondary }]}>{p.detail}</Text>
-          </PressableScale>)}
+          {/* Each tile sits in a half-width slot: a percentage width on the pressable's inner view would
+              resolve against its unsized wrapper and squeeze the text to one letter per line. */}
+          {PACES.map(p => <View key={p.value} style={styles.paceSlot}>
+            <PressableScale onPress={() => set({ daily_goal: p.value })} accessibilityLabel={`${p.title}, ${p.value} a day`}
+              accessibilityState={{ selected: draft.daily_goal === p.value }}
+              style={[styles.pace, { backgroundColor: draft.daily_goal === p.value ? accent.soft : colors.surface, borderColor: draft.daily_goal === p.value ? accent.main : colors.border }]}>
+              <Text style={[styles.paceValue, { color: draft.daily_goal === p.value ? accent.deep : colors.text }]}>{p.value}</Text>
+              <Text style={[styles.paceTitle, { color: colors.text }]}>{p.title}</Text>
+              <Text style={[styles.paceDetail, { color: colors.textSecondary }]}>{p.detail}</Text>
+            </PressableScale>
+          </View>)}
         </View>
       </>;
       default: return <>
@@ -249,8 +253,9 @@ const styles = StyleSheet.create({
   choiceTitle: { fontFamily: Fonts.heading, fontSize: 17 },
   choiceDetail: { fontFamily: Fonts.body, fontSize: 15, lineHeight: 20 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  paces: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5 },
-  pace: { width: '47%', margin: '1.5%', padding: 16, borderRadius: Radius.lg, borderWidth: 1.5, gap: 2 },
+  paces: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
+  paceSlot: { width: '50%', padding: 6 },
+  pace: { padding: 16, borderRadius: Radius.lg, borderWidth: 1.5, gap: 2, minHeight: 124 },
   paceValue: { fontFamily: Fonts.display, fontSize: 30, letterSpacing: -1 },
   paceTitle: { fontFamily: Fonts.heading, fontSize: 16 },
   paceDetail: { fontFamily: Fonts.body, fontSize: 14 },
