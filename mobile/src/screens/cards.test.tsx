@@ -50,7 +50,8 @@ test('studying a deck: flip, answer with Got it and Still learning, see the tall
   expect(screen.getByText('2 / 2')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Still learning' }));
   expect(screen.getByText('You know 1 of 2')).toBeTruthy();
-  expect(screen.getByText('1 still learning')).toBeTruthy();
+  expect(screen.getByLabelText('1 still learning')).toBeTruthy();
+  expect(screen.getByLabelText('1 got it')).toBeTruthy();
   expect(JSON.parse((await AsyncStorage.getItem('cache:mastery:d1'))!)).toEqual(['c1']);
   await fireEvent.press(screen.getByRole('button', { name: 'Review the 1 still learning' }));
   expect(screen.getByText('Plant energy?')).toBeTruthy();

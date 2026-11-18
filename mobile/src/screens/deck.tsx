@@ -1,12 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardDeck, type Answer, type DeckCard } from '@/components/card-deck';
 import { Celebration } from '@/components/celebration';
+import { MasteryDial, SproutArt, TrophyArt } from '@/components/illustrations';
 import { Body, Icon, Notice, PressableScale, Screen, type IconName } from '@/components/ui';
-import { Fonts, Radius } from '@/constants/theme';
+import { EASE_OUT } from '@/constants/motion';
+import { Fonts } from '@/constants/theme';
 import { getJson } from '@/utils/api';
 import { cached } from '@/utils/cache';
 import { haptics } from '@/utils/haptics';
@@ -17,7 +20,7 @@ import type { Deck } from './cards';
 const STAGE = ['#1fa774', '#0f3b2c'] as const;        // the logo's greens, deepened into a study stage
 const INK = '#15241d';
 
-export function DeckStudy({ id, startFlipped = false }: { id: string; startFlipped?: boolean }) {
+export function DeckStudy({ id, startFlipped = false, preview }: { id: string; startFlipped?: boolean; preview?: 'strong' | 'learning' }) {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState('');
@@ -30,9 +33,16 @@ export function DeckStudy({ id, startFlipped = false }: { id: string; startFlipp
 
   useEffect(() => {
     cached(`deck:${id}`, () => getJson<Deck>(`/api/flashcards/${encodeURIComponent(id)}`))
-      .then(r => { setDeck(r.value); setOffline(r.offline); setRound(r.value?.cards ?? []); })
+      .then(r => {
+        setDeck(r.value); setOffline(r.offline); setRound(r.value?.cards ?? []);
+        if (preview && r.value) {                               // development only: open on the summary
+          const cut = Math.round(r.value.cards.length * (preview === 'strong' ? 0.8 : 0.35));
+          setResults(Object.fromEntries(r.value.cards.map((c, i) => [c.id, i < cut ? 'known' : 'learning'])));
+          setPosition(r.value.cards.length);
+        }
+      })
       .catch(e => setError((e as Error).message));
-  }, [id]);
+  }, [id, preview]);
 
   const { height: screenHeight } = useWindowDimensions();
   const cardHeight = Math.round(Math.min(480, Math.max(320, screenHeight * 0.46)));
@@ -145,25 +155,55 @@ function RoundButton({ label, icon, tone, large, onPress }: { label: string; ico
   </View>;
 }
 
+// The summary's wave (end of deck is rare: it gets the delight budget). The illustration leads
+// (its own entrance); everything else follows with shrinking gaps.
+const rise = (delay: number, distance: number) => FadeInDown.duration(380).delay(delay).easing(EASE_OUT)
+  .withInitialValues({ opacity: 0, transform: [{ translateY: distance }] });
+const ENTER_HEADLINE = rise(160, 8);
+const ENTER_TILE_A = rise(220, 6);
+const ENTER_TILE_B = rise(260, 6);
+const ENTER_ACTIONS = FadeIn.duration(300).delay(320);
+
 function Summary({ total, known, learning, onReview, onAgain }: { total: number; known: number; learning: number; onReview: () => void; onAgain: () => void }) {
   const ratio = total ? known / total : 0;
+  const strong = ratio >= 0.7;
   return <View style={styles.summary}>
-    <Celebration play={ratio >= 0.7} />
-    <View style={styles.trophy}><Icon name={ratio >= 0.7 ? { ios: 'trophy.fill', android: 'emoji_events' } : { ios: 'leaf.fill', android: 'eco' }} size={34} color="#f29d16" /></View>
-    <Text accessibilityRole="header" style={styles.summaryTitle}>{`You know ${known} of ${total}`}</Text>
-    <Text style={styles.summaryBody}>{ratio === 1 ? 'Every card. Brilliant.' : ratio >= 0.7 ? 'Strong round. A quick review and you have them all.' : 'Good start. Review the ones you are still learning.'}</Text>
-    <View style={styles.tally}>
-      <View style={[styles.tallyPill, { backgroundColor: '#ddf5ea' }]}><Text style={[styles.tallyText, { color: '#16a06a' }]}>{`${known} got it`}</Text></View>
-      <View style={[styles.tallyPill, { backgroundColor: '#fff1d6' }]}><Text style={[styles.tallyText, { color: '#c96f05' }]}>{`${learning} still learning`}</Text></View>
+    <Celebration play={strong} />
+    {strong ? <TrophyArt size={150} /> : <SproutArt size={150} />}
+    <Animated.View entering={ENTER_HEADLINE} style={styles.headline}>
+      <Text accessibilityRole="header" style={styles.summaryTitle}>{`You know ${known} of ${total}`}</Text>
+      <Text style={styles.summaryBody}>{ratio === 1 ? 'Every card. Brilliant work.' : strong ? 'Strong round. One quick review and they are all yours.' : 'Every review makes them stick. Go again on the rest.'}</Text>
+    </Animated.View>
+    <View style={styles.statsRow}>
+      <MasteryDial value={ratio} color="#1fa774" track="#cfd8d3" size={104}>
+        <Text style={styles.dialValue}>{`${Math.round(ratio * 100)}%`}</Text>
+        <Text style={styles.dialLabel}>mastered</Text>
+      </MasteryDial>
+      <View style={styles.tiles}>
+        <Animated.View entering={ENTER_TILE_A} accessible accessibilityLabel={`${known} got it`} style={[styles.tile, { backgroundColor: '#ddf5ea' }]}>
+          <View style={[styles.tileIcon, { backgroundColor: '#1fa774' }]}><Icon name={{ ios: 'checkmark', android: 'check' }} size={14} color="#ffffff" /></View>
+          <View><Text style={[styles.tileValue, { color: '#156b4d' }]}>{known}</Text><Text style={[styles.tileLabel, { color: '#156b4d' }]}>got it</Text></View>
+        </Animated.View>
+        <Animated.View entering={ENTER_TILE_B} accessible accessibilityLabel={`${learning} still learning`} style={[styles.tile, { backgroundColor: '#fff1d6' }]}>
+          <View style={[styles.tileIcon, { backgroundColor: '#f29d16' }]}><Icon name={{ ios: 'arrow.uturn.backward', android: 'undo' }} size={13} color="#ffffff" /></View>
+          <View><Text style={[styles.tileValue, { color: '#a35a04' }]}>{learning}</Text><Text style={[styles.tileLabel, { color: '#a35a04' }]}>still learning</Text></View>
+        </Animated.View>
+      </View>
     </View>
-    {learning > 0 && <PressableScale onPress={onReview} accessibilityLabel={`Review the ${learning} still learning`} style={[styles.summaryButton, { backgroundColor: '#156b4d' }]}>
-      <Icon name={{ ios: 'arrow.uturn.backward', android: 'undo' }} size={18} color="#ffffff" />
-      <Text style={[styles.summaryButtonText, { color: '#ffffff' }]}>{`Review the ${learning} still learning`}</Text>
-    </PressableScale>}
-    <PressableScale onPress={onAgain} accessibilityLabel="Study the whole deck again" style={[styles.summaryButton, { backgroundColor: '#dbf4e8' }]}>
-      <Icon name={{ ios: 'arrow.clockwise', android: 'refresh' }} size={18} color="#156b4d" />
-      <Text style={[styles.summaryButtonText, { color: '#156b4d' }]}>Study the whole deck again</Text>
-    </PressableScale>
+    <Animated.View entering={ENTER_ACTIONS} style={styles.actions}>
+      <PressableScale onPress={learning > 0 ? onReview : onAgain}
+        accessibilityLabel={learning > 0 ? `Review the ${learning} still learning` : 'Study the whole deck again'}>
+        <View style={styles.primaryShadow}>
+          <LinearGradient colors={['#1fa774', '#156b4d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primary}>
+            <Icon name={learning > 0 ? { ios: 'bolt.fill', android: 'bolt' } : { ios: 'arrow.clockwise', android: 'refresh' }} size={18} color="#ffffff" />
+            <Text style={styles.primaryText}>{learning > 0 ? `Review the ${learning} still learning` : 'Study the whole deck again'}</Text>
+          </LinearGradient>
+        </View>
+      </PressableScale>
+      {learning > 0 && <PressableScale onPress={onAgain} accessibilityLabel="Study the whole deck again" style={styles.link}>
+        <Text style={styles.linkText}>Study the whole deck again</Text>
+      </PressableScale>}
+    </Animated.View>
   </View>;
 }
 
@@ -193,13 +233,23 @@ const styles = StyleSheet.create({
   roundSlot: { alignItems: 'center', justifyContent: 'flex-end', gap: 8, minWidth: 90 },
   round: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, shadowColor: '#06140e', shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
   roundLabel: { fontFamily: Fonts.bodyBold, fontSize: 14, color: '#ffffff' },
-  summary: { backgroundColor: '#ffffff', borderRadius: Radius.xl, padding: 24, alignItems: 'center', gap: 12, overflow: 'visible' },
-  trophy: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#fff1d6', alignItems: 'center', justifyContent: 'center' },
-  summaryTitle: { fontFamily: Fonts.display, fontSize: 28, letterSpacing: -0.7, color: INK, textAlign: 'center' },
-  summaryBody: { fontFamily: Fonts.body, fontSize: 17, lineHeight: 24, color: '#5d666c', textAlign: 'center' },
-  tally: { flexDirection: 'row', gap: 8 },
-  tallyPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
-  tallyText: { fontFamily: Fonts.bodyBold, fontSize: 14 },
-  summaryButton: { alignSelf: 'stretch', minHeight: 52, borderRadius: Radius.md, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
-  summaryButtonText: { fontFamily: Fonts.heading, fontSize: 16 },
+  summary: { backgroundColor: '#ffffff', borderRadius: 32, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 20, alignItems: 'center', gap: 14, overflow: 'visible',
+    shadowColor: '#06140e', shadowOpacity: 0.3, shadowRadius: 26, shadowOffset: { width: 0, height: 16 } },
+  headline: { alignItems: 'center', gap: 6 },
+  summaryTitle: { fontFamily: Fonts.display, fontSize: 30, letterSpacing: -0.9, color: INK, textAlign: 'center' },
+  summaryBody: { fontFamily: Fonts.body, fontSize: 17, lineHeight: 24, color: '#5d666c', textAlign: 'center', maxWidth: 300 },
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16, alignSelf: 'stretch', justifyContent: 'center', marginVertical: 4 },
+  dialValue: { fontFamily: Fonts.display, fontSize: 24, letterSpacing: -0.6, color: INK },
+  dialLabel: { fontFamily: Fonts.bodySemi, fontSize: 12, color: '#5d666c', marginTop: -2 },
+  tiles: { flex: 1, gap: 10, maxWidth: 190 },
+  tile: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+  tileIcon: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  tileValue: { fontFamily: Fonts.display, fontSize: 22, letterSpacing: -0.5, lineHeight: 25 },
+  tileLabel: { fontFamily: Fonts.bodySemi, fontSize: 13 },
+  actions: { alignSelf: 'stretch', gap: 4, marginTop: 4 },
+  primaryShadow: { borderRadius: 18, backgroundColor: '#156b4d', shadowColor: '#156b4d', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
+  primary: { minHeight: 56, borderRadius: 18, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+  primaryText: { fontFamily: Fonts.heading, fontSize: 17, color: '#ffffff' },
+  link: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  linkText: { fontFamily: Fonts.bodyBold, fontSize: 16, color: '#156b4d' },
 });
