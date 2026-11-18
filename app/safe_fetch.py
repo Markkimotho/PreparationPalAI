@@ -38,7 +38,7 @@ def fetch_text(url: str, timeout: float = 20, max_bytes: int = 2_000_000) -> str
             path = parsed.path or '/'
             if parsed.query:
                 path += '?' + parsed.query
-            connection.request('GET', path, headers={'User-Agent': 'PreparationPalAI/1.0', 'Accept-Encoding': 'identity'})
+            connection.request('GET', path, headers={'User-Agent': 'Tayarishe/1.0', 'Accept-Encoding': 'identity'})
             response = connection.getresponse()
             if response.status in (301, 302, 303, 307, 308):
                 location = response.getheader('Location')

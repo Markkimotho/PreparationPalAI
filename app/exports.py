@@ -85,7 +85,7 @@ def render_pdf(req: ExportRequest) -> bytes:
             page = document.new_page(width=595, height=842)
             _block(page, (42, 30, 553, 72), _text(req.title), 20)
             _block(page, (42, 78, 553, 112),
-                   f'{req.kind.title()} · {index + 1} / {len(req.questions)} · PreparationPalAI', 10)
+                   f'{req.kind.title()} · {index + 1} / {len(req.questions)} · Tayarishe', 10)
             if index == 0 and req.kind != 'answers':
                 _block(page, (42, 119, 88, 145), 'Name', 10)
                 _field(page, 'learner_name', (90, 117, 355, 143), 'Your name')
@@ -113,7 +113,7 @@ def render_pdf(req: ExportRequest) -> bytes:
             _block(page, (42, 770, 553, 818),
                    'AI study material · Check references before formal assessment. '
                    'Fill in a PDF reader and save a copy, or print and write by hand.', 9)
-        document.set_metadata({'title': req.title, 'author': 'PreparationPalAI', 'subject': req.kind})
+        document.set_metadata({'title': req.title, 'author': 'Tayarishe', 'subject': req.kind})
         return document.tobytes(garbage=4, deflate=True)
 
 

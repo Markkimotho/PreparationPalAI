@@ -1,6 +1,6 @@
 # billing
 
-Owns every credit balance for PreparationPalAI. Nothing else writes balances.
+Owns every credit balance for Tayarishe. Nothing else writes balances.
 
 - **Money** is integer micro-dollars (1 credit = 1,000 micros). No floats.
 - **Ledger** is append-only (a trigger rejects UPDATE and DELETE). `amount_micros` changes

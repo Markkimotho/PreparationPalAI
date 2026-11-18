@@ -15,7 +15,7 @@ def extract(path, source_name=None):
     import json
     path = Path(path)
     scan(path)
-    with tempfile.TemporaryDirectory(prefix='preppal-extract-') as temp:
+    with tempfile.TemporaryDirectory(prefix='tayarishe-extract-') as temp:
         output = Path(temp) / 'documents.json'
         process = subprocess.Popen([sys.executable, '-m', 'app.extract_worker', str(path),
             source_name or path.name, str(output)], stdout=subprocess.DEVNULL,

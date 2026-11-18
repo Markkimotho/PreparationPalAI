@@ -11,7 +11,7 @@ def client(tmp_path):
     (tmp_path / 'index.html').write_text('<!doctype html><title>app</title>')
     (tmp_path / 'sw.js').write_text('self.addEventListener("fetch", () => {})')
     (tmp_path / 'sw-strategy.js').write_text('self.swStrategy = () => "network"')
-    (tmp_path / 'manifest.webmanifest').write_text('{"name": "PreparationPalAI"}')
+    (tmp_path / 'manifest.webmanifest').write_text('{"name": "Tayarishe"}')
     (tmp_path / 'assets').mkdir()
     (tmp_path / 'assets' / 'index-abc123.js').write_text('console.log(1)')
     app = FastAPI()

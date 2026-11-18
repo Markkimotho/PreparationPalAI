@@ -379,9 +379,9 @@ def test_metrics_endpoint_exposes_custom_metrics():
         client.post("/api/code-chat/stream", json={"message": "hi"})
 
     body = client.get("/metrics").text
-    assert "preparationpalai_stream_tokens_total" in body
-    assert "preparationpalai_llm_request_duration_seconds" in body
-    assert "preparationpalai_llm_requests_total" in body
+    assert "tayarishe_stream_tokens_total" in body
+    assert "tayarishe_llm_request_duration_seconds" in body
+    assert "tayarishe_llm_requests_total" in body
     # Default HTTP metrics from the instrumentator are present too.
     assert "http_request" in body
 
@@ -411,7 +411,7 @@ import app.api as api_module  # noqa: E402
 def test_spa_served_at_root():
     r = client.get("/")
     assert r.status_code == 200
-    assert '<h1>Practise the questions' in r.text
+    assert '<h1>Study deeply.' in r.text
     assert '<script type="module"' not in r.text
 
 

@@ -1,5 +1,5 @@
 # Throwaway Postgres with pgvector for the app's storage tests: 127.0.0.1:15433
-name: preparationpal-pg-test
+name: tayarishe-pg-test
 services:
   db:
     image: pgvector/pgvector:0.8.7-pg16

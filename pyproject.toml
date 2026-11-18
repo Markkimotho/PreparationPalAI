@@ -1,5 +1,5 @@
 [project]
-name = "preparationpalai"
+name = "tayarishe"
 version = "1.0.0"
 description = "RAG AI Chatbot with LangChain, Ollama, and ChromaDB"
 requires-python = ">=3.11"

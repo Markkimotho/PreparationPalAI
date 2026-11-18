@@ -1,6 +1,6 @@
 # Hosted deployment: inference goes through the shared AI gateway, so there is no Ollama here.
 # Prerequisites:  docker network create ai-gateway   (ai-gateway repo's stack joins it)
-#                 GATEWAY_API_KEY from ai-gateway: scripts/new_app_key.sh preparationpal-prod <usd>
+#                 GATEWAY_API_KEY from ai-gateway: scripts/new_app_key.sh tayarishe-prod <usd>
 # Run:  docker compose -f docker-compose.hosted.yml up -d --build      (set the variables listed in .env.example)
 # This file is complete on its own: it includes the Caddy proxy, sign-in (Logto) and Postgres.
 # Do not combine it with docker-compose.production.yml (that overlay is for self-hosted static keys).
@@ -32,7 +32,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: preparationpalai-web
+    container_name: tayarishe-web
     ports:
       - "127.0.0.1:8000:8000"
     command: ["sh", "-c", "python -m app.migrate_db && exec uvicorn app.api:app --host 0.0.0.0 --port 8000 --no-access-log"]
@@ -211,7 +211,7 @@ services:
       - BILLING_DATABASE_URL=postgresql://billing:${BILLING_DB_PASSWORD:?Set a long random database password}@billing-db:5432/billing
       - GATEWAY_BASE_URL=http://litellm:4000
       - GATEWAY_ADMIN_KEY=${GATEWAY_ADMIN_KEY:?The gateway admin key, used only to read spend logs}
-      - GATEWAY_KEY_ALIAS=${GATEWAY_KEY_ALIAS:-preparationpal-prod}
+      - GATEWAY_KEY_ALIAS=${GATEWAY_KEY_ALIAS:-tayarishe-prod}
     networks: [default, ai-gateway]
     depends_on:
       billing:

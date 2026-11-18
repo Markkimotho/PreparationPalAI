@@ -8,7 +8,7 @@ from billing.pricing import current_prices, seed_if_empty
 from billing.jobs import PriceDiff, ReconcileReport
 
 NOW = datetime(2026, 11, 17, 12, 0, tzinfo=timezone.utc)
-KEY = 'preparationpal-prod'
+KEY = 'tayarishe-prod'
 
 
 @pytest.fixture

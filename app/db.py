@@ -18,7 +18,7 @@ def configure(url: str, max_size: int = 20) -> None:
     global _pool
     close()
     _pool = ConnectionPool(url, min_size=1, max_size=max_size, open=True, check=ConnectionPool.check_connection,
-                           kwargs={'row_factory': dict_row, 'autocommit': False, 'application_name': 'preparationpal-app'})
+                           kwargs={'row_factory': dict_row, 'autocommit': False, 'application_name': 'tayarishe-app'})
     _pool.wait(timeout=15)
 
 

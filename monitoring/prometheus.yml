@@ -10,14 +10,14 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # PreparationPalAI FastAPI backend. Reachable as `web:8000` when this stack is
+  # Tayarishe FastAPI backend. Reachable as `web:8000` when this stack is
   # launched in the same Compose project (see docker-compose.monitoring.yml).
-  - job_name: preparationpalai-web
+  - job_name: tayarishe-web
     metrics_path: /metrics
     static_configs:
       - targets: ["web:8000"]
         labels:
-          service: preparationpalai-web
+          service: tayarishe-web
 
   # Internal billing service (credit ledger). Only reachable inside the hosted Compose network.
   - job_name: billing

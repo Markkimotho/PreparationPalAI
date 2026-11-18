@@ -35,13 +35,13 @@ def base_url() -> str:
 @router.get('/', response_class=HTMLResponse)
 def landing():
     base = base_url()
-    title = 'PreparationPalAI — Study deeply. Prepare confidently.'
+    title = 'Tayarishe — Study deeply. Prepare confidently.'
     description = 'Exam revision and interview practice built from your own notes: answers with sources, quizzes that explain, flashcards and a coach. Pay only for what you use; 500 free credits to start.'
     image = get_settings().social_image
     image = image if image.startswith('https://') else base + '/' + image.lstrip('/')
     canonical = f'<link rel="canonical" href="{html.escape(base)}/">' if base else '<meta name="robots" content="noindex, nofollow">'
     schema = json.dumps({'@context': 'https://schema.org', '@type': 'SoftwareApplication',
-        'name': 'PreparationPalAI', 'applicationCategory': 'EducationalApplication',
+        'name': 'Tayarishe', 'applicationCategory': 'EducationalApplication',
         'operatingSystem': 'macOS, Linux, Windows', 'description': description,
         **({'url': base + '/'} if base else {})}).replace('<', '\\u003c')
     return HTMLResponse(f"""<!doctype html><html lang="en"><head>
@@ -58,7 +58,7 @@ def landing():
 </head><body>
 <div class="glow glow-a" aria-hidden="true"></div><div class="glow glow-b" aria-hidden="true"></div>
 <nav aria-label="Main">
-  <a class="brand" href="/"><span class="mark" aria-hidden="true"></span>PreparationPalAI</a>
+  <a class="brand" href="/"><span class="mark" aria-hidden="true"></span>Tayarishe</a>
   <div class="links"><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="https://markkimotho.github.io/PreparationPalAI/">Guide</a>
   <a class="ghost" href="/prepare">Sign in</a><a class="cta" href="/prepare">Start free</a></div>
 </nav>
@@ -117,7 +117,7 @@ def landing():
 <section class="personal">
   <div class="avatars" aria-hidden="true"><span class="av v1">A</span><span class="av v2">K</span><span class="av v3">M</span><span class="av v4">S</span><span class="av v5">L</span></div>
   <div><h2>Made for you, not for everyone.</h2>
-  <p>Tell PrepPal your subjects, your level and what you are preparing for. Every answer, quiz and practice session is pitched to you, in your language, and your own colour and avatar follow you to every device.</p></div>
+  <p>Tell Tayarishe your subjects, your level and what you are preparing for. Every answer, quiz and practice session is pitched to you, in your language, and your own colour and avatar follow you to every device.</p></div>
 </section>
 
 <section class="pricing" id="pricing" aria-labelledby="pricing-title">
@@ -131,10 +131,10 @@ def landing():
   <p class="devices">On the web today. iPhone and Android apps are coming soon, with the same account and balance.</p>
 </section>
 
-<section class="setup" id="setup"><div><h2>Prefer to run it yourself?</h2><p>PreparationPalAI is open source. Run it on your computer with your own Ollama models, free and unmetered.</p></div>
+<section class="setup" id="setup"><div><h2>Prefer to run it yourself?</h2><p>Tayarishe is open source. Run it on your computer with your own Ollama models, free and unmetered.</p></div>
 <ol><li><a href="https://github.com/Markkimotho/PreparationPalAI">Clone the repository</a>.</li><li>Run <code>docker compose up --build</code>. The first run downloads the default models.</li><li>Open <code>localhost:8000/prepare</code> and choose a topic.</li></ol></section>
 </main>
-<footer><span class="brand"><span class="mark" aria-hidden="true"></span>PreparationPalAI</span><div><a href="https://markkimotho.github.io/PreparationPalAI/">Documentation</a><a href="https://github.com/Markkimotho/PreparationPalAI">GitHub</a></div></footer>
+<footer><span class="brand"><span class="mark" aria-hidden="true"></span>Tayarishe</span><div><a href="https://markkimotho.github.io/PreparationPalAI/">Documentation</a><a href="https://github.com/Markkimotho/PreparationPalAI">GitHub</a></div></footer>
 </body></html>""")
 
 
@@ -156,7 +156,7 @@ def sitemap():
 
 @router.get('/manifest.webmanifest')
 def manifest():
-    return Response(json.dumps(dict(name='PreparationPalAI', short_name='PrepPal',
+    return Response(json.dumps(dict(name='Tayarishe', short_name='Tayarishe',
         start_url='/prepare', display='standalone', background_color='#f5f6f2',
         theme_color='#194f3c', icons=[dict(src='/favicon.svg', sizes='any', type='image/svg+xml')])),
         media_type='application/manifest+json')

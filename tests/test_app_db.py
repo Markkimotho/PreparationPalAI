@@ -52,7 +52,7 @@ def test_the_pool_recovers_after_a_connection_is_killed(pg):
         conn.execute('SELECT 1')
     with psycopg.connect(URL, autocommit=True) as admin:
         admin.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'app' AND pid <> pg_backend_pid() "
-                      "AND application_name = 'preparationpal-app'")
+                      "AND application_name = 'tayarishe-app'")
     with pg.transaction() as conn:
         assert conn.execute('SELECT 1 AS ok').fetchone()['ok'] == 1
 

@@ -39,7 +39,7 @@ async def lifespan(_app):
     db.close()
 
 
-app = FastAPI(title='PreparationPalAI billing', version='1.0.0', lifespan=lifespan)
+app = FastAPI(title='Tayarishe billing', version='1.0.0', lifespan=lifespan)
 router = APIRouter(dependencies=[Depends(require_token)])
 
 

@@ -24,7 +24,7 @@ def _next_key() -> rsa.RSAPrivateKey:
 
 
 class FakeIssuer:
-    def __init__(self, audience='https://api.preparationpal.test', alg='RS256'):
+    def __init__(self, audience='https://api.tayarishe.test', alg='RS256'):
         self.audience = audience
         self.alg = alg                  # Logto's default is ES384 (EC P-384)
         self.fetches = 0

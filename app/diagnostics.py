@@ -14,11 +14,11 @@ from app.config import get_settings
 from app.workspace import request_id, workspace_id
 
 router = APIRouter(tags=['Operations'])
-HTTP_REQUESTS = Counter('preparationpalai_requests_total', 'Requests by route, workspace and outcome', ['route', 'workspace', 'status'])
-HTTP_SECONDS = Histogram('preparationpalai_request_seconds', 'Complete HTTP/SSE latency', ['route'])
-DEPENDENCY_UP = Counter('preparationpalai_readiness_failures_total', 'Readiness dependency failures', ['dependency'])
-RETRIEVAL_FAILURES = Counter('preparationpalai_retrieval_failures_total', 'Retrieval failures')
-FRONTEND_ERRORS = Counter('preparationpalai_frontend_errors_total', 'Sanitized frontend errors', ['kind'])
+HTTP_REQUESTS = Counter('tayarishe_requests_total', 'Requests by route, workspace and outcome', ['route', 'workspace', 'status'])
+HTTP_SECONDS = Histogram('tayarishe_request_seconds', 'Complete HTTP/SSE latency', ['route'])
+DEPENDENCY_UP = Counter('tayarishe_readiness_failures_total', 'Readiness dependency failures', ['dependency'])
+RETRIEVAL_FAILURES = Counter('tayarishe_retrieval_failures_total', 'Retrieval failures')
+FRONTEND_ERRORS = Counter('tayarishe_frontend_errors_total', 'Sanitized frontend errors', ['kind'])
 
 
 class SafeFormatter(logging.Formatter):

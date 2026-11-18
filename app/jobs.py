@@ -15,9 +15,9 @@ from app.workspace import workspace_id, identity_id, request_id
 from app.upload_safety import validate_upload
 
 router = APIRouter(prefix='/api/kb/jobs', tags=['Ingestion jobs'])
-BACKLOG = Gauge('preparationpalai_ingestion_jobs', 'Ingestion jobs by state', ['state'])
-WORKER_HEARTBEAT = Gauge('preparationpalai_worker_heartbeat_timestamp', 'Worker heartbeat timestamp')
-JOB_RESULTS = Counter('preparationpalai_ingestion_results_total', 'Ingestion outcomes', ['status'])
+BACKLOG = Gauge('tayarishe_ingestion_jobs', 'Ingestion jobs by state', ['state'])
+WORKER_HEARTBEAT = Gauge('tayarishe_worker_heartbeat_timestamp', 'Worker heartbeat timestamp')
+JOB_RESULTS = Counter('tayarishe_ingestion_results_total', 'Ingestion outcomes', ['status'])
 
 
 def store():

@@ -7,7 +7,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 ALERTS = yaml.safe_load((ROOT / 'monitoring' / 'alerts.yml').read_text())
-DASHBOARD = json.loads((ROOT / 'monitoring' / 'grafana' / 'dashboards' / 'preparationpalai.json').read_text())
+DASHBOARD = json.loads((ROOT / 'monitoring' / 'grafana' / 'dashboards' / 'tayarishe.json').read_text())
 BILLING_METRICS = (ROOT / 'services' / 'billing' / 'billing' / 'metrics.py').read_text()
 
 

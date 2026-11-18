@@ -1,4 +1,4 @@
-"""FastAPI backend for the PreparationPalAI React frontend.
+"""FastAPI backend for the Tayarishe React frontend.
 
 This is a thin adapter: every route delegates to an existing engine module in
 `app/` and shapes the result for HTTP. Conversational endpoints stream tokens
@@ -110,7 +110,7 @@ async def lifespan(app):
         thread.join(timeout=5)
 
 
-app = FastAPI(title="PreparationPalAI", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="Tayarishe", version="1.1.0", lifespan=lifespan)
 app.include_router(coach_router)
 app.include_router(public_router)
 app.include_router(auth_router)
