@@ -59,7 +59,7 @@ def landing():
 <div class="glow glow-a" aria-hidden="true"></div><div class="glow glow-b" aria-hidden="true"></div>
 <nav aria-label="Main">
   <a class="brand" href="/"><span class="mark" aria-hidden="true"></span>Tayarishe</a>
-  <div class="links"><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="https://markkimotho.github.io/PreparationPalAI/">Guide</a>
+  <div class="links"><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="https://markkimotho.github.io/Tayarishe/">Guide</a>
   <a class="ghost" href="/prepare">Sign in</a><a class="cta" href="/prepare">Start free</a></div>
 </nav>
 <main>
@@ -132,9 +132,9 @@ def landing():
 </section>
 
 <section class="setup" id="setup"><div><h2>Prefer to run it yourself?</h2><p>Tayarishe is open source. Run it on your computer with your own Ollama models, free and unmetered.</p></div>
-<ol><li><a href="https://github.com/Markkimotho/PreparationPalAI">Clone the repository</a>.</li><li>Run <code>docker compose up --build</code>. The first run downloads the default models.</li><li>Open <code>localhost:8000/prepare</code> and choose a topic.</li></ol></section>
+<ol><li><a href="https://github.com/Markkimotho/Tayarishe">Clone the repository</a>.</li><li>Run <code>docker compose up --build</code>. The first run downloads the default models.</li><li>Open <code>localhost:8000/prepare</code> and choose a topic.</li></ol></section>
 </main>
-<footer><span class="brand"><span class="mark" aria-hidden="true"></span>Tayarishe</span><div><a href="https://markkimotho.github.io/PreparationPalAI/">Documentation</a><a href="https://github.com/Markkimotho/PreparationPalAI">GitHub</a></div></footer>
+<footer><span class="brand"><span class="mark" aria-hidden="true"></span>Tayarishe</span><div><a href="https://markkimotho.github.io/Tayarishe/">Documentation</a><a href="https://github.com/Markkimotho/Tayarishe">GitHub</a></div></footer>
 </body></html>""")
 
 

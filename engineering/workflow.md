@@ -5,7 +5,7 @@ description: Propose a focused change, verify it, and prepare a reviewable pull 
 
 ## Find a focused contribution
 
-Start with the [open issues](https://github.com/Markkimotho/PreparationPalAI/issues)
+Start with the [open issues](https://github.com/Markkimotho/Tayarishe/issues)
 or a small problem you can reproduce. Useful contributions include clearer feedback,
 better keyboard interactions, improved source handling, a representative evaluation
 case, or a correction to the user guide.
@@ -36,7 +36,7 @@ skipped or unavailable. Keep incomplete work in draft and record what remains.
 
 ## Update the appropriate guide
 
-Learner-visible changes belong in the [product guide](/PreparationPalAI/).
+Learner-visible changes belong in the [product guide](/Tayarishe/).
 Engineering decisions and operational changes belong here. Build both portals
 before submitting documentation changes.
 

@@ -1,7 +1,7 @@
 # Workspace access
 
 This reference is for workspace administrators and maintainers. For learner-facing
-sign-in help, use the [product guide](https://markkimotho.github.io/PreparationPalAI/help/privacy/).
+sign-in help, use the [product guide](https://markkimotho.github.io/Tayarishe/help/privacy/).
 
 Local development defaults to a single `local` workspace. Enable authentication
 before exposing the API outside a trusted machine. `PRODUCTION=true` refuses to

@@ -49,4 +49,4 @@ contains the instructions.
 ---
 
 To change the code or operate a shared installation, use the separate
-[contributor handbook](/PreparationPalAI/contribute/).
+[contributor handbook](/Tayarishe/contribute/).

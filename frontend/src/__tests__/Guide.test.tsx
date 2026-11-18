@@ -20,7 +20,7 @@ describe("Guide", () => {
     render(<Guide />);
     expect(screen.getByText("Core features")).toBeInTheDocument();
     expect(screen.queryByText("Developer")).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Full user guide ↗' })).toHaveAttribute('href', 'https://markkimotho.github.io/PreparationPalAI/');
+    expect(screen.getByRole('link', { name: 'Full user guide ↗' })).toHaveAttribute('href', 'https://markkimotho.github.io/Tayarishe/');
   });
 
   it("renders every guide section's content", () => {
@@ -35,7 +35,7 @@ describe("Guide", () => {
     render(<Guide />);
     expect(screen.queryByText(/Using Loki/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/compose_service/, { exact: false })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Contribute to the project ↗' })).toHaveAttribute('href', 'https://markkimotho.github.io/PreparationPalAI/contribute/');
+    expect(screen.getByRole('link', { name: 'Contribute to the project ↗' })).toHaveAttribute('href', 'https://markkimotho.github.io/Tayarishe/contribute/');
   });
 
   it("TOC entries are clickable buttons", async () => {

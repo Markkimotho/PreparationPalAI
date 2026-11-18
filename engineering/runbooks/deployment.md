@@ -1,7 +1,7 @@
 # Deployment and recovery
 
 For maintainers operating a shared installation. For a personal installation,
-see [get the app](https://markkimotho.github.io/PreparationPalAI/start/access/).
+see [get the app](https://markkimotho.github.io/Tayarishe/start/access/).
 
 The local Compose topology is Ollama + a one-shot model initializer + the non-root
 FastAPI/SPA container + a separate ingestion worker. API and worker share the jobs

@@ -1,6 +1,6 @@
 // Compact product help. Long-form learner docs and engineering references live
 // in separate MkDocs portals; implementation detail does not belong in this view.
-export const USER_GUIDE_URL = 'https://markkimotho.github.io/PreparationPalAI/';
+export const USER_GUIDE_URL = 'https://markkimotho.github.io/Tayarishe/';
 export const CONTRIBUTOR_GUIDE_URL = `${USER_GUIDE_URL}contribute/`;
 
 export interface GuideSection {

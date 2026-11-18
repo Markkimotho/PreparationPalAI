@@ -1,7 +1,7 @@
 INHERIT: mkdocs.base.yml
 site_name: Tayarishe · User guide
 site_description: Learn how to prepare for exams, technical interviews, and deeper understanding with Tayarishe.
-site_url: https://markkimotho.github.io/PreparationPalAI/
+site_url: https://markkimotho.github.io/Tayarishe/
 docs_dir: docs
 site_dir: site
 edit_uri: edit/main/docs/
@@ -9,7 +9,7 @@ extra:
   audience: learner
   portal_label: User guide
   other_portal_label: Contributor handbook
-  other_portal_url: /PreparationPalAI/contribute/
+  other_portal_url: /Tayarishe/contribute/
 nav:
   - Welcome: index.md
   - Get started:

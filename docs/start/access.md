@@ -29,7 +29,7 @@ connection and several gigabytes of free disk space for local models.
 After installing Docker, open a terminal and run:
 
 ```bash
-git clone https://github.com/Markkimotho/PreparationPalAI.git
+git clone https://github.com/Markkimotho/Tayarishe.git
 cd Tayarishe
 docker compose up --build
 ```
@@ -62,4 +62,4 @@ The workspace has a sidebar, a model picker, and a **Knowledge base** control.
 If the model is offline or a download fails, use [troubleshooting](../help/troubleshooting.md).
 
 For a shared deployment, development setup, or a setup without Docker, use the
-[contributor handbook](/PreparationPalAI/contribute/development/).
+[contributor handbook](/Tayarishe/contribute/development/).

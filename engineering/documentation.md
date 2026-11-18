@@ -33,8 +33,8 @@ pip install -r requirements-docs.txt
 python scripts/build_docs.py --preview --port 8088
 ```
 
-Open `http://localhost:8088/PreparationPalAI/` for the product guide and
-`http://localhost:8088/PreparationPalAI/contribute/` for the handbook. This preview
+Open `http://localhost:8088/Tayarishe/` for the product guide and
+`http://localhost:8088/Tayarishe/contribute/` for the handbook. This preview
 preserves the GitHub project path, including links between the portals. To build
 without starting a server, run `python scripts/build_docs.py`.
 

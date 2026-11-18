@@ -16,7 +16,7 @@ Ollama. The documentation build is independent of all three.
 ## Start the backend
 
 ```bash
-git clone https://github.com/Markkimotho/PreparationPalAI.git
+git clone https://github.com/Markkimotho/Tayarishe.git
 cd Tayarishe
 python -m venv .venv
 source .venv/bin/activate
